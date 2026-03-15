@@ -352,7 +352,7 @@ header{
 }
 .fpill:hover{border-color:var(--border-mid);color:var(--ink)}
 .fpill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.fpill.dim{opacity:.35}
+.fpill.dim{opacity:.35;pointer-events:none;cursor:default}
 .filter-sep{height:1px;background:var(--border);margin:0 -1.3rem}
 .filter-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:space-between;align-items:center}
 .fcount-info{font-size:0.78rem;color:var(--ink-faint)}
@@ -522,7 +522,7 @@ header{
     <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
-    <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke-linecap="round"/></svg>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M12.6 3.4l-.85.85M4.25 11.75l-.85.85"/></svg>
   </button>
   <button class="hbtn hbtn-accent" onclick="openAdd()">
     <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
@@ -831,7 +831,7 @@ const WHEEL_ITEMS = {
 // ── STATE ─────────────────────────────────────────────────────────────────
 let recipes = [];
 let activeTags = new Set();
-let activeTime = 'all';
+let activeTime = '';
 let currentId = null;
 let editId = null;
 let pendingSync = [];
@@ -951,11 +951,23 @@ async function syncPending() {
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────
 function buildSettingsObj() {
+  // Custom tag groups = everything not in DEFAULT_TAG_GROUPS, plus extra tags in existing groups
+  const customTagGroups = {};
+  for (const [grp, tags] of Object.entries(TAG_GROUPS)) {
+    const def = DEFAULT_TAG_GROUPS[grp];
+    if (!def) {
+      // Entirely new category
+      customTagGroups[grp] = tags;
+    } else {
+      // Existing category — save only the extra tags
+      const extras = tags.filter(t => !def.includes(t));
+      if (extras.length) customTagGroups[grp] = extras;
+    }
+  }
   return {
-    customTagGroups: CUSTOM_TAG_GROUPS,
-    retiredUnits:    RETIRED_UNITS,
+    customTagGroups,
+    retiredUnits: RETIRED_UNITS,
     customUnitGroups: (() => {
-      // store only units not in defaults
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
         const def = DEFAULT_UNIT_GROUPS[grp] || [];
@@ -969,18 +981,18 @@ function buildSettingsObj() {
 
 function applySettingsObj(s) {
   if (!s) return;
-  // Merge custom tags into TAG_GROUPS
   if (s.customTagGroups) {
     CUSTOM_TAG_GROUPS = s.customTagGroups;
-    for (const [grp, tags] of Object.entries(CUSTOM_TAG_GROUPS)) {
-      if (TAG_GROUPS[grp]) {
-        TAG_GROUPS[grp] = [...new Set([...DEFAULT_TAG_GROUPS[grp]||[], ...tags])];
+    for (const [grp, tags] of Object.entries(s.customTagGroups)) {
+      if (DEFAULT_TAG_GROUPS[grp]) {
+        // Existing group — merge extras
+        TAG_GROUPS[grp] = [...new Set([...DEFAULT_TAG_GROUPS[grp], ...tags])];
       } else {
+        // Entirely new custom category
         TAG_GROUPS[grp] = tags;
       }
     }
   }
-  // Merge custom units
   if (s.customUnitGroups) {
     for (const [grp, units] of Object.entries(s.customUnitGroups)) {
       if (UNIT_GROUPS[grp]) {
@@ -988,7 +1000,6 @@ function applySettingsObj(s) {
       }
     }
   }
-  // Retired units
   if (s.retiredUnits) RETIRED_UNITS = s.retiredUnits;
 }
 
@@ -1030,10 +1041,11 @@ function switchStgTab(name, btn) {
 function renderStgTags() {
   const pane = document.getElementById('stg-pane-tags');
   let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
-    Manage predefined tags. Custom additions appear highlighted. Use the ✎ icon to rename a tag across all recipes.
+    Manage predefined tags. Custom additions appear highlighted. Use ✎ to rename a tag across all recipes.
   </div>`;
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
+    const isCustomGroup = !DEFAULT_TAG_GROUPS[group];
     const tagPills = tags.map(t => {
       const isCustom = !defaultTags.includes(t);
       const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -1044,21 +1056,72 @@ function renderStgTags() {
         <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove tag">×</button>
       </span>`;
     }).join('');
+    const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html += `<div class="stg-group">
       <div class="stg-group-head">
         <span class="stg-group-name">${esc(group)}</span>
+        ${isCustomGroup ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
       </div>
-      <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills}</div>
+      <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No tags yet — add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add tag to ${esc(group)}…" id="new-tag-${esc(group)}"
-            onkeydown="if(event.key==='Enter'){addTagToGroup('${esc(group)}');event.preventDefault()}">
-          <button onclick="addTagToGroup('${esc(group)}')">Add</button>
+            onkeydown="if(event.key==='Enter'){addTagToGroup('${safeGroup}');event.preventDefault()}">
+          <button onclick="addTagToGroup('${safeGroup}')">Add</button>
         </div>
       </div>
     </div>`;
   }
+  // Add new category section
+  html += `<div style="border:1px dashed var(--border-mid);border-radius:var(--radius-lg);padding:0.7rem 0.9rem">
+    <div class="stg-section-lbl" style="margin-bottom:0.5rem">Add new category</div>
+    <div class="stg-add-row">
+      <input type="text" placeholder="Category name…" id="new-tag-category"
+        onkeydown="if(event.key==='Enter'){addTagCategory();event.preventDefault()}">
+      <button onclick="addTagCategory()">Create</button>
+    </div>
+  </div>`;
   pane.innerHTML = html;
+}
+
+function addTagCategory() {
+  const input = document.getElementById('new-tag-category');
+  const name  = toTitleCase(input.value.trim());
+  if (!name) return;
+  if (TAG_GROUPS[name]) { toast(`"${name}" already exists`); return; }
+  TAG_GROUPS[name] = [];
+  if (!CUSTOM_TAG_GROUPS[name]) CUSTOM_TAG_GROUPS[name] = [];
+  saveSettings();
+  renderStgTags();
+  input.value = '';
+  toast(`"${name}" category created`);
+}
+
+function removeTagCategory(group) {
+  const tagsInGroup = TAG_GROUPS[group] || [];
+  const affectedRecipes = tagsInGroup.length > 0
+    ? recipes.filter(r => r.tags?.some(t => tagsInGroup.map(g=>g.toLowerCase()).includes(t.toLowerCase())))
+    : [];
+  const msg = affectedRecipes.length > 0
+    ? `"${group}" contains ${tagsInGroup.length} tag${tagsInGroup.length>1?'s':''} used on ${affectedRecipes.length} recipe${affectedRecipes.length>1?'s':''}. Tags will be removed from those recipes.`
+    : `Remove the "${group}" category? This cannot be undone.`;
+  showConfirm(`Remove "${group}"?`, msg, [
+    { label: 'Remove category', danger: true, fn: () => {
+      // Remove tags from recipes
+      tagsInGroup.forEach(tag => {
+        recipes.forEach(r => {
+          if (r.tags) r.tags = r.tags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+        });
+      });
+      delete TAG_GROUPS[group];
+      delete CUSTOM_TAG_GROUPS[group];
+      if (affectedRecipes.length > 0) saveToGist();
+      saveSettings();
+      renderStgTags();
+      render();
+      toast(`"${group}" removed`);
+    }}
+  ]);
 }
 
 function startRenameTag(group, tag) {
@@ -1302,24 +1365,45 @@ function openFilter() {
 function closeFilter() { document.getElementById('fmodal').classList.remove('open'); render(); }
 
 function renderFilterModal() {
-  // compute available tags from all recipes
   const allRecipeTags = new Set(recipes.flatMap(r => r.tags||[]));
-  // compute what would match with current time filter + search
   const q = document.getElementById('search').value.toLowerCase().trim();
-  const base = recipes.filter(r => {
-    if (q && !r.name?.toLowerCase().includes(q)) return false;
-    if (activeTime !== 'all') {
-      const m = totalMins(r);
-      if (activeTime==='quick'&&(m==null||m>=30)) return false;
-      if (activeTime==='medium'&&(m==null||m<30||m>60)) return false;
-      if (activeTime==='long'&&(m==null||m<=60)) return false;
+
+  // Build a map of group -> which tags are active in that group
+  const activeByGroup = {};
+  for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+    activeByGroup[group] = tags.filter(t => activeTags.has(t));
+  }
+
+  // For each candidate tag, determine if selecting it (added to current filters) returns > 0 results
+  function wouldMatch(candidateTag) {
+    let candidateGroup = null;
+    for (const [g, tags] of Object.entries(TAG_GROUPS)) {
+      if (tags.includes(candidateTag)) { candidateGroup = g; break; }
     }
-    return true;
-  });
-  const baseTags = new Set(base.flatMap(r => r.tags||[]));
+    return recipes.some(r => {
+      if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+      if (activeTime !== '') {
+        const m = totalMins(r);
+        if (activeTime==='quick'  && (m==null||m>=30))      return false;
+        if (activeTime==='medium' && (m==null||m<30||m>60)) return false;
+        if (activeTime==='long'   && (m==null||m<=60))       return false;
+      }
+      // Check each group using OR-within, AND-between
+      for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+        const groupActive = activeByGroup[group] || [];
+        if (group === candidateGroup) {
+          // Include candidate in this group's OR check
+          const needed = [...groupActive, candidateTag];
+          if (!needed.some(t => r.tags?.includes(t))) return false;
+        } else {
+          if (groupActive.length > 0 && !groupActive.some(t => r.tags?.includes(t))) return false;
+        }
+      }
+      return true;
+    });
+  }
 
   let html = '';
-  // Tag groups
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     const relevant = tags.filter(t => allRecipeTags.has(t));
     if (!relevant.length) continue;
@@ -1328,20 +1412,35 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${relevant.map(t => {
           const active = activeTags.has(t);
-          const available = baseTags.has(t) || active;
-          return `<span class="fpill${active?' active':''}${!available&&!active?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
+          // Only dim if not active AND selecting it would return nothing
+          const dim = !active && !wouldMatch(t);
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
         }).join('')}
       </div>
     </div>`;
   }
+
+  const timePills = [['quick','Under 30 min'],['medium','30 – 60 min'],['long','Over 60 min']].map(([v,l]) => {
+    const active = activeTime === v;
+    const dim = !active && !recipes.some(r => {
+      if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+      // Apply current tag filters with OR-within AND-between
+      for (const groupTags of Object.values(activeByGroup)) {
+        if (!groupTags.some(t => r.tags?.includes(t))) return false;
+      }
+      const m = totalMins(r);
+      if (v==='quick'  && (m==null||m>=30))      return false;
+      if (v==='medium' && (m==null||m<30||m>60)) return false;
+      if (v==='long'   && (m==null||m<=60))       return false;
+      return true;
+    });
+    return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setTimeFilter('${v}')">${l}</span>`;
+  }).join('');
+
   html += `<div class="filter-sep"></div>
     <div>
       <div class="filter-group-label">Cook time</div>
-      <div class="filter-pill-row">
-        ${[['all','Any time'],['quick','Under 30 min'],['medium','30 – 60 min'],['long','Over 60 min']].map(([v,l]) =>
-          `<span class="fpill${activeTime===v?' active':''}" onclick="setTimeFilter('${v}')">${l}</span>`
-        ).join('')}
-      </div>
+      <div class="filter-pill-row">${timePills}</div>
     </div>`;
 
   document.getElementById('filter-body').innerHTML = html;
@@ -1355,18 +1454,18 @@ function toggleFilterTag(tag) {
 }
 
 function setTimeFilter(t) {
-  activeTime = t;
+  activeTime = (activeTime === t) ? '' : t;
   renderFilterModal();
 }
 
 function clearFilters() {
   activeTags.clear();
-  activeTime = 'all';
+  activeTime = '';
   renderFilterModal();
 }
 
 function updateFilterCount() {
-  const total = activeTags.size + (activeTime !== 'all' ? 1 : 0);
+  const total = activeTags.size + (activeTime !== '' ? 1 : 0);
   const badge = document.getElementById('filter-count-badge');
   const btn = document.getElementById('filter-btn');
   badge.textContent = total;
@@ -1377,15 +1476,37 @@ function updateFilterCount() {
   document.getElementById('filter-count-info').textContent = total ? `${matching} recipe${matching!==1?'s':''} match` : '';
 }
 
+function getActiveTagsByGroup() {
+  const byGroup = {};
+  for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+    const active = tags.filter(t => activeTags.has(t));
+    if (active.length) byGroup[group] = active;
+  }
+  return byGroup;
+}
+
 function matchesFilters(r) {
   const q = document.getElementById('search').value.toLowerCase().trim();
   if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-  if (activeTags.size > 0 && ![...activeTags].every(t => r.tags?.includes(t))) return false;
-  if (activeTime !== 'all') {
+
+  // OR within group, AND between groups
+  if (activeTags.size > 0) {
+    const byGroup = getActiveTagsByGroup();
+    for (const groupTags of Object.values(byGroup)) {
+      // Recipe must have at least one tag from this group's active selection
+      if (!groupTags.some(t => r.tags?.includes(t))) return false;
+    }
+    // Also handle any active tags not in a known group (free-form tags) — AND logic
+    const knownTags = new Set(Object.values(TAG_GROUPS).flat());
+    const ungrouped = [...activeTags].filter(t => !knownTags.has(t));
+    if (ungrouped.length && !ungrouped.every(t => r.tags?.includes(t))) return false;
+  }
+
+  if (activeTime !== '') {
     const m = totalMins(r);
-    if (activeTime==='quick'&&(m==null||m>=30)) return false;
-    if (activeTime==='medium'&&(m==null||m<30||m>60)) return false;
-    if (activeTime==='long'&&(m==null||m<=60)) return false;
+    if (activeTime==='quick'  && (m==null||m>=30))      return false;
+    if (activeTime==='medium' && (m==null||m<30||m>60)) return false;
+    if (activeTime==='long'   && (m==null||m<=60))       return false;
   }
   return true;
 }
@@ -1393,13 +1514,13 @@ function matchesFilters(r) {
 // ── RENDER ────────────────────────────────────────────────────────────────
 function render() {
   const filtered = recipes.filter(r => matchesFilters(r));
-  const total = activeTags.size + (activeTime!=='all'?1:0);
+  const total = activeTags.size + (activeTime!==''?1:0);
 
   // active chips
   const chips = document.getElementById('active-chips');
   const chipParts = [];
   activeTags.forEach(t => chipParts.push(`<span class="active-chip" onclick="removeActiveTag('${t}')"><span>×</span>${t}</span>`));
-  if (activeTime!=='all') {
+  if (activeTime!=='') {
     const labels = {quick:'Under 30 min',medium:'30–60 min',long:'Over 60 min'};
     chipParts.push(`<span class="active-chip" onclick="removeTimeFilter()"><span>×</span>${labels[activeTime]}</span>`);
   }
