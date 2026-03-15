@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Benny's Recipes">
+<title>Benny's Recipes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1410;
+  --ink-mid:#4a3f35;
+  --ink-muted:#7a6e65;
+  --ink-faint:#b0a69c;
+  --cream:#faf7f2;
+  --paper:#f3ede3;
+  --card:#ffffff;
+  --border:#e2d9ce;
+  --border-mid:#cdc2b5;
+  --accent:#b85c2a;
+  --accent-dim:#c97040;
+  --accent-light:#f5e8df;
+  --accent-text:#7a3310;
+  --tag-bg:#ede4d8;
+  --tag-text:#5a4535;
+  --warning:#7a5a10;
+  --warning-bg:#fdf3dc;
+  --danger:#8a2020;
+  --danger-bg:#f8e8e8;
+  --offline-bg:#fff8e8;
+  --offline-border:#e8c840;
+  --header:60px;
+  --radius:8px;
+  --radius-lg:12px;
+}
+html,body{height:100%;background:var(--cream);color:var(--ink);font-family:'Instrument Sans',sans-serif}
+
+/* ── OFFLINE BANNER ── */
+#offline-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:var(--offline-bg);border-bottom:1.5px solid var(--offline-border);
+  padding:7px 1.2rem;font-size:0.78rem;color:var(--warning);align-items:center;gap:8px;
+}
+#offline-banner.show{display:flex}
+#offline-banner .dot{width:6px;height:6px;border-radius:50%;background:var(--offline-border);flex-shrink:0}
+#sync-btn{
+  margin-left:auto;background:var(--warning);color:#fff;border:none;
+  padding:3px 10px;border-radius:4px;font-size:0.73rem;cursor:pointer;
+  font-family:'Instrument Sans',sans-serif;display:none;
+}
+#sync-btn.show{display:block}
+
+/* ── HEADER ── */
+header{
+  height:var(--header);background:var(--ink);
+  display:flex;align-items:center;padding:0 1.2rem;gap:0.75rem;
+  position:sticky;top:0;z-index:100;
+}
+.logo{
+  font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--cream);
+  font-weight:500;letter-spacing:0.01em;flex:1;
+}
+.logo em{font-style:italic;color:var(--accent-dim)}
+.hbtn{
+  background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.75);
+  padding:0.4rem 0.75rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;
+}
+.hbtn:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
+.hbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.hbtn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.hbtn-accent:hover{background:var(--accent-text);border-color:var(--accent-text);color:#fff}
+
+/* ── MAIN ── */
+.app{height:calc(100vh - var(--header));overflow-y:auto;padding:1.2rem 1.2rem 3rem}
+.toolbar{display:flex;align-items:center;gap:0.6rem;margin-bottom:1.1rem;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0}
+.search-wrap{position:relative;flex:1;min-width:0;max-width:320px}
+.search-wrap input{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:0.45rem 0.75rem 0.45rem 2rem;
+  font-family:'Instrument Sans',sans-serif;font-size:0.85rem;color:var(--ink);
+  outline:none;transition:border-color .15s;
+}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--ink-faint)}
+.search-icon{position:absolute;left:0.6rem;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--ink-faint);fill:none;stroke-width:1.8;stroke-linecap:round;pointer-events:none}
+.filter-btn{
+  background:var(--card);border:1px solid var(--border);color:var(--ink-muted);
+  padding:0.42rem 0.85rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;
+}
+.filter-btn:hover{border-color:var(--border-mid);color:var(--ink)}
+.filter-btn.has-filters{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+.filter-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.active-filter-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.8rem}
+.active-chip{
+  font-size:0.72rem;background:var(--accent-light);color:var(--accent-text);
+  border:1px solid var(--accent);padding:2px 8px 2px 9px;border-radius:10px;
+  display:flex;align-items:center;gap:4px;cursor:pointer;
+}
+.active-chip:hover{background:var(--accent);color:#fff}
+.active-chip span{font-size:0.85rem;line-height:1}
+.result-info{font-size:0.8rem;color:var(--ink-faint);margin-bottom:0.9rem}
+
+/* ── GRID ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.8rem}
+.rcard{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  overflow:hidden;cursor:pointer;
+  transition:transform .15s,box-shadow .15s,border-color .15s;
+  display:flex;flex-direction:column;
+}
+.rcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(26,20,16,.09);border-color:var(--border-mid)}
+.card-stripe{height:4px;background:var(--accent);opacity:.65}
+.card-body{padding:0.8rem 0.9rem 0.9rem;flex:1;display:flex;flex-direction:column;gap:0.55rem}
+.card-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:500;line-height:1.3;color:var(--ink)}
+.card-meta{display:flex;gap:0.75rem;margin-top:auto;padding-top:0.4rem}
+.cmeta{font-size:0.74rem;color:var(--ink-faint);display:flex;align-items:center;gap:3px}
+.cmeta svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
+
+.empty{grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--ink-muted)}
+.empty-icon{font-size:2.2rem;margin-bottom:0.6rem}
+.empty h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:500;margin-bottom:0.3rem}
+.empty p{font-size:0.82rem}
+
+/* ── MODALS ── */
+.backdrop{
+  display:none;position:fixed;inset:0;background:rgba(26,20,16,.55);
+  z-index:200;align-items:flex-start;justify-content:center;
+  padding:1.2rem 1rem;overflow-y:auto;
+}
+.backdrop.open{display:flex}
+.modal{
+  background:var(--card);border-radius:var(--radius-lg);width:100%;max-width:660px;
+  flex-shrink:0;box-shadow:0 20px 60px rgba(26,20,16,.22);margin:auto;
+}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1.3rem;border-bottom:1px solid var(--border);
+}
+.modal-head h2{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:500}
+.xbtn{background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1.15rem;padding:2px 5px;border-radius:4px;line-height:1;transition:color .1s}
+.xbtn:hover{color:var(--ink)}
+
+/* ── VIEW MODAL ── */
+.vbody{padding:1.3rem;max-height:78vh;overflow-y:auto}
+.view-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.9rem}
+.vtag{font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);padding:2px 8px;border-radius:10px}
+.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.7rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:1.1rem}
+.vmeta{font-size:0.8rem;color:var(--ink-muted);display:flex;align-items:center;gap:4px}
+.vmeta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
+.vmeta strong{color:var(--ink);font-weight:500}
+.view-sec{margin-bottom:1.3rem}
+.vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
+/* ingredient sections in view */
+.ing-sec-title-view{font-size:0.78rem;font-weight:500;color:var(--ink-muted);font-style:italic;margin:12px 0 3px;padding-left:2px}
+.ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
+.ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
+.ing-table td{padding:5px 0.5rem;color:var(--ink-mid);vertical-align:top}
+.ing-table td:first-child{color:var(--ink)}
+/* no-scale in view — shown only when scaled (driven by data-scaled on vbody) */
+.noscale-note-view{font-size:0.73rem;color:var(--warning);padding:1px 0.5rem 5px;font-style:italic;display:none}
+.vbody[data-scaled="1"] .noscale-note-view{display:table-row}
+.scaled-qty{color:var(--accent-text);font-weight:500}
+/* method in view */
+.method-sec-view{margin-bottom:1.4rem}
+.msec-title{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.vstep{display:flex;gap:0.65rem;margin-bottom:0.45rem;font-size:0.86rem;line-height:1.6;color:var(--ink-mid)}
+.vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
+.vstep-noscale-note{font-size:0.73rem;color:var(--warning);font-style:italic;margin-top:3px;display:none}
+.vbody[data-scaled="1"] .vstep-noscale-note{display:block}
+.view-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:flex-end}
+.btn-danger{background:none;border:1px solid var(--border);color:var(--danger);padding:0.42rem 0.85rem;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:background .1s}
+.btn-danger:hover{background:var(--danger-bg)}
+.btn-sec{background:none;border:1px solid var(--border);color:var(--ink-muted);padding:0.42rem 0.85rem;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:all .1s}
+.btn-sec:hover{background:var(--paper);color:var(--ink)}
+.btn-pri{background:var(--accent);border:1px solid var(--accent);color:#fff;padding:0.42rem 0.85rem;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;cursor:pointer;transition:background .1s}
+.btn-pri:hover{background:var(--accent-text)}
+
+/* ── FORM ── */
+.fbody{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem;max-height:76vh;overflow-y:auto}
+.fg{display:flex;flex-direction:column;gap:0.3rem}
+.fg label{font-size:0.73rem;font-weight:500;color:var(--ink-muted)}
+.fg input,.fg textarea,.fg select{
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;
+  font-size:0.86rem;color:var(--ink);background:var(--cream);
+  outline:none;transition:border-color .15s;resize:vertical;
+}
+.fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem}
+
+/* ── TAGS INPUT ── */
+.tags-wrap{position:relative}
+.tags-input-box{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);
+  padding:0.35rem 0.5rem;display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+  cursor:text;transition:border-color .15s;min-height:38px;
+}
+.tags-input-box:focus-within{border-color:var(--accent)}
+.tpill{
+  font-size:0.73rem;background:var(--accent-light);color:var(--accent-text);
+  padding:2px 7px 2px 8px;border-radius:10px;display:flex;align-items:center;gap:3px;
+}
+.tpill button{background:none;border:none;cursor:pointer;color:var(--accent-text);font-size:0.88rem;line-height:1;padding:0;opacity:.7}
+.tpill button:hover{opacity:1}
+.tags-input-box input{
+  border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;
+  font-size:0.8rem;color:var(--ink);flex:1;min-width:70px;padding:2px 3px;
+}
+.tag-sugs{
+  border:1px solid var(--border);border-radius:var(--radius);background:var(--card);
+  box-shadow:0 4px 14px rgba(26,20,16,.1);display:none;
+  position:absolute;z-index:50;width:100%;top:calc(100% + 3px);left:0;
+  max-height:260px;overflow-y:auto;
+}
+.tag-sugs.show{display:block}
+.tsug-group-lbl{
+  font-size:0.6rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;
+  color:var(--ink-faint);padding:7px 11px 3px;
+}
+.tsug-group-lbl:not(:first-child){border-top:1px solid var(--border);padding-top:8px}
+.tsug-row{display:flex;flex-wrap:wrap;gap:4px;padding:2px 8px 6px}
+.tsug{
+  font-size:0.75rem;padding:3px 9px;border-radius:12px;cursor:pointer;
+  background:var(--paper);color:var(--ink-muted);border:1px solid var(--border);
+  transition:all .1s;font-family:'Instrument Sans',sans-serif;
+}
+.tsug:hover{background:var(--accent-light);color:var(--accent-text);border-color:var(--accent)}
+.tsug.already{opacity:.35;cursor:default;pointer-events:none}
+
+/* ── WHEEL PANELS ── */
+.wheel-panel{
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:0.6rem 0.75rem 0.65rem;display:flex;flex-direction:column;gap:0.5rem;
+}
+.wheel-panel-title{
+  font-size:0.73rem;font-weight:500;color:var(--ink-muted);
+  text-align:center;letter-spacing:0.01em;
+}
+
+/* ── WHEELS ── */
+.wheel-row{display:flex;gap:0.75rem;align-items:flex-start}
+.wg{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.wg-lbl{font-size:0.68rem;color:var(--ink-faint)}
+.wheel-outer{
+  height:96px;overflow:hidden;position:relative;
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--cream);cursor:ns-resize;user-select:none;width:100%;
+}
+.wfade-t,.wfade-b{position:absolute;left:0;right:0;height:28px;pointer-events:none;z-index:2}
+.wfade-t{top:0;background:linear-gradient(to bottom,var(--cream),transparent)}
+.wfade-b{bottom:0;background:linear-gradient(to top,var(--cream),transparent)}
+.wline{position:absolute;left:0;right:0;top:calc(50% - 0.5px);height:1px;background:var(--accent);opacity:.35;pointer-events:none;z-index:3}
+.wheel-inner{display:flex;flex-direction:column;align-items:center;transition:transform .15s cubic-bezier(.25,.46,.45,.94)}
+.witem{height:32px;display:flex;align-items:center;justify-content:center;font-size:0.88rem;color:var(--ink-faint);width:100%;transition:color .1s,font-size .1s,font-weight .1s}
+.witem.sel{color:var(--ink);font-size:0.98rem;font-weight:500}
+
+/* ── INGREDIENT SECTIONS BUILDER ── */
+.ing-builder{display:flex;flex-direction:column;gap:1rem}
+.ing-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.ing-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
+.ing-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;color:var(--ink-mid)}
+.ing-sec-head input::placeholder{color:var(--ink-faint)}
+.ing-rows{padding:0.45rem 0.5rem;display:flex;flex-direction:column;gap:0.4rem}
+.ing-row-wrap{display:flex;flex-direction:column;gap:2px}
+.ing-fields{display:grid;grid-template-columns:minmax(0,2fr) 72px minmax(0,1.2fr) minmax(0,1.2fr) auto auto;gap:0.35rem;align-items:center}
+.ing-fields input,.ing-fields select{
+  border:1px solid var(--border);border-radius:6px;padding:4px 6px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);
+  background:var(--cream);outline:none;width:100%;transition:border-color .15s;min-width:0;
+}
+.ing-fields input:focus,.ing-fields select:focus{border-color:var(--accent)}
+.ing-fields input::placeholder{color:var(--ink-faint);font-size:0.75rem}
+.ing-fields select{color:var(--ink-muted);cursor:pointer;padding-right:4px}
+.ing-fields select.has-val{color:var(--ink)}
+.ing-col-lbl{font-size:0.62rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:1.05rem;line-height:1;padding:2px 3px;border-radius:4px;transition:color .1s}
+.del-btn:hover{color:var(--danger)}
+.ing-sec-foot{padding:0.3rem 0.5rem 0.45rem;display:flex;gap:0.4rem}
+.add-row-btn{
+  background:none;border:1px dashed var(--border-mid);color:var(--ink-faint);
+  padding:6px;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;
+  font-size:0.77rem;cursor:pointer;transition:all .12s;display:flex;align-items:center;
+  justify-content:center;gap:4px;
+}
+.add-row-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.add-row-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+
+/* ── METHOD BUILDER ── */
+.method-builder{display:flex;flex-direction:column;gap:1rem}
+.method-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.method-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
+.method-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;color:var(--ink-mid)}
+.method-sec-head input::placeholder{color:var(--ink-faint)}
+.method-steps{padding:0.4rem 0.5rem;display:flex;flex-direction:column;gap:0.35rem}
+.step-row{display:flex;align-items:flex-start;gap:0.45rem}
+.step-num-s{min-width:19px;height:19px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.63rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:5px}
+.step-row textarea{flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;color:var(--ink);background:var(--cream);outline:none;resize:none;min-height:32px;line-height:1.5;transition:border-color .15s;overflow:hidden}
+.step-row textarea:focus{border-color:var(--accent)}
+.method-sec-foot{padding:0.3rem 0.5rem 0.45rem;display:flex;gap:0.4rem}
+
+/* ── SCALE SEGMENT BUTTONS ── */
+.scale-seg{
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  padding:3px 10px;border-radius:20px;font-family:'Instrument Sans',sans-serif;
+  font-size:0.78rem;cursor:pointer;transition:all .12s;
+}
+.scale-seg:hover{border-color:var(--border-mid);color:var(--ink)}
+.scale-seg.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+
+/* ── NO-SCALE TOGGLE ── */
+.noscale-toggle{
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:1px solid var(--border);border-radius:5px;
+  width:22px;height:22px;cursor:pointer;flex-shrink:0;
+  font-size:0.72rem;color:var(--ink-faint);transition:all .12s;
+  line-height:1;padding:0;font-family:'Instrument Sans',sans-serif;
+}
+.noscale-toggle:hover{border-color:var(--warning);color:var(--warning)}
+.noscale-toggle.on{background:var(--warning-bg);border-color:var(--warning);color:var(--warning)}
+.noscale-note-row{
+  display:none;padding:4px 0 2px;
+}
+.noscale-note-row.show{display:flex;gap:0.4rem;align-items:flex-start}
+.noscale-note-row textarea{
+  flex:1;border:1px solid var(--offline-border);border-radius:5px;padding:4px 7px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);
+  background:var(--warning-bg);outline:none;resize:none;min-height:28px;
+  line-height:1.4;transition:border-color .15s;overflow:hidden;
+}
+.noscale-note-row textarea:focus{border-color:var(--warning)}
+.noscale-note-row textarea::placeholder{color:var(--ink-faint)}
+
+/* ── FILTER MODAL ── */
+.filter-modal{max-width:480px}
+.fbody-filter{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:1rem;max-height:72vh;overflow-y:auto}
+.filter-group-label{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin-bottom:0.5rem}
+.filter-pill-row{display:flex;flex-wrap:wrap;gap:6px}
+.fpill{
+  font-size:0.78rem;padding:4px 11px;border-radius:20px;
+  background:var(--paper);color:var(--ink-muted);
+  border:1px solid var(--border);cursor:pointer;transition:all .12s;
+  font-family:'Instrument Sans',sans-serif;
+}
+.fpill:hover{border-color:var(--border-mid);color:var(--ink)}
+.fpill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fpill.dim{opacity:.35}
+.filter-sep{height:1px;background:var(--border);margin:0 -1.3rem}
+.filter-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:space-between;align-items:center}
+.fcount-info{font-size:0.78rem;color:var(--ink-faint)}
+
+/* ── INFO MODAL ── */
+.info-body{padding:1.3rem;font-size:0.86rem;line-height:1.7;color:var(--ink-mid);display:flex;flex-direction:column;gap:1rem;max-height:76vh;overflow-y:auto}
+.info-body h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.2rem}
+.info-body ol,.info-body ul{padding-left:1.1rem;display:flex;flex-direction:column;gap:0.3rem}
+.info-body code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:0.8rem;color:var(--accent-text);font-family:monospace}
+.info-body p{font-size:0.84rem}
+.info-sep{height:1px;background:var(--border)}
+.info-input-row{display:flex;flex-direction:column;gap:0.35rem}
+.info-input-row label{font-size:0.73rem;font-weight:500;color:var(--ink-muted)}
+.info-input-row input{border:1px solid var(--border);border-radius:var(--radius);padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;font-size:0.86rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s}
+.info-input-row input:focus{border-color:var(--accent)}
+.info-note{font-size:0.75rem;color:var(--ink-faint);font-style:italic}
+
+/* ── SETUP MODAL ── */
+.setup-body{padding:1.2rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem;font-size:0.84rem;line-height:1.6;color:var(--ink-mid)}
+.setup-input-row{display:flex;flex-direction:column;gap:0.3rem}
+.setup-input-row label{font-size:0.73rem;font-weight:500;color:var(--ink-muted)}
+.setup-input-row input{border:1px solid var(--border);border-radius:var(--radius);padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;font-size:0.86rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s}
+.setup-input-row input:focus{border-color:var(--accent)}
+.setup-note{font-size:0.75rem;color:var(--ink-faint);font-style:italic}
+.form-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:flex-end}
+
+/* ── SETTINGS MODAL ── */
+.settings-modal{max-width:560px}
+.stg-body{padding:0;max-height:78vh;overflow-y:auto;display:flex;flex-direction:column}
+.stg-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.stg-tab{
+  flex:1;padding:0.7rem 0.5rem;background:none;border:none;cursor:pointer;
+  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;
+}
+.stg-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.stg-tab:hover:not(.active){color:var(--ink)}
+.stg-pane{display:none;padding:1.1rem 1.3rem;flex-direction:column;gap:1.1rem}
+.stg-pane.active{display:flex}
+.stg-section-lbl{
+  font-size:0.65rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;
+  color:var(--ink-faint);margin-bottom:0.5rem;
+}
+/* tag group in settings */
+.stg-group{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:0.6rem}
+.stg-group-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.55rem 0.9rem;background:var(--paper);border-bottom:1px solid var(--border);
+}
+.stg-group-name{font-size:0.82rem;font-weight:500;color:var(--ink-mid)}
+.stg-group-body{padding:0.6rem 0.9rem;display:flex;flex-wrap:wrap;gap:6px;min-height:36px}
+.stg-tag{
+  font-size:0.75rem;padding:3px 8px 3px 10px;border-radius:12px;
+  background:var(--tag-bg);color:var(--tag-text);
+  display:flex;align-items:center;gap:4px;
+}
+.stg-tag button{
+  background:none;border:none;cursor:pointer;color:var(--ink-faint);
+  font-size:0.9rem;line-height:1;padding:0;transition:color .1s;
+}
+.stg-tag button:hover{color:var(--danger)}
+.stg-tag.custom{background:var(--accent-light);color:var(--accent-text)}
+.stg-tag.custom button{color:var(--accent-text);opacity:.7}
+/* tag edit/rename inline */
+.stg-tag-edit-wrap{display:flex;align-items:center;gap:4px;background:var(--cream);border:1px solid var(--accent);border-radius:12px;padding:1px 6px}
+.stg-tag-edit-wrap input{border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.75rem;color:var(--ink);width:90px}
+.stg-tag-edit-wrap button{background:none;border:none;cursor:pointer;font-size:0.8rem;padding:0 2px;color:var(--ink-muted);transition:color .1s}
+.stg-tag-edit-wrap button:hover{color:var(--ink)}
+/* replace tag select in confirm */
+.replace-select{
+  width:100%;border:1px solid var(--border);border-radius:var(--radius);
+  padding:0.4rem 0.6rem;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+  color:var(--ink);background:var(--cream);outline:none;margin-top:0.5rem;
+  transition:border-color .15s;
+}
+.replace-select:focus{border-color:var(--accent)}
+/* add tag inline input */
+.stg-add-row{display:flex;gap:0.4rem;margin-top:0.5rem}
+.stg-add-row input{
+  flex:1;border:1px solid var(--border);border-radius:var(--radius);
+  padding:0.38rem 0.65rem;font-family:'Instrument Sans',sans-serif;
+  font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none;
+  transition:border-color .15s;
+}
+.stg-add-row input:focus{border-color:var(--accent)}
+.stg-add-row button{
+  background:var(--accent);border:none;color:#fff;padding:0.38rem 0.8rem;
+  border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;white-space:nowrap;transition:background .1s;
+}
+.stg-add-row button:hover{background:var(--accent-text)}
+/* unit rows in settings */
+.stg-unit-group{margin-bottom:0.9rem}
+.stg-unit-list{display:flex;flex-direction:column;gap:4px;margin-bottom:0.4rem}
+.stg-unit-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;border-radius:var(--radius);background:var(--paper);
+  font-size:0.82rem;
+}
+.stg-unit-row.retired{opacity:.5}
+.stg-unit-row .unit-name{color:var(--ink);font-weight:400}
+.stg-unit-row .unit-name.retired-lbl::after{content:' — retired';font-size:0.7rem;color:var(--ink-faint);font-style:italic}
+.stg-unit-btns{display:flex;gap:5px}
+.stg-unit-btns button{
+  background:none;border:1px solid var(--border);border-radius:5px;
+  padding:2px 8px;font-size:0.72rem;cursor:pointer;color:var(--ink-muted);
+  font-family:'Instrument Sans',sans-serif;transition:all .12s;
+}
+.stg-unit-btns button:hover{border-color:var(--border-mid);color:var(--ink)}
+.stg-unit-btns button.retire-btn:hover{border-color:var(--warning);color:var(--warning)}
+.stg-unit-btns button.restore-btn{border-color:var(--accent);color:var(--accent)}
+.stg-unit-btns button.restore-btn:hover{background:var(--accent-light)}
+/* confirm danger dialog */
+.confirm-overlay{
+  display:none;position:fixed;inset:0;background:rgba(26,20,16,.6);
+  z-index:400;align-items:center;justify-content:center;padding:1rem;
+}
+.confirm-overlay.open{display:flex}
+.confirm-box{
+  background:var(--card);border-radius:var(--radius-lg);padding:1.4rem;
+  max-width:380px;width:100%;box-shadow:0 16px 48px rgba(26,20,16,.22);
+}
+.confirm-box h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:500;margin-bottom:0.5rem}
+.confirm-box p{font-size:0.84rem;color:var(--ink-mid);line-height:1.6;margin-bottom:1rem}
+.confirm-box .confirm-btns{display:flex;gap:0.5rem;justify-content:flex-end}
+
+/* ── INGREDIENT NAME SUGGESTIONS ── */
+.ing-name-wrap{position:relative;min-width:0}
+.ing-name-sugs{
+  display:none;position:absolute;z-index:60;
+  top:calc(100% + 2px);left:0;min-width:180px;max-width:280px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:0 4px 14px rgba(26,20,16,.1);
+  overflow:hidden;
+}
+.ing-name-sugs.show{display:block}
+.ing-name-sug{
+  padding:6px 11px;font-size:0.8rem;cursor:pointer;
+  color:var(--ink-mid);transition:background .1s;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.ing-name-sug:hover{background:var(--paper);color:var(--ink)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:1.3rem;right:1.3rem;background:var(--ink);color:var(--cream);padding:0.55rem 1rem;border-radius:var(--radius);font-size:0.8rem;z-index:999;opacity:0;transform:translateY(5px);transition:opacity .2s,transform .2s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:500px){
+  .f2{grid-template-columns:1fr}
+  .ing-row{grid-template-columns:1fr 1fr auto;grid-template-rows:auto auto}
+  .ing-row .prep-inp{grid-column:1/3}
+  .wheel-row{gap:0.5rem}
+}
+</style>
+</head>
+<body>
+
+<div id="offline-banner">
+  <span class="dot"></span>
+  <span>Offline — showing cached recipes. Changes will sync when back online.</span>
+  <button id="sync-btn" onclick="syncPending()">Sync now</button>
+</div>
+
+<header>
+  <div class="logo">Benny's <em>Recipes</em></div>
+  <button class="hbtn" onclick="openInfo()" title="Info &amp; credentials">
+    <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button class="hbtn" onclick="openSettings()" title="Settings">
+    <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke-linecap="round"/></svg>
+  </button>
+  <button class="hbtn hbtn-accent" onclick="openAdd()">
+    <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+    Add recipe
+  </button>
+</header>
+
+<div class="app">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        <input type="text" id="search" placeholder="Search recipes…" oninput="render()">
+      </div>
+      <button class="filter-btn" id="filter-btn" onclick="openFilter()">
+        <svg viewBox="0 0 14 12"><line x1="1" y1="2" x2="13" y2="2"/><line x1="3" y1="6" x2="11" y2="6"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
+        Filter
+        <span id="filter-count-badge" style="display:none;background:var(--accent);color:#fff;font-size:0.65rem;padding:0 5px;border-radius:8px;margin-left:2px"></span>
+      </button>
+    </div>
+  </div>
+  <div id="active-chips" class="active-filter-chips"></div>
+  <div id="result-info" class="result-info"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="backdrop" id="vmodal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-head">
+      <h2 id="vname">Recipe</h2>
+      <button class="xbtn" onclick="closeView()">✕</button>
+    </div>
+    <div style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+      <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
+      <button class="scale-seg active" data-scale="1" onclick="setScale(1)">1×</button>
+      <button class="scale-seg" data-scale="0.5" onclick="setScale(0.5)">½×</button>
+      <button class="scale-seg" data-scale="2" onclick="setScale(2)">2×</button>
+      <button class="scale-seg" data-scale="3" onclick="setScale(3)">3×</button>
+    </div>
+    <div class="vbody" id="vbody"></div>
+    <div class="view-foot">
+      <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
+      <button class="btn-sec" onclick="closeView()">Close</button>
+      <button class="btn-pri" onclick="editCurrent()">Edit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="backdrop" id="emodal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="form-title">Add recipe</h2>
+      <button class="xbtn" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="fbody" id="fbody">
+
+      <div class="fg">
+        <label>Recipe name</label>
+        <input type="text" id="f-name">
+      </div>
+
+      <div class="fg">
+        <label>Tags <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(type and press Enter or comma)</span></label>
+        <div class="tags-wrap">
+          <div class="tags-input-box" id="tags-box" onclick="document.getElementById('tag-input').focus()">
+            <input type="text" id="tag-input" placeholder="Add a tag…" autocomplete="off" onkeydown="tagKeydown(event)" oninput="tagInputFn(event)" onfocus="tagFocus()">
+          </div>
+          <div class="tag-sugs" id="tag-sugs"></div>
+        </div>
+      </div>
+
+      <div class="f2">
+        <div class="wheel-panel">
+          <div class="wheel-panel-title">Cook time</div>
+          <div class="wheel-row">
+            <div class="wg">
+              <div class="wheel-outer" id="wh-hrs" data-val="0" onmousedown="wheelStart(event,'wh-hrs')" ontouchstart="wheelStart(event,'wh-hrs')">
+                <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
+                <div class="wheel-inner" id="wi-hrs"></div>
+              </div>
+              <div class="wg-lbl">hours</div>
+            </div>
+            <div class="wg">
+              <div class="wheel-outer" id="wh-min" data-val="0" onmousedown="wheelStart(event,'wh-min')" ontouchstart="wheelStart(event,'wh-min')">
+                <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
+                <div class="wheel-inner" id="wi-min"></div>
+              </div>
+              <div class="wg-lbl">minutes</div>
+            </div>
+          </div>
+        </div>
+        <div class="wheel-panel">
+          <div class="wheel-panel-title">Serves</div>
+          <div class="wg">
+            <div class="wheel-outer" id="wh-srv" data-val="4" onmousedown="wheelStart(event,'wh-srv')" ontouchstart="wheelStart(event,'wh-srv')">
+              <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
+              <div class="wheel-inner" id="wi-srv"></div>
+            </div>
+            <div class="wg-lbl">people</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Source / URL</label>
+        <input type="text" id="f-source">
+      </div>
+
+      <div class="fg">
+        <label>Ingredients</label>
+        <div class="ing-builder" id="ing-builder"></div>
+        <button class="add-row-btn" onclick="addIngSection()">
+          <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+          Add ingredient section
+        </button>
+      </div>
+
+      <div class="fg">
+        <label>Method</label>
+        <div class="method-builder" id="method-builder"></div>
+        <button class="add-row-btn" onclick="addMethodSection()">
+          <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+          Add method section
+        </button>
+      </div>
+
+      <div class="fg">
+        <label>Notes</label>
+        <textarea id="f-notes" rows="2"></textarea>
+      </div>
+
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeEdit()">Cancel</button>
+      <button class="btn-pri" onclick="saveRecipe()">Save recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER MODAL -->
+<div class="backdrop" id="fmodal">
+  <div class="modal filter-modal">
+    <div class="modal-head">
+      <h2>Filter recipes</h2>
+      <button class="xbtn" onclick="closeFilter()">✕</button>
+    </div>
+    <div class="fbody-filter" id="filter-body"></div>
+    <div class="filter-foot">
+      <span class="fcount-info" id="filter-count-info"></span>
+      <div style="display:flex;gap:0.55rem">
+        <button class="btn-sec" onclick="clearFilters()">Clear all</button>
+        <button class="btn-pri" onclick="closeFilter()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+<div class="backdrop" id="imodal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <h2>Info &amp; Settings</h2>
+      <button class="xbtn" onclick="closeInfo()">✕</button>
+    </div>
+    <div class="info-body">
+      <div>
+        <h3>GitHub Gist — credentials</h3>
+        <p>Your recipes are stored in a GitHub Gist as a <code>recipes.json</code> file. Enter your Gist ID and personal access token below to connect.</p>
+      </div>
+      <div class="info-input-row">
+        <label>Gist ID</label>
+        <input type="text" id="info-gist" placeholder="e.g. a1b2c3d4e5f6…">
+      </div>
+      <div class="info-input-row">
+        <label>Personal Access Token</label>
+        <input type="password" id="info-token" placeholder="ghp_…">
+      </div>
+      <p class="info-note">Stored only in your browser's localStorage. Never sent anywhere except GitHub's API directly.</p>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn-pri" onclick="saveInfoCreds()">Save &amp; reconnect</button>
+      </div>
+      <div class="info-sep"></div>
+      <div>
+        <h3>Setting up GitHub Gist</h3>
+        <ol>
+          <li>Create a free account at <strong>github.com</strong></li>
+          <li>Go to <strong>gist.github.com</strong> — create a new <em>secret</em> Gist</li>
+          <li>Name the file <code>recipes.json</code>, put <code>[]</code> as content, save</li>
+          <li>Copy the Gist ID from the URL (the long string at the end)</li>
+          <li>Go to <strong>github.com/settings/tokens</strong> → Generate a classic token with the <code>gist</code> scope only</li>
+          <li>Paste both above and hit Save</li>
+        </ol>
+      </div>
+      <div class="info-sep"></div>
+      <div>
+        <h3>Using on iPhone</h3>
+        <ul>
+          <li>Save this HTML file to your <strong>iCloud Drive</strong></li>
+          <li>Open it from the <strong>Files app</strong> in Safari</li>
+          <li>Tap <strong>Share → Add to Home Screen</strong> to install it like an app</li>
+          <li>Recipes load from GitHub and cache locally — works offline with the last synced data</li>
+        </ul>
+      </div>
+      <div class="info-sep"></div>
+      <div>
+        <h3>Offline mode</h3>
+        <p>When offline, you can still browse and edit recipes. Changes are queued and synced to GitHub automatically when your connection returns. A banner at the top shows your current status.</p>
+      </div>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeInfo()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="backdrop" id="settings-modal">
+  <div class="modal settings-modal">
+    <div class="modal-head">
+      <h2>Settings</h2>
+      <button class="xbtn" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="stg-body">
+      <div class="stg-tabs">
+        <button class="stg-tab active" onclick="switchStgTab('tags',this)">Tags</button>
+        <button class="stg-tab" onclick="switchStgTab('units',this)">Units</button>
+      </div>
+      <!-- TAGS PANE -->
+      <div class="stg-pane active" id="stg-pane-tags"></div>
+      <!-- UNITS PANE -->
+      <div class="stg-pane" id="stg-pane-units"></div>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeSettings()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="btn-sec" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-danger" id="confirm-ok-btn" onclick="confirmOk()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL (first time only) -->
+<div class="backdrop" id="setup-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h2>Connect to GitHub Gist</h2>
+      <button class="xbtn" onclick="closeSetup()">✕</button>
+    </div>
+    <div class="setup-body">
+      <p>Enter your GitHub Gist ID and personal access token to store your recipes. Tap the <strong>ⓘ</strong> button in the header anytime for setup instructions.</p>
+      <div class="setup-input-row">
+        <label>Gist ID</label>
+        <input type="text" id="setup-gist" placeholder="a1b2c3d4e5f6…">
+      </div>
+      <div class="setup-input-row">
+        <label>Personal Access Token</label>
+        <input type="password" id="setup-token" placeholder="ghp_…">
+      </div>
+      <p class="setup-note">Both values are stored only in your browser's localStorage. Tap the ⓘ button for step-by-step setup instructions.</p>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeSetup()">Skip for now</button>
+      <button class="btn-pri" onclick="saveSetup()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DEFAULT CONFIG (overridden by saved settings) ─────────────────────────
+const DEFAULT_TAG_GROUPS = {
+  'Meal':    ['Breakfast','Brunch','Lunch','Dinner','Dessert','Snack','Side'],
+  'Cuisine': ['Australian','Chinese','French','Greek','Indian','Indonesian','Italian','Japanese','Korean','Lebanese','Malaysian','Mexican','Middle Eastern','Spanish','Thai','Vietnamese'],
+  'Type':    ['Bake','Bowl','Bread','Burger','Cake','Curry','Noodles','Pasta','Pie','Pizza','Roast','Salad','Sandwich','Seafood','Soup','Stew','Stir-fry','Sushi','Tacos','Toast']
+};
+const DEFAULT_UNIT_GROUPS = {
+  'Volume':       ['tsp','tbsp','cup','ml','L'],
+  'Mass':         ['g','kg'],
+  'Custom units': ['whole','piece','slice','clove','sprig','handful','bunch']
+};
+
+// Live copies — populated from settings in init()
+let TAG_GROUPS  = JSON.parse(JSON.stringify(DEFAULT_TAG_GROUPS));
+let UNIT_GROUPS = JSON.parse(JSON.stringify(DEFAULT_UNIT_GROUPS));
+let RETIRED_UNITS = []; // unit strings that are retired (hidden from new dropdowns)
+let CUSTOM_TAG_GROUPS = {}; // extra tags added by user per group
+
+const WHEEL_ITEMS = {
+  'wh-hrs': Array.from({length:13},(_,i)=>({val:i,label:String(i)})),
+  'wh-min': [0,5,10,15,20,25,30,35,40,45,50,55].map(v=>({val:v,label:String(v).padStart(2,'0')})),
+  'wh-srv': Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)}))
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let recipes = [];
+let activeTags = new Set();
+let activeTime = 'all';
+let currentId = null;
+let editId = null;
+let pendingSync = [];
+let formTags = [];
+let gistId = '', ghToken = '';
+let isOnline = navigator.onLine;
+let wheelDrag = {};
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  gistId   = localStorage.getItem('gist_id') || '';
+  ghToken  = localStorage.getItem('gh_token') || '';
+  pendingSync = JSON.parse(localStorage.getItem('pending_sync') || '[]');
+
+  loadSettings();
+  buildWheels();
+
+  window.addEventListener('online',  () => { isOnline=true;  updateOfflineBanner(); if(pendingSync.length) syncPending(); });
+  window.addEventListener('offline', () => { isOnline=false; updateOfflineBanner(); });
+  updateOfflineBanner();
+
+  if (!gistId || !ghToken) {
+    const cached = localStorage.getItem('recipes_cache');
+    if (cached) {
+      recipes = JSON.parse(cached);
+      recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); });
+      render();
+    } else {
+      recipes = seedSamples();
+      localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+      render();
+      document.getElementById('setup-modal').classList.add('open');
+    }
+  } else {
+    loadFromGist();
+  }
+}
+
+// ── OFFLINE ───────────────────────────────────────────────────────────────
+function updateOfflineBanner() {
+  const b = document.getElementById('offline-banner');
+  const s = document.getElementById('sync-btn');
+  b.classList.toggle('show', !isOnline);
+  s.classList.toggle('show', !isOnline && pendingSync.length > 0);
+}
+
+// ── GIST ──────────────────────────────────────────────────────────────────
+async function loadFromGist() {
+  if (!gistId || !ghToken) return;
+  try {
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers:{ Authorization:`token ${ghToken}`, Accept:'application/vnd.github.v3+json' }
+    });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    recipes = JSON.parse(data.files['recipes.json']?.content || '[]');
+    recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); });
+    localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+    // load remote settings if present
+    if (data.files['settings.json']?.content) {
+      applySettingsObj(JSON.parse(data.files['settings.json'].content));
+      localStorage.setItem('settings_cache', data.files['settings.json'].content);
+    }
+    render();
+    if (pendingSync.length) syncPending();
+  } catch(e) {
+    const cached = localStorage.getItem('recipes_cache');
+    if (cached) { recipes = JSON.parse(cached); recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); }); render(); }
+    else toast('Could not load — check credentials in ⓘ');
+  }
+}
+
+async function saveToGist() {
+  if (!gistId || !ghToken) { saveLocally(); return; }
+  try {
+    const files = {
+      'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
+      'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
+    };
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method:'PATCH',
+      headers:{ Authorization:`token ${ghToken}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ files })
+    });
+    if (!r.ok) throw new Error();
+    localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+    toast('Saved ✓');
+  } catch(e) {
+    saveLocally();
+  }
+}
+
+function saveLocally() {
+  localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+  pendingSync.push({ ts:Date.now(), recipes:JSON.parse(JSON.stringify(recipes)) });
+  localStorage.setItem('pending_sync', JSON.stringify(pendingSync));
+  updateOfflineBanner();
+  toast('Saved locally — will sync when online');
+}
+
+async function syncPending() {
+  if (!isOnline || !gistId || !ghToken || !pendingSync.length) return;
+  try {
+    const latest = pendingSync[pendingSync.length-1].recipes;
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method:'PATCH',
+      headers:{ Authorization:`token ${ghToken}`, 'Content-Type':'application/json' },
+      body:JSON.stringify({ files:{ 'recipes.json':{ content:JSON.stringify(latest,null,2) } } })
+    });
+    if (!r.ok) throw new Error();
+    pendingSync = [];
+    localStorage.setItem('pending_sync','[]');
+    updateOfflineBanner();
+    toast('Synced to GitHub ✓');
+  } catch(e) { toast('Sync failed — will retry later'); }
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────
+function buildSettingsObj() {
+  return {
+    customTagGroups: CUSTOM_TAG_GROUPS,
+    retiredUnits:    RETIRED_UNITS,
+    customUnitGroups: (() => {
+      // store only units not in defaults
+      const custom = {};
+      for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
+        const def = DEFAULT_UNIT_GROUPS[grp] || [];
+        const extras = units.filter(u => !def.includes(u));
+        if (extras.length) custom[grp] = extras;
+      }
+      return custom;
+    })()
+  };
+}
+
+function applySettingsObj(s) {
+  if (!s) return;
+  // Merge custom tags into TAG_GROUPS
+  if (s.customTagGroups) {
+    CUSTOM_TAG_GROUPS = s.customTagGroups;
+    for (const [grp, tags] of Object.entries(CUSTOM_TAG_GROUPS)) {
+      if (TAG_GROUPS[grp]) {
+        TAG_GROUPS[grp] = [...new Set([...DEFAULT_TAG_GROUPS[grp]||[], ...tags])];
+      } else {
+        TAG_GROUPS[grp] = tags;
+      }
+    }
+  }
+  // Merge custom units
+  if (s.customUnitGroups) {
+    for (const [grp, units] of Object.entries(s.customUnitGroups)) {
+      if (UNIT_GROUPS[grp]) {
+        UNIT_GROUPS[grp] = [...new Set([...UNIT_GROUPS[grp], ...units])];
+      }
+    }
+  }
+  // Retired units
+  if (s.retiredUnits) RETIRED_UNITS = s.retiredUnits;
+}
+
+function loadSettings() {
+  const cached = localStorage.getItem('settings_cache');
+  if (cached) {
+    try { applySettingsObj(JSON.parse(cached)); } catch(e) {}
+  }
+}
+
+async function saveSettings() {
+  localStorage.setItem('settings_cache', JSON.stringify(buildSettingsObj()));
+  if (gistId && ghToken && isOnline) {
+    try {
+      await fetch(`https://api.github.com/gists/${gistId}`, {
+        method:'PATCH',
+        headers:{ Authorization:`token ${ghToken}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({ files:{ 'settings.json':{ content:JSON.stringify(buildSettingsObj(),null,2) } } })
+      });
+    } catch(e) { /* will sync next time */ }
+  }
+}
+
+function openSettings() {
+  renderStgTags();
+  renderStgUnits();
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function switchStgTab(name, btn) {
+  document.querySelectorAll('.stg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.stg-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('stg-pane-'+name).classList.add('active');
+}
+
+// ── SETTINGS: TAGS ────────────────────────────────────────────────────────
+function renderStgTags() {
+  const pane = document.getElementById('stg-pane-tags');
+  let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
+    Manage predefined tags. Custom additions appear highlighted. Use the ✎ icon to rename a tag across all recipes.
+  </div>`;
+  for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+    const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
+    const tagPills = tags.map(t => {
+      const isCustom = !defaultTags.includes(t);
+      const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const safeG = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<span class="stg-tag${isCustom?' custom':''}">
+        ${esc(t)}
+        <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename tag" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
+        <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove tag">×</button>
+      </span>`;
+    }).join('');
+    html += `<div class="stg-group">
+      <div class="stg-group-head">
+        <span class="stg-group-name">${esc(group)}</span>
+      </div>
+      <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills}</div>
+      <div style="padding:0 0.9rem 0.7rem">
+        <div class="stg-add-row">
+          <input type="text" placeholder="Add tag to ${esc(group)}…" id="new-tag-${esc(group)}"
+            onkeydown="if(event.key==='Enter'){addTagToGroup('${esc(group)}');event.preventDefault()}">
+          <button onclick="addTagToGroup('${esc(group)}')">Add</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  pane.innerHTML = html;
+}
+
+function startRenameTag(group, tag) {
+  // Find the pill and replace it with an inline edit input
+  const body = document.getElementById(`stg-group-body-${group}`);
+  if (!body) return;
+  const pills = body.querySelectorAll('.stg-tag');
+  for (const pill of pills) {
+    if (pill.textContent.trim().startsWith(tag)) {
+      const editWrap = document.createElement('span');
+      editWrap.className = 'stg-tag-edit-wrap';
+      editWrap.innerHTML = `
+        <input type="text" value="${esc(tag)}" id="rename-input-${esc(group)}"
+          onkeydown="if(event.key==='Enter')confirmRenameTag('${group.replace(/'/g,"\\'")}','${tag.replace(/'/g,"\\'")}')">
+        <button onclick="confirmRenameTag('${group.replace(/'/g,"\\'")}','${tag.replace(/'/g,"\\'")}')">✓</button>
+        <button onclick="renderStgTags()">✕</button>`;
+      pill.replaceWith(editWrap);
+      editWrap.querySelector('input').focus();
+      editWrap.querySelector('input').select();
+      break;
+    }
+  }
+}
+
+function confirmRenameTag(group, oldTag) {
+  const input = document.getElementById(`rename-input-${group}`);
+  if (!input) return;
+  const newTag = toTitleCase(input.value.trim());
+  if (!newTag || newTag.toLowerCase() === oldTag.toLowerCase()) { renderStgTags(); return; }
+  if (TAG_GROUPS[group]?.map(t=>t.toLowerCase()).includes(newTag.toLowerCase())) {
+    toast(`"${newTag}" already exists in ${group}`); return;
+  }
+  // Rename in TAG_GROUPS
+  TAG_GROUPS[group] = (TAG_GROUPS[group]||[]).map(t => t.toLowerCase()===oldTag.toLowerCase() ? newTag : t);
+  // Rename in CUSTOM_TAG_GROUPS if present
+  if (CUSTOM_TAG_GROUPS[group])
+    CUSTOM_TAG_GROUPS[group] = CUSTOM_TAG_GROUPS[group].map(t => t.toLowerCase()===oldTag.toLowerCase() ? newTag : t);
+  // Rename on all recipes
+  recipes.forEach(r => {
+    if (r.tags) r.tags = r.tags.map(t => t.toLowerCase()===oldTag.toLowerCase() ? newTag : t);
+  });
+  saveSettings();
+  saveToGist();
+  renderStgTags();
+  render();
+  toast(`"${oldTag}" renamed to "${newTag}" across all recipes`);
+}
+
+function addTagToGroup(group) {
+  const input = document.getElementById(`new-tag-${group}`);
+  const tag   = toTitleCase(input.value.trim());
+  if (!tag) return;
+  if (TAG_GROUPS[group]?.map(t=>t.toLowerCase()).includes(tag.toLowerCase())) {
+    toast(`"${tag}" is already in ${group}`); return;
+  }
+  TAG_GROUPS[group] = [...(TAG_GROUPS[group]||[]), tag];
+  if (!CUSTOM_TAG_GROUPS[group]) CUSTOM_TAG_GROUPS[group] = [];
+  if (!CUSTOM_TAG_GROUPS[group].map(t=>t.toLowerCase()).includes(tag.toLowerCase()))
+    CUSTOM_TAG_GROUPS[group].push(tag);
+  saveSettings();
+  renderStgTags();
+  input.value = '';
+  toast(`"${tag}" added to ${group}`);
+}
+
+function removeTagFromGroup(group, tag) {
+  const affected = recipes.filter(r => r.tags?.some(t => t.toLowerCase() === tag.toLowerCase()));
+  if (affected.length > 0) {
+    // Build a list of all other tags for the replace option
+    const allOtherTags = [...new Set(Object.values(TAG_GROUPS).flat())].filter(t => t.toLowerCase() !== tag.toLowerCase()).sort();
+    const selectOpts = allOtherTags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    showConfirm(
+      `Remove "${tag}"?`,
+      `Used on ${affected.length} recipe${affected.length>1?'s':''}. Choose what to do:`,
+      [
+        { label: 'Remove from all recipes', danger: true,  fn: () => doRemoveTag(group, tag, 'remove') },
+        { label: 'Remove from list only',   danger: false, fn: () => doRemoveTag(group, tag, 'listonly') },
+        { label: 'Replace with…',           danger: false, fn: () => doRemoveTag(group, tag, 'replace'), selectOpts }
+      ]
+    );
+  } else {
+    doRemoveTag(group, tag, 'listonly');
+  }
+}
+
+function doRemoveTag(group, tag, mode, replacementTag) {
+  if (mode === 'replace') {
+    // Read replacement from the select in the confirm box if not passed directly
+    const sel = document.getElementById('replace-tag-select');
+    const rep = replacementTag || sel?.value;
+    if (!rep) { toast('Please choose a replacement tag'); return; }
+    recipes.forEach(r => {
+      if (r.tags) {
+        r.tags = r.tags.map(t => t.toLowerCase()===tag.toLowerCase() ? rep : t);
+        // deduplicate
+        r.tags = [...new Set(r.tags)];
+      }
+    });
+    saveToGist();
+  } else if (mode === 'remove') {
+    recipes.forEach(r => {
+      if (r.tags) r.tags = r.tags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+    });
+    saveToGist();
+  }
+  // Always remove from the predefined list
+  TAG_GROUPS[group] = (TAG_GROUPS[group]||[]).filter(t => t.toLowerCase() !== tag.toLowerCase());
+  if (CUSTOM_TAG_GROUPS[group])
+    CUSTOM_TAG_GROUPS[group] = CUSTOM_TAG_GROUPS[group].filter(t => t.toLowerCase() !== tag.toLowerCase());
+  saveSettings();
+  renderStgTags();
+  render();
+  toast(mode === 'replace' ? `"${tag}" replaced` : `"${tag}" removed`);
+}
+
+// ── SETTINGS: UNITS ───────────────────────────────────────────────────────
+function renderStgUnits() {
+  const pane = document.getElementById('stg-pane-units');
+  const customUnits = UNIT_GROUPS['Custom units'] || [];
+
+  const rows = customUnits.map(u => {
+    const retired = RETIRED_UNITS.includes(u);
+    const isDefault = (DEFAULT_UNIT_GROUPS['Custom units'] || []).includes(u);
+    return `<div class="stg-unit-row${retired?' retired':''}">
+      <span class="unit-name${retired?' retired-lbl':''}">${esc(u)}</span>
+      <div class="stg-unit-btns">
+        ${retired
+          ? `<button class="restore-btn" onclick="restoreUnit('${esc(u)}')">Restore</button>`
+          : `<button class="retire-btn" onclick="retireUnit('${esc(u)}')">Retire</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
+      Custom units appear in the ingredient unit dropdown alongside Volume and Mass.
+      Retiring a unit hides it from new entries but keeps it in existing recipes. Restore it anytime.
+    </div>
+    <div class="stg-unit-group">
+      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No custom units yet.</div>'}</div>
+      <div class="stg-add-row" style="margin-top:0.4rem">
+        <input type="text" placeholder="Add custom unit…" id="new-unit-Custom units"
+          onkeydown="if(event.key==='Enter'){addUnitToGroup('Custom units');event.preventDefault()}">
+        <button onclick="addUnitToGroup('Custom units')">Add</button>
+      </div>
+    </div>`;
+}
+
+function addUnitToGroup(group) {
+  const input = document.getElementById(`new-unit-${group}`);
+  const unit  = input.value.trim();
+  if (!unit) return;
+  if (Object.values(UNIT_GROUPS).flat().map(u=>u.toLowerCase()).includes(unit.toLowerCase())) {
+    toast(`"${unit}" already exists`); return;
+  }
+  if (!UNIT_GROUPS[group]) UNIT_GROUPS[group] = [];
+  UNIT_GROUPS[group] = [...UNIT_GROUPS[group], unit];
+  RETIRED_UNITS = RETIRED_UNITS.filter(u => u.toLowerCase() !== unit.toLowerCase());
+  saveSettings();
+  renderStgUnits();
+  input.value = '';
+  toast(`"${unit}" added`);
+}
+
+function retireUnit(unit) {
+  if (!RETIRED_UNITS.includes(unit)) RETIRED_UNITS.push(unit);
+  saveSettings();
+  renderStgUnits();
+  toast(`"${unit}" retired`);
+}
+
+function restoreUnit(unit) {
+  RETIRED_UNITS = RETIRED_UNITS.filter(u => u !== unit);
+  saveSettings();
+  renderStgUnits();
+  toast(`"${unit}" restored`);
+}
+
+// ── CONFIRM DIALOG ────────────────────────────────────────────────────────
+let confirmActions = [];
+function showConfirm(title, msg, actions) {
+  confirmActions = actions;
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  const box = document.querySelector('.confirm-box');
+  // Remove any existing replace-select
+  const existingSel = document.getElementById('replace-tag-select');
+  if (existingSel) existingSel.remove();
+  // Add replace select if any action has selectOpts
+  const replaceAction = actions.find(a => a.selectOpts);
+  if (replaceAction) {
+    const sel = document.createElement('select');
+    sel.id = 'replace-tag-select';
+    sel.className = 'replace-select';
+    sel.innerHTML = `<option value="">Choose replacement tag…</option>${replaceAction.selectOpts}`;
+    document.getElementById('confirm-msg').after(sel);
+  }
+  const btns = document.querySelector('.confirm-btns');
+  btns.innerHTML = `<button class="btn-sec" onclick="closeConfirm()">Cancel</button>` +
+    actions.map((a, i) =>
+      `<button class="${a.danger?'btn-danger':'btn-sec'}" onclick="confirmAction(${i})">${esc(a.label)}</button>`
+    ).join('');
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); }
+function confirmAction(i) { closeConfirm(); if (confirmActions[i]) confirmActions[i].fn(); }
+function confirmOk() { closeConfirm(); } // fallback
+
+// ── SETUP / INFO ──────────────────────────────────────────────────────────
+function closeSetup() { document.getElementById('setup-modal').classList.remove('open'); }
+function saveSetup() {
+  const g = document.getElementById('setup-gist').value.trim();
+  const t = document.getElementById('setup-token').value.trim();
+  if (!g || !t) { toast('Please fill in both fields'); return; }
+  gistId=g; ghToken=t;
+  localStorage.setItem('gist_id',g); localStorage.setItem('gh_token',t);
+  closeSetup(); loadFromGist();
+}
+
+function openInfo() {
+  document.getElementById('info-gist').value  = gistId;
+  document.getElementById('info-token').value = ghToken;
+  document.getElementById('imodal').classList.add('open');
+}
+function closeInfo() { document.getElementById('imodal').classList.remove('open'); }
+function saveInfoCreds() {
+  const g = document.getElementById('info-gist').value.trim();
+  const t = document.getElementById('info-token').value.trim();
+  if (!g || !t) { toast('Please fill in both fields'); return; }
+  gistId=g; ghToken=t;
+  localStorage.setItem('gist_id',g); localStorage.setItem('gh_token',t);
+  closeInfo(); loadFromGist(); toast('Credentials saved — loading…');
+}
+
+// ── FILTER MODAL ──────────────────────────────────────────────────────────
+function openFilter() {
+  renderFilterModal();
+  document.getElementById('fmodal').classList.add('open');
+}
+function closeFilter() { document.getElementById('fmodal').classList.remove('open'); render(); }
+
+function renderFilterModal() {
+  // compute available tags from all recipes
+  const allRecipeTags = new Set(recipes.flatMap(r => r.tags||[]));
+  // compute what would match with current time filter + search
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const base = recipes.filter(r => {
+    if (q && !r.name?.toLowerCase().includes(q)) return false;
+    if (activeTime !== 'all') {
+      const m = totalMins(r);
+      if (activeTime==='quick'&&(m==null||m>=30)) return false;
+      if (activeTime==='medium'&&(m==null||m<30||m>60)) return false;
+      if (activeTime==='long'&&(m==null||m<=60)) return false;
+    }
+    return true;
+  });
+  const baseTags = new Set(base.flatMap(r => r.tags||[]));
+
+  let html = '';
+  // Tag groups
+  for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+    const relevant = tags.filter(t => allRecipeTags.has(t));
+    if (!relevant.length) continue;
+    html += `<div>
+      <div class="filter-group-label">${group}</div>
+      <div class="filter-pill-row">
+        ${relevant.map(t => {
+          const active = activeTags.has(t);
+          const available = baseTags.has(t) || active;
+          return `<span class="fpill${active?' active':''}${!available&&!active?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  html += `<div class="filter-sep"></div>
+    <div>
+      <div class="filter-group-label">Cook time</div>
+      <div class="filter-pill-row">
+        ${[['all','Any time'],['quick','Under 30 min'],['medium','30 – 60 min'],['long','Over 60 min']].map(([v,l]) =>
+          `<span class="fpill${activeTime===v?' active':''}" onclick="setTimeFilter('${v}')">${l}</span>`
+        ).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('filter-body').innerHTML = html;
+  updateFilterCount();
+}
+
+function toggleFilterTag(tag) {
+  if (activeTags.has(tag)) activeTags.delete(tag);
+  else activeTags.add(tag);
+  renderFilterModal();
+}
+
+function setTimeFilter(t) {
+  activeTime = t;
+  renderFilterModal();
+}
+
+function clearFilters() {
+  activeTags.clear();
+  activeTime = 'all';
+  renderFilterModal();
+}
+
+function updateFilterCount() {
+  const total = activeTags.size + (activeTime !== 'all' ? 1 : 0);
+  const badge = document.getElementById('filter-count-badge');
+  const btn = document.getElementById('filter-btn');
+  badge.textContent = total;
+  badge.style.display = total ? 'inline' : 'none';
+  btn.classList.toggle('has-filters', total > 0);
+  // count matching
+  const matching = recipes.filter(r => matchesFilters(r)).length;
+  document.getElementById('filter-count-info').textContent = total ? `${matching} recipe${matching!==1?'s':''} match` : '';
+}
+
+function matchesFilters(r) {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+  if (activeTags.size > 0 && ![...activeTags].every(t => r.tags?.includes(t))) return false;
+  if (activeTime !== 'all') {
+    const m = totalMins(r);
+    if (activeTime==='quick'&&(m==null||m>=30)) return false;
+    if (activeTime==='medium'&&(m==null||m<30||m>60)) return false;
+    if (activeTime==='long'&&(m==null||m<=60)) return false;
+  }
+  return true;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render() {
+  const filtered = recipes.filter(r => matchesFilters(r));
+  const total = activeTags.size + (activeTime!=='all'?1:0);
+
+  // active chips
+  const chips = document.getElementById('active-chips');
+  const chipParts = [];
+  activeTags.forEach(t => chipParts.push(`<span class="active-chip" onclick="removeActiveTag('${t}')"><span>×</span>${t}</span>`));
+  if (activeTime!=='all') {
+    const labels = {quick:'Under 30 min',medium:'30–60 min',long:'Over 60 min'};
+    chipParts.push(`<span class="active-chip" onclick="removeTimeFilter()"><span>×</span>${labels[activeTime]}</span>`);
+  }
+  chips.innerHTML = chipParts.join('');
+  chips.style.display = chipParts.length ? 'flex' : 'none';
+
+  // result info
+  document.getElementById('result-info').textContent = total
+    ? `${filtered.length} of ${recipes.length} recipes`
+    : `${recipes.length} recipe${recipes.length!==1?'s':''}`;
+
+  // filter btn badge
+  const badge = document.getElementById('filter-count-badge');
+  badge.textContent = total;
+  badge.style.display = total ? 'inline' : 'none';
+  document.getElementById('filter-btn').classList.toggle('has-filters', total > 0);
+
+  const grid = document.getElementById('grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty">
+      <div class="empty-icon">🍽️</div>
+      <h3>No recipes found</h3>
+      <p>${total ? 'Try adjusting your filters.' : 'Tap "Add recipe" to get started.'}</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(r => {
+    const mins = totalMins(r);
+    const metaParts = [];
+    if (mins) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg>${fmtTime(mins)}</span>`);
+    if (r.serves) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>${r.serves}</span>`);
+    return `<div class="rcard" onclick="viewRecipe(${r.id})">
+      <div class="card-stripe"></div>
+      <div class="card-body">
+        <div class="card-name">${esc(r.name)}</div>
+        ${metaParts.length ? `<div class="card-meta">${metaParts.join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeActiveTag(tag) { activeTags.delete(tag); render(); }
+function removeTimeFilter() { activeTime='all'; render(); }
+
+// ── UNIT SYSTEM ───────────────────────────────────────────────────────────
+function getAllDropdownUnits() { return Object.values(UNIT_GROUPS).flat(); }
+function getActiveUnits()    { return getAllDropdownUnits().filter(u => !RETIRED_UNITS.includes(u)); }
+
+// Conversion to base unit (ml for volume, g for mass)
+const TO_BASE = {
+  tsp:4.92, tbsp:14.79, cup:236.59, ml:1, L:1000,
+  g:1, kg:1000
+};
+const VOL_STEPS = [
+  {unit:'tsp',  min:0,    max:14.8},
+  {unit:'tbsp', min:14.8, max:59},
+  {unit:'cup',  min:59,   max:2366},
+  {unit:'L',    min:2366, max:Infinity}
+];
+const MASS_STEPS = [
+  {unit:'g',  min:0,   max:900},
+  {unit:'kg', min:900, max:Infinity}
+];
+
+function isVolUnit(u) { return ['tsp','tbsp','cup','ml','L'].includes(u); }
+function isMassUnit(u) { return ['g','kg'].includes(u); }
+
+function smartUnit(scaledAmount, origUnit) {
+  if (!origUnit || !TO_BASE[origUnit]) return origUnit;
+  const base = scaledAmount * TO_BASE[origUnit];
+  const steps = isVolUnit(origUnit) ? VOL_STEPS : (isMassUnit(origUnit) ? MASS_STEPS : null);
+  if (!steps) return origUnit;
+  for (const s of steps) {
+    if (base >= s.min && base < s.max) return s.unit;
+  }
+  return origUnit;
+}
+
+function scaleAndFormat(amount, unit, factor) {
+  if (amount == null || amount === '') return { display: '', unit: unit || '' };
+  const n = parseFloat(amount);
+  if (isNaN(n)) return { display: String(amount), unit: unit || '' };
+  const scaled = n * factor;
+  // only do unit switching for known metric units
+  const newUnit = (unit && TO_BASE[unit]) ? smartUnit(scaled, unit) : (unit || '');
+  let display;
+  if (newUnit !== unit && TO_BASE[unit] && TO_BASE[newUnit]) {
+    const inNew = (scaled * TO_BASE[unit]) / TO_BASE[newUnit];
+    display = fmtNum(inNew);
+  } else {
+    display = fmtNum(scaled);
+  }
+  return { display, unit: newUnit };
+}
+
+function fmtNum(n) {
+  // Exact common fractions — check against a tight tolerance
+  const FRACS = [
+    [1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[3/8,'⅜'],[1/2,'½'],
+    [5/8,'⅝'],[2/3,'⅔'],[3/4,'¾'],[7/8,'⅞']
+  ];
+  const whole = Math.floor(n);
+  const rem = n - whole;
+  for (const [val, sym] of FRACS) {
+    if (Math.abs(rem - val) < 0.01) {
+      return whole > 0 ? `${whole} ${sym}` : sym;
+    }
+  }
+  // Exact integer
+  if (Math.abs(n - Math.round(n)) < 0.001) return String(Math.round(n));
+  // Otherwise show up to 3 significant figures, no trailing zeros
+  const s = parseFloat(n.toPrecision(3));
+  return String(s);
+}
+
+// ── SCALE STATE ───────────────────────────────────────────────────────────
+let scaleFactor = 1;
+
+function setScale(factor) {
+  scaleFactor = factor;
+  document.querySelectorAll('.scale-seg').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.scale) === factor);
+  });
+  const r = recipes.find(x => x.id === currentId);
+  if (r) renderViewBody(r);
+}
+
+// ── VIEW ──────────────────────────────────────────────────────────────────
+function viewRecipe(id) {
+  const r = recipes.find(x => x.id === id);
+  if (!r) return;
+  currentId = id;
+  scaleFactor = 1;
+  document.querySelectorAll('.scale-seg').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.scale) === 1);
+  });
+  document.getElementById('vname').textContent = r.name;
+  renderViewBody(r);
+  document.getElementById('vmodal').classList.add('open');
+}
+
+function renderViewBody(r) {
+  const scaled = scaleFactor !== 1;
+  const vbody  = document.getElementById('vbody');
+  vbody.setAttribute('data-scaled', scaled ? '1' : '0');
+
+  const mins = totalMins(r);
+  const metaItems = [];
+  if (mins) metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg><strong>${fmtTime(mins)}</strong></span>`);
+  if (r.serves) {
+    const srv = fmtNum(r.serves * scaleFactor);
+    metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>Serves <strong>${srv}</strong></span>`);
+  }
+  if (r.source) metaItems.push(`<span class="vmeta" style="font-size:0.78rem;color:var(--ink-faint)">${esc(r.source)}</span>`);
+
+  // build ingredient rows helper (used for both sectioned + full view)
+  function buildIngRows(items, showSectionTitle, title) {
+    let out = '';
+    if (showSectionTitle && title)
+      out += `<tr><td colspan="3" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
+    items.forEach(item => {
+      let qtyDisplay = '', unitDisplay = '';
+      if (!scaled || item.noscale) {
+        qtyDisplay  = item.amount != null ? fmtNum(item.amount) : '';
+        unitDisplay = item.unit || '';
+      } else {
+        const { display, unit } = scaleAndFormat(item.amount, item.unit, scaleFactor);
+        qtyDisplay  = display;
+        unitDisplay = unit || '';
+      }
+      const qtyClass = scaled && !item.noscale ? ' class="scaled-qty"' : '';
+      const qtyFull  = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
+      // noscale note row — visibility controlled by data-scaled CSS
+      const noteContent = item.noscaleNote ? `⊘ ${esc(item.noscaleNote)}` : '⊘ Does not scale';
+      const noteRow = item.noscale
+        ? `<tr><td colspan="3" class="noscale-note-view">${noteContent}</td></tr>`
+        : '';
+      out += `<tr><td>${esc(item.name||'')}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(item.prep||'')}</td></tr>${noteRow}`;
+    });
+    return out;
+  }
+
+  // full merged list (consolidates duplicate ingredients)
+  function buildFullList() {
+    // Collect all items, merging by normalised name.
+    // Items with convertible units (same dimension) are summed in base units then
+    // converted back to the smartest display unit.
+    const merged = new Map(); // key = normalised name
+
+    r.ingredients.forEach(sec => {
+      (sec.items || []).forEach(item => {
+        const key = (item.name || '').toLowerCase().trim();
+        if (!key) return;
+
+        if (merged.has(key)) {
+          const ex = merged.get(key);
+          // Try to merge amounts
+          if (item.amount != null && ex.amount != null) {
+            const sameUnit   = (item.unit||'') === (ex.unit||'');
+            const exBase  = TO_BASE[ex.unit];
+            const itBase  = TO_BASE[item.unit];
+            const sameDim = exBase && itBase && (
+              (isVolUnit(ex.unit) && isVolUnit(item.unit)) ||
+              (isMassUnit(ex.unit) && isMassUnit(item.unit))
+            );
+            if (sameUnit) {
+              ex.amount += item.amount;
+            } else if (sameDim) {
+              // Convert both to base, sum, store with smarter unit
+              const totalBase = (ex.amount * exBase) + (item.amount * itBase);
+              const bestUnit  = smartUnit(totalBase / exBase, ex.unit);
+              const bestBase  = TO_BASE[bestUnit];
+              ex.amount = totalBase / bestBase;
+              ex.unit   = bestUnit;
+            }
+            // incompatible units — keep first, ignore second (can't merge e.g. g + whole)
+          } else if (item.amount != null && ex.amount == null) {
+            ex.amount = item.amount;
+            ex.unit   = item.unit;
+          }
+          // merge prep notes if different and both non-empty
+          if (item.prep && ex.prep && item.prep !== ex.prep)
+            ex.prep = ex.prep + '; ' + item.prep;
+          else if (item.prep && !ex.prep)
+            ex.prep = item.prep;
+        } else {
+          merged.set(key, { ...item });
+        }
+      });
+    });
+
+    // Apply scale factor to merged amounts before rendering
+    let rows = '';
+    merged.forEach(item => {
+      // buildIngRows handles scale internally via scaleFactor
+      rows += buildIngRows([item], false, '');
+    });
+    return rows;
+  }
+
+  const multiSec = r.ingredients?.length > 1;
+  const scaleNote = scaled ? ` <span style="font-size:0.65rem;color:var(--accent-text);font-style:italic">(${scaleFactor}×)</span>` : '';
+  const toggleBtn = multiSec
+    ? `<button class="ing-view-toggle btn-sec" onclick="toggleIngView(this)" data-mode="sectioned" style="font-size:0.73rem;padding:3px 10px;margin-left:auto">Full list</button>`
+    : '';
+
+  let ingHtml = '';
+  if (r.ingredients?.length) {
+    const sectionedRows = r.ingredients.map(sec =>
+      buildIngRows(sec.items || [], true, sec.title)
+    ).join('');
+
+    ingHtml = `<div class="view-sec">
+      <div class="vsec-lbl" style="display:flex;align-items:center">Ingredients${scaleNote}${toggleBtn}</div>
+      <table class="ing-table" id="ing-view-table">
+        <thead><tr><th>Ingredient</th><th>Quantity</th><th>Prep</th></tr></thead>
+        <tbody id="ing-view-body" data-sectioned="${esc(JSON.stringify(sectionedRows))}" data-full="${esc(JSON.stringify(buildFullList()))}">${sectionedRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // method
+  let methHtml = '';
+  if (r.method?.length) {
+    const secs = r.method.map(sec => {
+      const steps = (sec.steps || []).map((s, i) => {
+        const text   = typeof s === 'string' ? s : (s.text || '');
+        const ns     = typeof s === 'object' && s.noscale;
+        const nsNote = typeof s === 'object' ? (s.noscaleNote || '') : '';
+        const noteHtml = ns
+          ? `<div class="vstep-noscale-note">⊘ ${nsNote ? esc(nsNote) : 'Does not scale'}</div>`
+          : '';
+        return `<div class="vstep"><div class="vstep-num">${i+1}</div><div>${esc(text)}${noteHtml}</div></div>`;
+      }).join('');
+      return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
+    }).join('');
+    methHtml = `<div class="view-sec"><div class="vsec-lbl">Method</div>${secs}</div>`;
+  }
+
+  const notesHtml = r.notes
+    ? `<div class="view-sec"><div class="vsec-lbl">Notes</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">${esc(r.notes)}</p></div>`
+    : '';
+
+  vbody.innerHTML = `
+    ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
+    ${ingHtml}${methHtml}${notesHtml}`;
+}
+
+function toggleIngView(btn) {
+  const tbody = document.getElementById('ing-view-body');
+  if (!tbody) return;
+  const mode = btn.dataset.mode;
+  if (mode === 'sectioned') {
+    tbody.innerHTML = JSON.parse(tbody.dataset.full);
+    btn.dataset.mode = 'full';
+    btn.textContent = 'By section';
+  } else {
+    tbody.innerHTML = JSON.parse(tbody.dataset.sectioned);
+    btn.dataset.mode = 'sectioned';
+    btn.textContent = 'Full list';
+  }
+}
+
+function closeView() { document.getElementById('vmodal').classList.remove('open'); currentId=null; scaleFactor=1; }
+
+function editCurrent() {
+  const r = recipes.find(x=>x.id===currentId);
+  closeView();
+  if (r) openEdit(r);
+}
+
+async function deleteRecipe() {
+  if (!currentId||!confirm('Delete this recipe?')) return;
+  recipes = recipes.filter(r=>r.id!==currentId);
+  isOnline ? await saveToGist() : saveLocally();
+  closeView(); render(); toast('Recipe deleted');
+}
+
+// ── FORM ──────────────────────────────────────────────────────────────────
+function openAdd() { openEdit(null); }
+
+function openEdit(r) {
+  editId = r ? r.id : null;
+  document.getElementById('form-title').textContent = r ? 'Edit recipe' : 'Add recipe';
+  document.getElementById('f-name').value  = r?.name   || '';
+  document.getElementById('f-source').value = r?.source || '';
+  document.getElementById('f-notes').value  = r?.notes  || '';
+
+  formTags = [...(r?.tags||[])];
+  renderFormTags();
+
+  setWheel('wh-hrs', r?.hours   ?? 0);
+  setWheel('wh-min', r?.minutes ?? 0);
+  setWheel('wh-srv', r?.serves  ?? 4);
+
+  // ingredients — sectioned
+  const ib = document.getElementById('ing-builder');
+  ib.innerHTML = '';
+  if (r?.ingredients?.length) r.ingredients.forEach(sec => addIngSection(sec));
+  else addIngSection();
+
+  // method
+  const mb = document.getElementById('method-builder');
+  mb.innerHTML = '';
+  if (r?.method?.length) r.method.forEach(sec => addMethodSection(sec));
+  else addMethodSection();
+
+  document.getElementById('emodal').classList.add('open');
+}
+
+function closeEdit() { document.getElementById('emodal').classList.remove('open'); }
+
+async function saveRecipe() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { toast('Please enter a recipe name'); return; }
+
+  const hrs  = getWheelVal('wh-hrs');
+  const mins = getWheelVal('wh-min');
+  const srv  = getWheelVal('wh-srv');
+
+  // collect ingredients (sectioned)
+  const ingredients = [];
+  document.querySelectorAll('.ing-sec-block').forEach(sec => {
+    const title = sec.querySelector('.ing-sec-title-inp')?.value.trim() || '';
+    const items = [];
+    sec.querySelectorAll('.ing-row-wrap').forEach(wrap => {
+      const nameEl   = wrap.querySelector('.ing-fields input[type="text"]');
+      const amountEl = wrap.querySelector('.amount-inp');
+      const unitSel  = wrap.querySelector('.unit-sel');
+      const unitMan  = wrap.querySelector('.unit-manual');
+      const prepEl   = wrap.querySelectorAll('.ing-fields input[type="text"]')[1];
+      const nsBtn    = wrap.querySelector('.noscale-toggle');
+      const nsNote   = wrap.querySelector('.noscale-note-row textarea')?.value.trim() || '';
+      const name     = toTitleCase(nameEl?.value.trim() || '');
+      const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
+      if (name) {
+        const rawAmt = amountEl?.value.trim();
+        items.push({
+          name,
+          amount:      rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
+          unit:        rawUnit,
+          prep:        prepEl?.value.trim() || '',
+          noscale:     nsBtn?.classList.contains('on') || false,
+          noscaleNote: nsNote
+        });
+      }
+    });
+    if (items.length) ingredients.push({ title, items });
+  });
+
+  // collect method
+  const method = [];
+  document.querySelectorAll('.method-sec-block').forEach(sec => {
+    const title = sec.querySelector('.msec-title-inp')?.value.trim() || '';
+    const steps = [];
+    sec.querySelectorAll('.step-wrap').forEach(wrap => {
+      const text = wrap.querySelector('.step-ta')?.value.trim() || '';
+      if (text) {
+        const nsBtn = wrap.querySelector('.noscale-toggle');
+        const nsNote = wrap.querySelector('.noscale-note-row textarea')?.value.trim() || '';
+        steps.push({
+          text,
+          noscale: nsBtn?.classList.contains('on') || false,
+          noscaleNote: nsNote
+        });
+      }
+    });
+    if (steps.length) method.push({ title, steps });
+  });
+
+  const data = {
+    name, tags: formTags.map(toTitleCase),
+    hours:hrs||null, minutes:mins||null, serves:srv,
+    source: document.getElementById('f-source').value.trim(),
+    ingredients, method,
+    notes: document.getElementById('f-notes').value.trim(),
+    updated: Date.now()
+  };
+
+  if (editId) {
+    const idx = recipes.findIndex(r=>r.id===editId);
+    if (idx>=0) recipes[idx] = { ...recipes[idx], ...data };
+  } else {
+    data.id = Date.now(); data.created = Date.now();
+    recipes.unshift(data);
+  }
+
+  isOnline ? await saveToGist() : saveLocally();
+  closeEdit(); render();
+}
+
+// ── TAGS INPUT ────────────────────────────────────────────────────────────
+function toTitleCase(s) {
+  return s.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function renderFormTags() {
+  const box   = document.getElementById('tags-box');
+  const input = document.getElementById('tag-input');
+  box.querySelectorAll('.tpill').forEach(p => p.remove());
+  formTags.forEach(tag => {
+    const pill = document.createElement('span');
+    pill.className = 'tpill';
+    pill.innerHTML = `${esc(tag)}<button onclick="removeFormTag('${tag.replace(/'/g,"\\'")}')" type="button">×</button>`;
+    box.insertBefore(pill, input);
+  });
+}
+
+function addFormTag(raw) {
+  const tag = toTitleCase(raw.replace(/,/g,''));
+  if (!tag || formTags.map(t=>t.toLowerCase()).includes(tag.toLowerCase())) return;
+  formTags.push(tag);
+  renderFormTags();
+  document.getElementById('tag-input').value = '';
+  showTagSugs('');
+}
+
+function removeFormTag(tag) {
+  formTags = formTags.filter(t => t !== tag);
+  renderFormTags();
+}
+
+function tagKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (val) addFormTag(val);
+  } else if (e.key === 'Backspace' && !e.target.value && formTags.length) {
+    formTags.pop();
+    renderFormTags();
+  }
+}
+
+function tagFocus() {
+  showTagSugs(document.getElementById('tag-input').value);
+}
+
+function tagInputFn(e) {
+  showTagSugs(e.target.value);
+}
+
+function showTagSugs(rawVal) {
+  const val = rawVal.toLowerCase().trim();
+  const el  = document.getElementById('tag-sugs');
+
+  if (!val) {
+    // Show full grouped list of predefined tags
+    let html = '';
+    for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+      const pills = tags.map(t => {
+        const already = formTags.map(f => f.toLowerCase()).includes(t.toLowerCase());
+        return `<span class="tsug${already?' already':''}" onclick="addFormTag('${t}')">${t}</span>`;
+      }).join('');
+      html += `<div class="tsug-group-lbl">${group}</div><div class="tsug-row">${pills}</div>`;
+    }
+    el.innerHTML = html;
+    el.classList.add('show');
+  } else {
+    // Narrow to matching tags from predefined list + allow custom
+    const allPredefined = Object.values(TAG_GROUPS).flat();
+    const matches = allPredefined.filter(t =>
+      t.toLowerCase().includes(val) &&
+      !formTags.map(f => f.toLowerCase()).includes(t.toLowerCase())
+    );
+    const titled = toTitleCase(rawVal.trim());
+    const showCustom = titled && !allPredefined.map(t=>t.toLowerCase()).includes(titled.toLowerCase())
+                               && !formTags.map(f=>f.toLowerCase()).includes(titled.toLowerCase());
+
+    if (!matches.length && !showCustom) { hideSugs(); return; }
+
+    let html = '';
+    if (matches.length) {
+      html += `<div class="tsug-row" style="padding-top:6px">` +
+        matches.map(m => `<span class="tsug" onclick="addFormTag('${m}')">${m}</span>`).join('') +
+        `</div>`;
+    }
+    if (showCustom) {
+      html += `<div class="tsug-group-lbl" style="${matches.length?'':'padding-top:6px'}">Add custom</div>
+               <div class="tsug-row"><span class="tsug" onclick="addFormTag('${titled}')" style="border-style:dashed">${titled}</span></div>`;
+    }
+    el.innerHTML = html;
+    el.classList.add('show');
+  }
+}
+
+function hideSugs() { document.getElementById('tag-sugs').classList.remove('show'); }
+document.addEventListener('click', e => { if (!e.target.closest('.tags-wrap')) hideSugs(); });
+
+// ── INGREDIENT SECTION BUILDER ────────────────────────────────────────────
+function addIngSection(data) {
+  const block = document.createElement('div');
+  block.className = 'ing-sec-block';
+  block.innerHTML = `
+    <div class="ing-sec-head">
+      <input type="text" class="ing-sec-title-inp" placeholder="Section name (e.g. Marinade, Salad, Dressing…)" value="${esc(data?.title||'')}">
+      <button class="del-btn" onclick="this.closest('.ing-sec-block').remove()" title="Remove section">×</button>
+    </div>
+    <div class="ing-rows"></div>
+    <div class="ing-sec-foot">
+      <button class="add-row-btn" style="flex:1;font-size:0.76rem" onclick="addIngRow(this)">
+        <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+        Add ingredient
+      </button>
+    </div>`;
+  document.getElementById('ing-builder').appendChild(block);
+  const rows = block.querySelector('.ing-rows');
+  if (data?.items?.length) data.items.forEach(i => addIngRow(null, rows, i));
+  else addIngRow(null, rows);
+}
+
+function buildUnitSelect(selected) {
+  const isCustom = selected && !getAllDropdownUnits().includes(selected);
+  const activeUnits = getActiveUnits();
+  // If selected is retired, still show it as selected (it exists in the recipe) but mark it
+  const showRetired = selected && RETIRED_UNITS.includes(selected);
+  let opts = `<option value="">— none —</option>`;
+  if (showRetired) opts += `<optgroup label="Current"><option value="${esc(selected)}" selected>${esc(selected)} (retired)</option></optgroup>`;
+  opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
+    const active = units.filter(u => !RETIRED_UNITS.includes(u));
+    if (!active.length) return '';
+    return `<optgroup label="${grp}">${active.map(u =>
+      `<option value="${u}"${u===selected?' selected':''}>${u}</option>`
+    ).join('')}</optgroup>`;
+  }).join('');
+  opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
+
+  if (isCustom) {
+    return `<input type="text" class="unit-manual" placeholder="unit" value="${esc(selected)}" style="border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0" >
+            <button onclick="switchUnitToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
+  }
+  return `<select class="unit-sel${selected&&!showRetired?' has-val':''}" onchange="handleUnitChange(this)">${opts}</select>`;
+}
+
+function handleUnitChange(sel) {
+  sel.classList.toggle('has-val', !!sel.value && sel.value !== '__manual__');
+  if (sel.value === '__manual__') {
+    const wrap = sel.closest('.ing-fields');
+    // replace select with text input
+    const manualInput = document.createElement('input');
+    manualInput.type = 'text';
+    manualInput.className = 'unit-manual';
+    manualInput.placeholder = 'unit';
+    manualInput.style.cssText = 'border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0';
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '×';
+    backBtn.title = 'Back to dropdown';
+    backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
+    backBtn.onclick = () => switchUnitToDropdown(backBtn);
+    sel.replaceWith(manualInput);
+    wrap.insertBefore(backBtn, manualInput.nextSibling);
+    manualInput.focus();
+  }
+}
+
+function switchUnitToDropdown(btn) {
+  const wrap = btn.closest('.ing-fields');
+  const manualInput = wrap.querySelector('.unit-manual');
+  const newSel = document.createElement('select');
+  newSel.className = 'unit-sel';
+  newSel.onchange = function(){ handleUnitChange(this); };
+  const activeUnits = getActiveUnits();
+  newSel.innerHTML = `<option value="">— none —</option>` +
+    Object.entries(UNIT_GROUPS).map(([grp, units]) => {
+      const active = units.filter(u => !RETIRED_UNITS.includes(u));
+      if (!active.length) return '';
+      return `<optgroup label="${grp}">${active.map(u => `<option value="${u}">${u}</option>`).join('')}</optgroup>`;
+    }).join('') +
+    `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
+  manualInput.replaceWith(newSel);
+  btn.remove();
+}
+
+function addIngRow(btn, rowsEl, data) {
+  if (!rowsEl) rowsEl = btn.closest('.ing-sec-block').querySelector('.ing-rows');
+  const wrap = document.createElement('div');
+  wrap.className = 'ing-row-wrap';
+  const ns     = data?.noscale || false;
+  const nsNote = data?.noscaleNote || '';
+  const unit   = data?.unit || '';
+  wrap.innerHTML = `
+    <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
+      <span>Ingredient</span><span>Amount</span><span>Unit</span><span>Prep (opt.)</span><span></span><span></span>
+    </div>
+    <div class="ing-fields" style="display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;align-items:center">
+      <div class="ing-name-wrap">
+        <input type="text" placeholder="Ingredient name" value="${esc(data?.name||'')}"
+          oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
+        <div class="ing-name-sugs"></div>
+      </div>
+      <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${data?.amount != null ? data.amount : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
+      ${buildUnitSelect(unit)}
+      <input type="text" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+      <button class="noscale-toggle${ns?' on':''}" title="Mark as does not scale" onclick="toggleIngNoscale(this)">⊘</button>
+      <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
+    </div>
+    <div class="noscale-note-row${ns?' show':''}">
+      <textarea placeholder="Scale note — e.g. 'Use 1 tsp regardless'" rows="1">${esc(nsNote)}</textarea>
+    </div>`;
+  const ta = wrap.querySelector('.noscale-note-row textarea');
+  if (ta) {
+    ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+    if (nsNote) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
+  }
+  rowsEl.appendChild(wrap);
+}
+
+function toggleIngNoscale(btn) {
+  btn.classList.toggle('on');
+  const noteRow = btn.closest('.ing-row-wrap').querySelector('.noscale-note-row');
+  noteRow.classList.toggle('show', btn.classList.contains('on'));
+  if (btn.classList.contains('on')) {
+    const ta = noteRow.querySelector('textarea');
+    if (ta) ta.focus();
+  }
+}
+
+// ── INGREDIENT NAME SUGGESTIONS ───────────────────────────────────────────
+function ingNameInput(input) {
+  const sugsEl = input.closest('.ing-name-wrap')?.querySelector('.ing-name-sugs');
+  if (!sugsEl) return;
+
+  // Gather all ingredient names already entered in this form (excluding this input)
+  const allNames = new Set();
+  document.querySelectorAll('#ing-builder .ing-fields input[type="text"]').forEach(el => {
+    if (el !== input && el.closest('.ing-name-wrap')) {
+      const v = el.value.trim();
+      if (v) allNames.add(toTitleCase(v));
+    }
+  });
+
+  const val = input.value.toLowerCase().trim();
+  let matches;
+  if (!val) {
+    // Show all existing names in this recipe as suggestions
+    matches = [...allNames];
+  } else {
+    // Starts-with first, then contains
+    const sw = [...allNames].filter(n => n.toLowerCase().startsWith(val));
+    const co = [...allNames].filter(n => !n.toLowerCase().startsWith(val) && n.toLowerCase().includes(val));
+    matches = [...sw, ...co];
+  }
+
+  // Filter out exact match (no point suggesting what's already typed)
+  matches = matches.filter(n => n.toLowerCase() !== input.value.toLowerCase().trim());
+
+  if (!matches.length) { sugsEl.classList.remove('show'); return; }
+
+  sugsEl.innerHTML = matches.slice(0, 8).map(m =>
+    `<div class="ing-name-sug" onmousedown="pickIngName(this,'${esc(m)}')">${esc(m)}</div>`
+  ).join('');
+  sugsEl.classList.add('show');
+}
+
+function pickIngName(el, name) {
+  const wrap  = el.closest('.ing-name-wrap');
+  const input = wrap?.querySelector('input[type="text"]');
+  if (input) { input.value = name; input.dispatchEvent(new Event('input')); }
+  el.closest('.ing-name-sugs').classList.remove('show');
+}
+
+// Close ingredient name suggestions when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ing-name-wrap')) {
+    document.querySelectorAll('.ing-name-sugs.show').forEach(el => el.classList.remove('show'));
+  }
+});
+
+// ── METHOD BUILDER ────────────────────────────────────────────────────────
+function addMethodSection(data) {
+  const block = document.createElement('div');
+  block.className = 'method-sec-block';
+  block.innerHTML = `
+    <div class="method-sec-head">
+      <input type="text" class="msec-title-inp" placeholder="Section name (e.g. Prep, Marinade, Cooking…)" value="${esc(data?.title||'')}">
+      <button class="del-btn" onclick="this.closest('.method-sec-block').remove()">×</button>
+    </div>
+    <div class="method-steps"></div>
+    <div class="method-sec-foot">
+      <button class="add-row-btn" style="flex:1;font-size:0.76rem" onclick="addStep(this)">
+        <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+        Add step
+      </button>
+    </div>`;
+  document.getElementById('method-builder').appendChild(block);
+  const stepsEl = block.querySelector('.method-steps');
+  if (data?.steps?.length) data.steps.forEach(s => addStep(null, stepsEl, s));
+  else addStep(null, stepsEl);
+}
+
+function addStep(btn, stepsEl, stepData) {
+  if (!stepsEl) stepsEl = btn.closest('.method-sec-block').querySelector('.method-steps');
+  const wrap = document.createElement('div');
+  wrap.className = 'step-wrap';
+  const num = stepsEl.querySelectorAll('.step-wrap').length + 1;
+  const text = typeof stepData === 'string' ? stepData : (stepData?.text || '');
+  const ns = stepData?.noscale || false;
+  const nsNote = stepData?.noscaleNote || '';
+  wrap.innerHTML = `
+    <div class="step-row" style="align-items:flex-start">
+      <div class="step-num-s">${num}</div>
+      <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
+      <button class="noscale-toggle${ns?' on':''}" title="Mark as does not scale" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0">⊘</button>
+      <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
+    </div>
+    <div class="noscale-note-row${ns?' show':''}">
+      <textarea placeholder="Scale note — e.g. 'Still cook 45 min per kg regardless of batch size'" rows="1">${esc(nsNote)}</textarea>
+    </div>`;
+  stepsEl.appendChild(wrap);
+  const ta = wrap.querySelector('.step-ta');
+  ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+  if (text) { setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0); }
+  const nsTA = wrap.querySelector('.noscale-note-row textarea');
+  if (nsTA) {
+    nsTA.addEventListener('input', ()=>{ nsTA.style.height='auto'; nsTA.style.height=nsTA.scrollHeight+'px'; });
+    if (nsNote) { setTimeout(()=>{ nsTA.style.height='auto'; nsTA.style.height=nsTA.scrollHeight+'px'; }, 0); }
+  }
+}
+
+function toggleStepNoscale(btn) {
+  btn.classList.toggle('on');
+  const noteRow = btn.closest('.step-wrap').querySelector('.noscale-note-row');
+  noteRow.classList.toggle('show', btn.classList.contains('on'));
+  if (btn.classList.contains('on')) {
+    const ta = noteRow.querySelector('textarea');
+    if (ta) ta.focus();
+  }
+}
+
+function removeStep(btn) {
+  const stepsEl = btn.closest('.method-steps');
+  btn.closest('.step-wrap').remove();
+  stepsEl.querySelectorAll('.step-num-s').forEach((n,i)=>n.textContent=i+1);
+}
+
+// ── WHEELS ────────────────────────────────────────────────────────────────
+function buildWheels() {
+  Object.keys(WHEEL_ITEMS).forEach(id => {
+    const items = WHEEL_ITEMS[id];
+    const suffix = id.split('-')[1];
+    const inner = document.getElementById('wi-'+suffix);
+    if (!inner) return;
+    inner.innerHTML =
+      `<div class="witem" style="height:32px"></div>` +
+      items.map((item,i)=>`<div class="witem" data-idx="${i}">${item.label}</div>`).join('') +
+      `<div class="witem" style="height:32px"></div>`;
+    setWheel(id, id==='wh-srv' ? 4 : 0);
+  });
+}
+
+function setWheel(id, val) {
+  const items = WHEEL_ITEMS[id];
+  let idx = items.findIndex(i=>i.val===val);
+  if (idx<0) idx=0;
+  const suffix = id.split('-')[1];
+  const inner = document.getElementById('wi-'+suffix);
+  if (!inner) return;
+  inner.style.transform = `translateY(${-(idx*32)}px)`;
+  inner.querySelectorAll('.witem[data-idx]').forEach((el,i)=>el.classList.toggle('sel',i===idx));
+  document.getElementById(id).dataset.val = val;
+}
+
+function getWheelVal(id) { return parseInt(document.getElementById(id).dataset.val)||0; }
+
+function wheelStart(e, id) {
+  e.preventDefault();
+  const outer = document.getElementById(id);
+  const suffix = id.split('-')[1];
+  const inner = document.getElementById('wi-'+suffix);
+  const items = WHEEL_ITEMS[id];
+  const startY = e.touches ? e.touches[0].clientY : e.clientY;
+  const itemH = 32;
+  let curIdx = items.findIndex(i=>i.val===parseInt(outer.dataset.val));
+  if (curIdx<0) curIdx=0;
+  const startOffset = -(curIdx*itemH);
+  wheelDrag[id] = { startY, startOffset, curIdx, live:curIdx, active:true };
+
+  const onMove = ev => {
+    if (!wheelDrag[id]?.active) return;
+    const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    const delta = y - startY;
+    const raw = startOffset + delta;
+    const clamped = Math.max(-((items.length-1)*itemH), Math.min(0, raw));
+    inner.style.transition = 'none';
+    inner.style.transform = `translateY(${clamped}px)`;
+    const newIdx = Math.max(0, Math.min(items.length-1, Math.round(-clamped/itemH)));
+    inner.querySelectorAll('.witem[data-idx]').forEach((el,i)=>el.classList.toggle('sel',i===newIdx));
+    wheelDrag[id].live = newIdx;
+  };
+  const onEnd = () => {
+    if (!wheelDrag[id]?.active) return;
+    wheelDrag[id].active = false;
+    inner.style.transition = '';
+    setWheel(id, items[wheelDrag[id].live].val);
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchmove', onMove, {passive:false});
+  document.addEventListener('touchend', onEnd);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function totalMins(r) {
+  if (r.hours==null && r.minutes==null) return null;
+  return (r.hours||0)*60 + (r.minutes||0);
+}
+function fmtTime(mins) {
+  if (!mins) return '';
+  const h=Math.floor(mins/60), m=mins%60;
+  if (h&&m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+// backdrop close
+['vmodal','emodal','fmodal','imodal','settings-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target===e.currentTarget) {
+      if(id==='vmodal') closeView();
+      else if(id==='emodal') closeEdit();
+      else if(id==='fmodal') closeFilter();
+      else if(id==='imodal') closeInfo();
+      else if(id==='settings-modal') closeSettings();
+    }
+  });
+});
+
+// ── SEED DATA ─────────────────────────────────────────────────────────────
+function seedSamples() {
+  return [
+    {
+      id:1, name:"Chicken Pho", created:Date.now(),
+      tags:['Dinner','Lunch','Vietnamese','Soup'],
+      hours:1, minutes:30, serves:4, source:'',
+      ingredients:[
+        { title:'Broth', items:[
+          {name:'Whole chicken',      amount:1.5, unit:'kg',   prep:''},
+          {name:'Chicken stock',      amount:2,   unit:'L',    prep:''},
+          {name:'Ginger',             amount:null,unit:'',     prep:'5 cm piece, halved & charred'},
+          {name:'Brown onion',        amount:1,   unit:'whole',prep:'halved & charred'},
+          {name:'Star anise',         amount:4,   unit:'piece',prep:''},
+          {name:'Cinnamon stick',     amount:1,   unit:'piece',prep:''},
+          {name:'Fish sauce',         amount:2,   unit:'tbsp', prep:''},
+        ]},
+        { title:'To serve', items:[
+          {name:'Rice noodles',  amount:400, unit:'g',    prep:''},
+          {name:'Spring onion',  amount:4,   unit:'whole',prep:'sliced'},
+          {name:'Bean sprouts',  amount:1,   unit:'cup',  prep:''},
+          {name:'Fresh chilli',  amount:1,   unit:'whole',prep:'sliced'},
+        ]}
+      ],
+      method:[
+        {title:'Broth', steps:[
+          {text:'Place chicken, stock, ginger, onion and spices in a large pot. Cover with water.',noscale:false,noscaleNote:''},
+          {text:'Bring to a boil then reduce to a gentle simmer for 1 hour.',noscale:true,noscaleNote:'Simmer time stays at 1 hour regardless of batch size — flavour extraction doesn\'t change.'},
+          {text:'Remove chicken and shred the meat. Strain broth and season with fish sauce.',noscale:false,noscaleNote:''}
+        ]},
+        {title:'Serve', steps:[
+          {text:'Cook noodles per packet instructions.',noscale:false,noscaleNote:''},
+          {text:'Divide noodles into bowls and top with shredded chicken.',noscale:false,noscaleNote:''},
+          {text:'Ladle hot broth over. Serve with spring onion, bean sprouts and chilli.',noscale:false,noscaleNote:''}
+        ]}
+      ],
+      notes:'Char the ginger and onion directly over a gas flame for a smokier, deeper broth.'
+    },
+    {
+      id:2, name:"Banana Oat Pancakes", created:Date.now()-50000,
+      tags:['Breakfast','Snack'],
+      hours:0, minutes:20, serves:2, source:'',
+      ingredients:[
+        { title:'', items:[
+          {name:'Ripe bananas',   amount:2,   unit:'whole',prep:'mashed'},
+          {name:'Eggs',           amount:2,   unit:'',     prep:''},
+          {name:'Rolled oats',    amount:80,  unit:'g',    prep:''},
+          {name:'Baking powder',  amount:0.5, unit:'tsp',  prep:''},
+          {name:'Cinnamon',       amount:1,   unit:'pinch',prep:''},
+          {name:'Butter',         amount:null,unit:'',     prep:'small knob, for frying'},
+        ]}
+      ],
+      method:[
+        {title:'', steps:[
+          {text:'Mash bananas well in a mixing bowl.',noscale:false,noscaleNote:''},
+          {text:'Beat in the eggs.',noscale:false,noscaleNote:''},
+          {text:'Stir in oats, baking powder and cinnamon. Rest for 5 minutes.',noscale:false,noscaleNote:''},
+          {text:'Heat butter in a pan over medium heat. Cook tablespoon-sized rounds for 2 min each side until golden.',noscale:true,noscaleNote:'Cook time per pancake stays 2 min each side — just cook in more batches.'}
+        ]}
+      ],
+      notes:'Great with fresh berries or a drizzle of honey.'
+    },
+    {
+      id:3, name:"Korean Beef Bibimbap", created:Date.now()-20000,
+      tags:['Dinner','Korean','Bowl'],
+      hours:0, minutes:45, serves:4, source:'',
+      ingredients:[
+        { title:'General', items:[
+          {name:'Eggs',                amount:4,    unit:'whole', prep:''},
+          {name:'Rice',                amount:1.5,  unit:'cup',   prep:'rinsed'},
+          {name:'Brown sugar',         amount:2,    unit:'tbsp',  prep:''},
+          {name:'Soy sauce',           amount:0.5,  unit:'cup',   prep:''},
+          {name:'Stir fry beef',       amount:500,  unit:'g',     prep:''},
+          {name:'Sugar snap peas',     amount:150,  unit:'g',     prep:'cut into matchsticks'},
+          {name:'Red onion',           amount:1,    unit:'whole', prep:''},
+          {name:'Carrots',             amount:2,    unit:'whole', prep:'cut into matchsticks'},
+          {name:'Lebanese cucumbers',  amount:2,    unit:'whole', prep:'cut into quarter moons'},
+          {name:'Ginger',              amount:null, unit:'',      prep:'small knob, finely grated'},
+          {name:'Garlic',              amount:2,    unit:'clove', prep:'finely grated, large cloves'},
+          {name:'Coconut milk',        amount:300,  unit:'ml',    prep:''},
+          {name:'Kewpie mayo',         amount:null, unit:'',      prep:'store-bought or see Kewpie section'},
+          {name:'Fried shallots',      amount:null, unit:'',      prep:'to garnish'},
+          {name:'Sesame seeds',        amount:null, unit:'',      prep:'to garnish'},
+        ]},
+        { title:'Kewpie mayo (if making)', items:[
+          {name:'Regular mayo',        amount:10,   unit:'tbsp',  prep:''},
+          {name:'Rice wine vinegar',   amount:1,    unit:'tbsp',  prep:''},
+        ]}
+      ],
+      method:[
+        {title:'Prep', steps:[
+          {text:'Finely grate or chop garlic and ginger.',noscale:false,noscaleNote:''},
+          {text:'Cut carrots and sugar snap peas into matchsticks.',noscale:false,noscaleNote:''},
+          {text:'Cut cucumber into quarter moons.',noscale:false,noscaleNote:''},
+          {text:'If making kewpie mayo: combine mayo and rice wine vinegar in a 10:1 ratio and mix well.',noscale:false,noscaleNote:''},
+        ]},
+        {title:'Marinade', steps:[
+          {text:'Combine garlic, ginger, soy sauce, brown sugar and 2 tbsp water.',noscale:false,noscaleNote:''},
+          {text:'Divide the mixture in half. Combine one half with the beef strips and marinate for at least 10 minutes. Reserve the remaining half.',noscale:false,noscaleNote:''},
+        ]},
+        {title:'Pickle', steps:[
+          {text:'Cut red onion in half then into thin strips.',noscale:false,noscaleNote:''},
+          {text:'Place in a jar or glass. Add 2 tsp caster sugar. Top with rice wine vinegar to halfway up the onions, then fill to just above with boiling water. Seal or cover with cling wrap.',noscale:true,noscaleNote:'Pickling liquid ratio stays the same regardless of batch — adjust volume to fit your container.'},
+        ]},
+        {title:'Cooking', steps:[
+          {text:'Add 1½ cups water, coconut milk and a pinch of salt to a saucepan. Bring to the boil. Add 1½ cups rinsed rice, stir occasionally to avoid sticking. Once boiling, cover and reduce to the lowest heat.',noscale:false,noscaleNote:''},
+          {text:'Set a timer for 13 minutes. Once done, remove from heat and let sit covered for a further 10 minutes.',noscale:true,noscaleNote:'Rice timing stays the same — cook in separate batches if scaling up significantly.'},
+          {text:'Heat a large pan on high with a drizzle of olive oil. Cook carrots and peas until just tender, then set aside.',noscale:false,noscaleNote:''},
+          {text:'Cook marinated beef on high heat until caramelised and cooked through. Set aside.',noscale:false,noscaleNote:''},
+          {text:'Fry eggs to your liking.',noscale:false,noscaleNote:''},
+        ]},
+        {title:'Plate up', steps:[
+          {text:'Build the bowl: rice base, then beef, carrots & peas, pickled red onion and cucumber.',noscale:false,noscaleNote:''},
+          {text:'Drizzle with the reserved soy marinade mixture.',noscale:false,noscaleNote:''},
+          {text:'Top with the fried egg and a drizzle of kewpie mayo.',noscale:false,noscaleNote:''},
+          {text:'Finish with sesame seeds and fried shallots.',noscale:false,noscaleNote:''},
+        ]}
+      ],
+      notes:'The pickled onion is worth making ahead — even 30 mins makes a difference, overnight is best. The coconut milk in the rice gives it a subtle richness that works really well with the soy marinade.'
+    }
+  ];
+}
+
+init();
+</script>
+</body>
+</html>
