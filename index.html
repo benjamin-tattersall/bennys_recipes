@@ -1896,6 +1896,7 @@ function renderViewBody(r) {
     : '';
 
   vbody.innerHTML = `
+    ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
     ${ingHtml}${methHtml}${notesHtml}`;
