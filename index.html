@@ -1791,27 +1791,47 @@ const TO_BASE = {
   tsp:4.92, tbsp:14.79, cup:236.59, ml:1, L:1000,
   g:1, kg:1000
 };
-const VOL_STEPS = [
+// Separate step tables: cooking units (tsp/tbsp/cup) vs pure metric volume (ml/L)
+const VOL_STEPS_COOKING = [
   {unit:'tsp',  min:0,    max:14.8},
   {unit:'tbsp', min:14.8, max:59},
   {unit:'cup',  min:59,   max:2366},
   {unit:'L',    min:2366, max:Infinity}
+];
+const VOL_STEPS_METRIC = [
+  {unit:'ml', min:0,    max:1000},
+  {unit:'L',  min:1000, max:Infinity}
 ];
 const MASS_STEPS = [
   {unit:'g',  min:0,   max:900},
   {unit:'kg', min:900, max:Infinity}
 ];
 
-function isVolUnit(u) { return ['tsp','tbsp','cup','ml','L'].includes(u); }
-function isMassUnit(u) { return ['g','kg'].includes(u); }
+function isMetricVol(u)  { return ['ml','L'].includes(u); }
+function isCookingVol(u) { return ['tsp','tbsp','cup'].includes(u); }
+function isVolUnit(u)    { return isMetricVol(u) || isCookingVol(u); }
+function isMassUnit(u)   { return ['g','kg'].includes(u); }
 
 function smartUnit(scaledAmount, origUnit) {
   if (!origUnit || !TO_BASE[origUnit]) return origUnit;
   const base = scaledAmount * TO_BASE[origUnit];
-  const steps = isVolUnit(origUnit) ? VOL_STEPS : (isMassUnit(origUnit) ? MASS_STEPS : null);
-  if (!steps) return origUnit;
-  for (const s of steps) {
-    if (base >= s.min && base < s.max) return s.unit;
+  // Metric volume stays metric — never cross into tsp/tbsp/cup
+  if (isMetricVol(origUnit)) {
+    const steps = VOL_STEPS_METRIC;
+    for (const s of steps) { if (base >= s.min && base < s.max) return s.unit; }
+    return origUnit;
+  }
+  // Cooking volume (tsp/tbsp/cup) can convert within cooking units + L
+  if (isCookingVol(origUnit)) {
+    const steps = VOL_STEPS_COOKING;
+    for (const s of steps) { if (base >= s.min && base < s.max) return s.unit; }
+    return origUnit;
+  }
+  // Mass
+  if (isMassUnit(origUnit)) {
+    const steps = MASS_STEPS;
+    for (const s of steps) { if (base >= s.min && base < s.max) return s.unit; }
+    return origUnit;
   }
   return origUnit;
 }
@@ -2185,8 +2205,12 @@ async function saveRecipe() {
         const rawAmt = amountEl?.value.trim();
         const noscale = nsBtn?.classList.contains('on') || false;
         const readOv = (cls) => {
-          const amt  = wrap.querySelector(`.${cls}-amt`)?.value.trim();
-          const unit = wrap.querySelector(`.${cls}-amt`)?.closest('.scale-override-row')?.querySelector('select')?.value || '';
+          const row    = wrap.querySelector(`.${cls}-amt`)?.closest('.scale-override-row');
+          if (!row) return null;
+          const amt    = row.querySelector(`.${cls}-amt`)?.value.trim();
+          const selEl  = row.querySelector('.ov-unit-sel');
+          const manEl  = row.querySelector('.ov-unit-manual');
+          const unit   = manEl ? manEl.value.trim() : (selEl?.value || '');
           return (amt || unit) ? { amount: amt ? parseFloat(amt) : null, unit } : null;
         };
         items.push({
@@ -2465,7 +2489,13 @@ function buildOverrideRow(label, cls, ovData, amount, unit, factor) {
 }
 
 function buildOverrideUnitSelect(selected, origUnit) {
-  const activeUnits = getActiveUnits();
+  const isCustom = selected && !getAllDropdownUnits().includes(selected);
+  if (isCustom) {
+    // Show text input with back button — same as main ingredient row
+    return `<input type="text" class="unit-manual ov-unit-manual" placeholder="unit" value="${esc(selected)}"
+      style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;min-width:0">
+      <button onclick="switchOvUnitToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
+  }
   let opts = `<option value="">— none —</option>`;
   opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
     const active = units.filter(u => !RETIRED_UNITS.includes(u));
@@ -2474,8 +2504,48 @@ function buildOverrideUnitSelect(selected, origUnit) {
       `<option value="${u}"${u===selected?' selected':''}>${u}</option>`
     ).join('')}</optgroup>`;
   }).join('');
-  return `<select style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-faint)'};background:var(--warning-bg);outline:none;width:100%;cursor:pointer"
-    onchange="this.style.color=this.value?'var(--ink)':'var(--ink-faint)'">${opts}</select>`;
+  opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
+  return `<select class="ov-unit-sel" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-faint)'};background:var(--warning-bg);outline:none;width:100%;cursor:pointer"
+    onchange="handleOvUnitChange(this)">${opts}</select>`;
+}
+
+function handleOvUnitChange(sel) {
+  sel.style.color = sel.value && sel.value !== '__manual__' ? 'var(--ink)' : 'var(--ink-faint)';
+  if (sel.value === '__manual__') {
+    const row = sel.closest('.scale-override-row');
+    const manualInput = document.createElement('input');
+    manualInput.type = 'text';
+    manualInput.className = 'unit-manual ov-unit-manual';
+    manualInput.placeholder = 'unit';
+    manualInput.style.cssText = 'border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;min-width:0';
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '×';
+    backBtn.title = 'Back to dropdown';
+    backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
+    backBtn.onclick = () => switchOvUnitToDropdown(backBtn);
+    sel.replaceWith(manualInput);
+    row.appendChild(backBtn);
+    manualInput.focus();
+  }
+}
+
+function switchOvUnitToDropdown(btn) {
+  const row = btn.closest('.scale-override-row');
+  const manualInput = row.querySelector('.ov-unit-manual');
+  const newSel = document.createElement('select');
+  newSel.className = 'ov-unit-sel';
+  newSel.style.cssText = 'border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink-faint);background:var(--warning-bg);outline:none;width:100%;cursor:pointer';
+  newSel.onchange = function() { handleOvUnitChange(this); };
+  let opts = `<option value="">— none —</option>`;
+  opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
+    const active = units.filter(u => !RETIRED_UNITS.includes(u));
+    if (!active.length) return '';
+    return `<optgroup label="${grp}">${active.map(u => `<option value="${u}">${u}</option>`).join('')}</optgroup>`;
+  }).join('');
+  opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
+  newSel.innerHTML = opts;
+  manualInput.replaceWith(newSel);
+  btn.remove();
 }
 
 function addIngRow(btn, rowsEl, data) {
