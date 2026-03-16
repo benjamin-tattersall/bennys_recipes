@@ -430,6 +430,14 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
+/* ── YOUTUBE EMBED ── */
+.yt-wrap{
+  position:relative;width:100%;padding-bottom:56.25%;
+  border-radius:var(--radius);overflow:hidden;background:#000;
+  margin-bottom:0.5rem;
+}
+.yt-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+
 /* ── GROUP BY ── */
 .group-btn{
   background:var(--card);border:1px solid var(--border);color:var(--ink-muted);
@@ -805,7 +813,12 @@ header{
 
       <div class="fg">
         <label>Source / URL</label>
-        <input type="text" id="f-source">
+        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe">
+      </div>
+
+      <div class="fg">
+        <label>YouTube reference video <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(optional)</span></label>
+        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…">
       </div>
 
       <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
@@ -2458,11 +2471,23 @@ function renderViewBody(r) {
     ? `<div class="view-sec"><div class="vsec-lbl">Notes</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">${esc(r.notes)}</p></div>`
     : '';
 
+  const ytId = extractYouTubeId(r.youtube);
+  const ytHtml = ytId
+    ? `<div class="view-sec">
+        <div class="vsec-lbl">Reference video</div>
+        <div class="yt-wrap">
+          <iframe src="https://www.youtube.com/embed/${ytId}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen loading="lazy"></iframe>
+        </div>
+       </div>`
+    : '';
+
   vbody.innerHTML = `
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
-    ${ingHtml}${methHtml}${notesHtml}`;
+    ${ingHtml}${methHtml}${notesHtml}${ytHtml}`;
 }
 
 function toggleIngView(btn) {
@@ -2503,6 +2528,7 @@ function openEdit(r) {
   document.getElementById('form-title').textContent = r ? 'Edit recipe' : 'Add recipe';
   document.getElementById('f-name').value   = r?.name   || '';
   document.getElementById('f-source').value = r?.source || '';
+  document.getElementById('f-youtube').value = r?.youtube || '';
   document.getElementById('f-notes').value  = r?.notes  || '';
 
   formTags = [...(r?.tags||[])];
@@ -2646,7 +2672,8 @@ async function saveRecipe() {
     name, tags: formTags.map(toTitleCase),
     hours:hrs||null, minutes:mins||null, serves:srv,
     scalable,
-    source: document.getElementById('f-source').value.trim(),
+    source:  document.getElementById('f-source').value.trim(),
+    youtube: document.getElementById('f-youtube').value.trim() || null,
     ingredients, method,
     notes: document.getElementById('f-notes').value.trim(),
     updated: Date.now()
@@ -3180,6 +3207,13 @@ function wheelStart(e, id) {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
+function extractYouTubeId(url) {
+  if (!url) return null;
+  // Handles: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 function totalMins(r) {
   if (r.hours==null && r.minutes==null) return null;
   return (r.hours||0)*60 + (r.minutes||0);
