@@ -495,11 +495,31 @@ header{
 .fcount-info{font-size:0.78rem;color:var(--ink-faint)}
 
 /* ── INFO MODAL ── */
-.info-body{padding:1.3rem;font-size:0.86rem;line-height:1.7;color:var(--ink-mid);display:flex;flex-direction:column;gap:1rem;max-height:76vh;overflow-y:auto}
-.info-body h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.2rem}
+.info-body{padding:0;font-size:0.86rem;line-height:1.7;color:var(--ink-mid);display:flex;flex-direction:column;max-height:76vh}
+.info-body h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem;margin-top:0.8rem}
+.info-body h3:first-child{margin-top:0}
 .info-body ol,.info-body ul{padding-left:1.1rem;display:flex;flex-direction:column;gap:0.3rem}
 .info-body code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:0.8rem;color:var(--accent-text);font-family:monospace}
 .info-body p{font-size:0.84rem}
+.info-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;padding:0 1rem}
+.info-tab{
+  background:none;border:none;border-bottom:2px solid transparent;
+  padding:0.6rem 0.7rem;font-family:'Instrument Sans',sans-serif;font-size:0.78rem;
+  color:var(--ink-muted);cursor:pointer;white-space:nowrap;transition:all .12s;margin-bottom:-1px;
+}
+.info-tab:hover{color:var(--ink)}
+.info-tab.active{color:var(--accent-text);border-bottom-color:var(--accent);font-weight:500}
+.info-pane{display:none;padding:1.1rem 1.3rem;overflow-y:auto;flex:1}
+.info-pane.active{display:block}
+.info-tip{
+  background:var(--accent-light);border-left:3px solid var(--accent);
+  padding:0.5rem 0.7rem;border-radius:0 var(--radius) var(--radius) 0;
+  font-size:0.81rem;color:var(--accent-text);margin-top:0.5rem;
+}
+/* auth modal */
+.auth-modal{max-width:400px}
+.auth-body{padding:1.2rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem}
+.auth-note{font-size:0.78rem;color:var(--ink-faint);line-height:1.5}
 .info-sep{height:1px;background:var(--border)}
 .info-input-row{display:flex;flex-direction:column;gap:0.35rem}
 .info-input-row label{font-size:0.73rem;font-weight:500;color:var(--ink-muted)}
@@ -658,8 +678,15 @@ header{
 
 <header>
   <div class="logo">Benny's <em>Recipes</em></div>
-  <button class="hbtn" onclick="openInfo()" title="Info &amp; credentials">
+  <button class="hbtn" onclick="openInfo()" title="How to use">
     <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button class="hbtn" onclick="openAuth()" title="GitHub credentials">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="7" width="10" height="7" rx="1.5"/>
+      <path d="M5 7V5a3 3 0 016 0v2"/>
+      <circle cx="8" cy="11" r="1" fill="currentColor" stroke="none"/>
+    </svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M12.6 3.4l-.85.85M4.25 11.75l-.85.85"/></svg>
@@ -895,58 +922,106 @@ header{
 
 <!-- INFO MODAL -->
 <div class="backdrop" id="imodal">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:540px">
     <div class="modal-head">
-      <h2>Info &amp; Settings</h2>
+      <h2>How to use Benny's Recipes</h2>
       <button class="xbtn" onclick="closeInfo()">✕</button>
     </div>
     <div class="info-body">
-      <div>
-        <h3>GitHub Gist — credentials</h3>
-        <p>Your recipes are stored in a GitHub Gist as a <code>recipes.json</code> file. Enter your Gist ID and personal access token below to connect.</p>
+      <div class="info-tabs">
+        <button class="info-tab active" onclick="switchInfoTab('start',this)">Getting started</button>
+        <button class="info-tab" onclick="switchInfoTab('recipes',this)">Recipes</button>
+        <button class="info-tab" onclick="switchInfoTab('scaling',this)">Scaling</button>
+        <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
+        <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
       </div>
-      <div class="info-input-row">
-        <label>Gist ID</label>
-        <input type="text" id="info-gist" placeholder="e.g. a1b2c3d4e5f6…">
-      </div>
-      <div class="info-input-row">
-        <label>Personal Access Token</label>
-        <input type="password" id="info-token" placeholder="ghp_…">
-      </div>
-      <p class="info-note">Stored only in your browser's localStorage. Never sent anywhere except GitHub's API directly.</p>
-      <div style="display:flex;justify-content:flex-end">
-        <button class="btn-pri" onclick="saveInfoCreds()">Save &amp; reconnect</button>
-      </div>
-      <div class="info-sep"></div>
-      <div>
-        <h3>Setting up GitHub Gist</h3>
+
+      <div class="info-pane active" id="info-pane-start">
+        <h3>Welcome</h3>
+        <p>Benny's Recipes is your personal recipe book, stored privately in a GitHub Gist so it syncs across all your devices. Add, edit, scale and organise recipes — all in one place.</p>
+        <h3>Connecting to GitHub</h3>
         <ol>
           <li>Create a free account at <strong>github.com</strong></li>
-          <li>Go to <strong>gist.github.com</strong> — create a new <em>secret</em> Gist</li>
-          <li>Name the file <code>recipes.json</code>, put <code>[]</code> as content, save</li>
+          <li>Go to <strong>gist.github.com</strong> and create a new <em>secret</em> Gist</li>
+          <li>Name the file <code>recipes.json</code>, set the content to <code>[]</code>, and save</li>
           <li>Copy the Gist ID from the URL (the long string at the end)</li>
-          <li>Go to <strong>github.com/settings/tokens</strong> → Generate a classic token with the <code>gist</code> scope only</li>
-          <li>Paste both above and hit Save</li>
+          <li>Go to <strong>github.com/settings/tokens</strong> → generate a classic token with the <code>gist</code> scope only</li>
+          <li>Tap the <strong>🔑 key icon</strong> in the header and paste both values in</li>
         </ol>
+        <div class="info-tip">Your credentials are stored only in your browser's localStorage and are never sent anywhere except GitHub's API directly.</div>
       </div>
-      <div class="info-sep"></div>
-      <div>
+
+      <div class="info-pane" id="info-pane-recipes">
+        <h3>Adding a recipe</h3>
+        <p>Tap <strong>Add recipe</strong> in the top right. Fill in the name, tags, cook time, and serves. New recipes are saved as <strong>Drafts</strong> — they won't appear on the main page until you publish them.</p>
+        <h3>Draft &amp; Publish</h3>
+        <p>Open any recipe and use the <strong>Publish</strong> button in the footer to make it visible on the main page. Use <strong>Unpublish</strong> to move it back to draft. Toggle <strong>Drafts</strong> in the toolbar to view your unpublished recipes.</p>
+        <h3>Tags</h3>
+        <p>Tags organise your recipes into categories like Meal, Cuisine, and Type. Type any tag in the tag field when editing — if it's new, it's added to the <strong>Other</strong> category automatically. In Settings → Tags you can rename, move, or remove tags, and create new categories.</p>
+        <h3>YouTube reference video</h3>
+        <p>Paste any YouTube URL into the <strong>YouTube reference video</strong> field when editing a recipe. An embedded player appears at the bottom of the recipe view.</p>
+        <h3>Serves</h3>
+        <p>You can enter an exact number of serves, or switch to <strong>Range</strong> mode to specify a min–max (e.g. 2–4 serves). This is useful for recipes where portion size varies.</p>
+      </div>
+
+      <div class="info-pane" id="info-pane-scaling">
+        <h3>Scaling a recipe</h3>
+        <p>Open any recipe and use the <strong>1× / ½× / 2× / 3×</strong> buttons to scale. Ingredient quantities update automatically, with smart unit conversion (e.g. 3 tsp → 1 tbsp). Metric ingredients stay metric.</p>
+        <h3>Marking ingredients that don't scale</h3>
+        <p>Tap the <strong>⊘ button</strong> on any ingredient or method step to flag it. When flagged, you can enter specific overrides for each scale (½×, 2×, 3×) with their own amount and unit. If you leave an override blank, the recipe view shows a <em>"does not scale"</em> note at that scale.</p>
+        <h3>Non-scalable recipes</h3>
+        <p>Use the <strong>Recipe can be scaled</strong> toggle in the edit form to disable scaling entirely for a recipe. The scale bar won't appear in the view, and the ⊘ buttons are hidden in the form.</p>
+      </div>
+
+      <div class="info-pane" id="info-pane-filter">
+        <h3>Filtering</h3>
+        <p>Tap <strong>Filter</strong> in the toolbar to open the filter panel. Select any number of pills — within a category the logic is OR (e.g. Breakfast or Dinner), and between categories it's AND (e.g. Korean AND Dinner). Active filters appear as chips below the toolbar, each removable individually.</p>
+        <h3>Cook time &amp; Serves filters</h3>
+        <p>Cook time and Serves work the same as tag filters — select multiple buckets within each section. Only buckets that match at least one visible recipe are shown.</p>
+        <h3>Group By</h3>
+        <p>Tap <strong>Group</strong> in the toolbar to group recipes by a category. Recipes appear under labelled headings. A recipe tagged with two values in the same group (e.g. both Dinner and Lunch) appears under both headings.</p>
+      </div>
+
+      <div class="info-pane" id="info-pane-mobile">
         <h3>Using on iPhone</h3>
-        <ul>
-          <li>Save this HTML file to your <strong>iCloud Drive</strong></li>
-          <li>Open it from the <strong>Files app</strong> in Safari</li>
-          <li>Tap <strong>Share → Add to Home Screen</strong> to install it like an app</li>
-          <li>Recipes load from GitHub and cache locally — works offline with the last synced data</li>
-        </ul>
-      </div>
-      <div class="info-sep"></div>
-      <div>
+        <ol>
+          <li>Host the HTML file on <strong>GitHub Pages</strong> (free) and open it in Safari</li>
+          <li>Tap <strong>Share → Add to Home Screen</strong> to install it as a full-screen app</li>
+          <li>Recipes load from GitHub and cache locally so the last synced data is always available</li>
+          <li>On smaller screens, the search bar collapses into a magnifying glass icon — tap it to expand</li>
+        </ol>
         <h3>Offline mode</h3>
-        <p>When offline, you can still browse and edit recipes. Changes are queued and synced to GitHub automatically when your connection returns. A banner at the top shows your current status.</p>
+        <p>When offline, you can still browse and edit recipes. Changes are queued and synced to GitHub automatically when your connection returns. A banner at the top of the page shows your current connection status.</p>
+        <div class="info-tip">Tip: if recipes aren't loading, check your credentials using the 🔑 button in the header.</div>
       </div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeInfo()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="backdrop" id="auth-modal">
+  <div class="modal auth-modal">
+    <div class="modal-head">
+      <h2>GitHub credentials</h2>
+      <button class="xbtn" onclick="closeAuth()">✕</button>
+    </div>
+    <div class="auth-body">
+      <p class="auth-note">Your recipes are stored in a GitHub Gist. Enter your Gist ID and personal access token to connect. Credentials are stored only in this browser's localStorage.</p>
+      <div class="info-input-row">
+        <label>Gist ID</label>
+        <input type="text" id="auth-gist" placeholder="e.g. a1b2c3d4e5f6…">
+      </div>
+      <div class="info-input-row">
+        <label>Personal Access Token</label>
+        <input type="password" id="auth-token" placeholder="ghp_…">
+      </div>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeAuth()">Cancel</button>
+      <button class="btn-pri" onclick="saveAuthCreds()">Save &amp; reconnect</button>
     </div>
   </div>
 </div>
@@ -1141,7 +1216,7 @@ async function loadFromGist() {
   } catch(e) {
     const cached = localStorage.getItem('recipes_cache');
     if (cached) { recipes = JSON.parse(cached); normaliseRecipes(recipes); render(); }
-    else toast('Could not load — check credentials in ⓘ');
+    else toast('Could not load — check credentials via the 🔑 button');
   }
 }
 
@@ -1668,18 +1743,33 @@ function saveSetup() {
 }
 
 function openInfo() {
-  document.getElementById('info-gist').value  = gistId;
-  document.getElementById('info-token').value = ghToken;
+  switchInfoTab('start', document.querySelector('.info-tab'));
   document.getElementById('imodal').classList.add('open');
 }
 function closeInfo() { document.getElementById('imodal').classList.remove('open'); }
-function saveInfoCreds() {
-  const g = document.getElementById('info-gist').value.trim();
-  const t = document.getElementById('info-token').value.trim();
+
+function switchInfoTab(name, btn) {
+  document.querySelectorAll('.info-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.info-pane').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const pane = document.getElementById('info-pane-' + name);
+  if (pane) pane.classList.add('active');
+}
+
+function openAuth() {
+  document.getElementById('auth-gist').value  = localStorage.getItem('gist_id')  || '';
+  document.getElementById('auth-token').value = localStorage.getItem('gh_token') || '';
+  document.getElementById('auth-modal').classList.add('open');
+}
+function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+
+function saveAuthCreds() {
+  const g = document.getElementById('auth-gist').value.trim();
+  const t = document.getElementById('auth-token').value.trim();
   if (!g || !t) { toast('Please fill in both fields'); return; }
   gistId=g; ghToken=t;
   localStorage.setItem('gist_id',g); localStorage.setItem('gh_token',t);
-  closeInfo(); loadFromGist(); toast('Credentials saved — loading…');
+  closeAuth(); loadFromGist(); toast('Credentials saved — loading…');
 }
 
 // ── FILTER MODAL ──────────────────────────────────────────────────────────
@@ -3236,7 +3326,7 @@ function toast(msg) {
 }
 
 // backdrop close
-['vmodal','emodal','fmodal','imodal','settings-modal','gmodal','replace-tag-modal'].forEach(id => {
+['vmodal','emodal','fmodal','imodal','settings-modal','gmodal','replace-tag-modal','auth-modal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target===e.currentTarget) {
       if(id==='vmodal') closeView();
@@ -3246,6 +3336,7 @@ function toast(msg) {
       else if(id==='settings-modal') closeSettings();
       else if(id==='gmodal') closeGroupBy();
       else if(id==='replace-tag-modal') closeReplaceTagModal();
+      else if(id==='auth-modal') closeAuth();
     }
   });
 });
