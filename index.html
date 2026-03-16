@@ -430,6 +430,17 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
+/* ── UNDO / REDO ── */
+.undo-btn{
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  width:32px;height:32px;border-radius:var(--radius);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;flex-shrink:0;
+}
+.undo-btn:hover:not(:disabled){border-color:var(--border-mid);color:var(--ink);background:var(--paper)}
+.undo-btn:disabled{opacity:.3;cursor:default}
+.undo-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
 /* ── BIN ── */
 .bin-modal{max-width:560px}
 .bin-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.6rem;max-height:65vh;overflow-y:auto}
@@ -754,6 +765,12 @@ header{
       <button class="draft-toggle" id="draft-toggle-btn" onclick="toggleShowDrafts()" title="Show draft recipes">
         <span class="toggle-pip"></span>
         Drafts
+      </button>
+      <button class="undo-btn" id="undo-btn" onclick="undoAction()" title="Undo (⌘Z)" disabled>
+        <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
+      </button>
+      <button class="undo-btn" id="redo-btn" onclick="redoAction()" title="Redo (⌘⇧Z)" disabled>
+        <svg viewBox="0 0 16 16"><path d="M13 7 L9 3 L9 5.5 C5 5.5 3 7.5 3 11 C4.5 8.5 6.5 7.5 9 7.5 L9 10 Z"/></svg>
       </button>
     </div>
   </div>
@@ -1206,7 +1223,10 @@ let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
 let showDrafts  = false;
-let bin         = []; // soft-deleted recipes
+let bin         = [];
+let undoStack   = []; // [{recipes, bin}, ...]
+let redoStack   = [];
+const MAX_UNDO  = 20;
 let groupBy     = null; // null | 'Meal' | 'Cuisine' | 'Type' | 'Cook Time' | 'Serves' | custom
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
@@ -1226,6 +1246,17 @@ function init() {
   window.addEventListener('online',  () => { isOnline=true;  updateOfflineBanner(); if(pendingSync.length) syncPending(); });
   window.addEventListener('offline', () => { isOnline=false; updateOfflineBanner(); });
   updateOfflineBanner();
+  updateUndoButtons();
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z = redo
+  document.addEventListener('keydown', e => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+    // Don't fire when typing in an input/textarea
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); }
+    if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redoAction(); }
+  });
 
   if (!gistId || !ghToken) {
     const cached = localStorage.getItem('recipes_cache');
@@ -1251,6 +1282,69 @@ function updateOfflineBanner() {
   const s = document.getElementById('sync-btn');
   b.classList.toggle('show', !isOnline);
   s.classList.toggle('show', !isOnline && pendingSync.length > 0);
+}
+
+// ── UNDO / REDO ───────────────────────────────────────────────────────────
+function pushUndo(prevRecipes, prevBin) {
+  undoStack.push({ recipes: JSON.parse(JSON.stringify(prevRecipes)), bin: JSON.parse(JSON.stringify(prevBin)) });
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = []; // clear redo on new action
+  updateUndoButtons();
+}
+
+function updateUndoButtons() {
+  const u = document.getElementById('undo-btn');
+  const r = document.getElementById('redo-btn');
+  if (u) u.disabled = undoStack.length === 0;
+  if (r) r.disabled = redoStack.length === 0;
+}
+
+async function undoAction() {
+  if (!undoStack.length) return;
+  redoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)) });
+  const prev = undoStack.pop();
+  recipes = prev.recipes;
+  bin     = prev.bin;
+  normaliseRecipes(recipes);
+  isOnline ? await saveToGistSilent() : saveLocallySilent();
+  render(); updateBinBtn(); updateUndoButtons();
+  toast('Undone ↩');
+}
+
+async function redoAction() {
+  if (!redoStack.length) return;
+  undoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)) });
+  const next = redoStack.pop();
+  recipes = next.recipes;
+  bin     = next.bin;
+  normaliseRecipes(recipes);
+  isOnline ? await saveToGistSilent() : saveLocallySilent();
+  render(); updateBinBtn(); updateUndoButtons();
+  toast('Redone ↪');
+}
+
+// Silent versions for undo/redo — don't push to undo stack themselves
+async function saveToGistSilent() {
+  if (!gistId || !ghToken) { saveLocallySilent(); return; }
+  try {
+    const files = {
+      'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
+      'bin.json':      { content: JSON.stringify(bin, null, 2) },
+      'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
+    };
+    await fetch(`https://api.github.com/gists/${gistId}`, {
+      method:'PATCH',
+      headers:{ Authorization:`token ${ghToken}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ files })
+    });
+    localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+    localStorage.setItem('bin_cache', JSON.stringify(bin));
+  } catch(e) { saveLocallySilent(); }
+}
+
+function saveLocallySilent() {
+  localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+  localStorage.setItem('bin_cache', JSON.stringify(bin));
 }
 
 // ── GIST ──────────────────────────────────────────────────────────────────
@@ -1290,6 +1384,13 @@ async function loadFromGist() {
 
 async function saveToGist() {
   if (!gistId || !ghToken) { saveLocally(); return; }
+  // Capture state for undo BEFORE modifying (caller already changed recipes/bin)
+  // We read the previous state from localStorage cache
+  try {
+    const prevRecipes = JSON.parse(localStorage.getItem('recipes_cache') || '[]');
+    const prevBin     = JSON.parse(localStorage.getItem('bin_cache')     || '[]');
+    pushUndo(prevRecipes, prevBin);
+  } catch(e) {}
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
@@ -1306,11 +1407,18 @@ async function saveToGist() {
     localStorage.setItem('bin_cache', JSON.stringify(bin));
     toast('Saved ✓');
   } catch(e) {
-    saveLocally();
+    saveLocallySilent();
+    toast('Saved locally — will sync when online');
   }
 }
 
 function saveLocally() {
+  // Capture state for undo before overwriting cache
+  try {
+    const prevRecipes = JSON.parse(localStorage.getItem('recipes_cache') || '[]');
+    const prevBin     = JSON.parse(localStorage.getItem('bin_cache')     || '[]');
+    pushUndo(prevRecipes, prevBin);
+  } catch(e) {}
   localStorage.setItem('recipes_cache', JSON.stringify(recipes));
   localStorage.setItem('bin_cache', JSON.stringify(bin));
   pendingSync.push({ ts:Date.now(), recipes:JSON.parse(JSON.stringify(recipes)), bin:JSON.parse(JSON.stringify(bin)) });
