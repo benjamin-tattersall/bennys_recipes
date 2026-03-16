@@ -916,9 +916,9 @@ const WHEEL_ITEMS = {
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let recipes = [];
-let activeTags = new Set();
-let activeTime = '';
-let activeServes = '';
+let activeTags   = new Set();
+let activeTimes  = new Set();
+let activeServes = new Set();
 let currentId = null;
 let editId = null;
 let pendingSync = [];
@@ -1454,44 +1454,20 @@ function closeFilter() { document.getElementById('fmodal').classList.remove('ope
 
 function renderFilterModal() {
   const q = document.getElementById('search').value.toLowerCase().trim();
-
-  // Only consider recipes that are currently visible (respects showDrafts)
   const visibleRecipes = recipes.filter(r => showDrafts || r.status !== 'draft');
   const allVisibleTags = new Set(visibleRecipes.flatMap(r => r.tags||[]));
 
-  // case-insensitive tag match helper
-  const hasTag = (recipe, tag) => recipe.tags?.some(t => t.toLowerCase() === tag.toLowerCase());
+  const hasTag = (r, tag) => r.tags?.some(t => t.toLowerCase() === tag.toLowerCase());
 
-  // Build a map of group -> active tags in that group
+  // Active tags by group
   const activeByGroup = {};
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     activeByGroup[group] = tags.filter(t => activeTags.has(t));
   }
 
-  // Check if a recipe passes the current time filter
-  function passesTime(r, timeVal) {
-    if (!timeVal) return true;
-    const m = totalMins(r);
-    if (timeVal==='quick'  && (m==null||m>=30))        return false;
-    if (timeVal==='medium' && (m==null||m<30||m>60))   return false;
-    if (timeVal==='long'   && (m==null||m<=60||m>120)) return false;
-    if (timeVal==='vlong'  && (m==null||m<=120))        return false;
-    return true;
-  }
-
-  // Check if a recipe passes the current serves filter
-  function passesServes(r, servesVal) {
-    if (!servesVal) return true;
-    const s = r.serves || 0;
-    if (servesVal==='s1'  && !(s>=1 && s<=2))  return false;
-    if (servesVal==='s2'  && !(s>=3 && s<=4))  return false;
-    if (servesVal==='s3'  && !(s>=5 && s<=6))  return false;
-    if (servesVal==='s4'  && !(s>6))            return false;
-    return true;
-  }
-
-  // Check recipe passes ALL currently active tag group filters (OR within group, AND between)
-  function passesActiveTags(r, overrideGroup, overrideTag) {
+  // Does recipe pass the active tag filters?
+  // overrideGroup/overrideTag: when testing a candidate pill, treat it as added to its group
+  function passesTagFilters(r, overrideGroup, overrideTag) {
     for (const [group, tags] of Object.entries(TAG_GROUPS)) {
       const groupActive = activeByGroup[group] || [];
       if (group === overrideGroup) {
@@ -1504,23 +1480,51 @@ function renderFilterModal() {
     return true;
   }
 
-  // Would selecting this tag return > 0 visible results given current filters?
-  function wouldMatchTag(candidateTag) {
-    let candidateGroup = null;
-    for (const [g, tags] of Object.entries(TAG_GROUPS)) {
-      if (tags.map(t=>t.toLowerCase()).includes(candidateTag.toLowerCase())) { candidateGroup = g; break; }
-    }
-    return visibleRecipes.some(r => {
-      if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-      if (!passesTime(r, activeTime)) return false;
-      if (!passesServes(r, activeServes)) return false;
-      return passesActiveTags(r, candidateGroup, candidateTag);
+  // Does recipe pass the active time filters? (OR within set)
+  // candidateV: when testing a pill, treat it as added to activeTimes
+  function passesTimeFilters(r, candidateV) {
+    const checkSet = candidateV
+      ? new Set([...activeTimes, candidateV])
+      : activeTimes;
+    if (checkSet.size === 0) return true;
+    const m = totalMins(r);
+    return [...checkSet].some(v => {
+      if (v==='quick'  && m!=null && m<30)         return true;
+      if (v==='medium' && m!=null && m>=30&&m<=60)  return true;
+      if (v==='long'   && m!=null && m>60&&m<=120)  return true;
+      if (v==='vlong'  && m!=null && m>120)         return true;
+      return false;
     });
+  }
+
+  // Does recipe pass the active serves filters? (OR within set)
+  function passesServesFilters(r, candidateV) {
+    const checkSet = candidateV
+      ? new Set([...activeServes, candidateV])
+      : activeServes;
+    if (checkSet.size === 0) return true;
+    const s = r.serves || 0;
+    return [...checkSet].some(v => {
+      if (v==='s1' && s>=1&&s<=2) return true;
+      if (v==='s2' && s>=3&&s<=4) return true;
+      if (v==='s3' && s>=5&&s<=6) return true;
+      if (v==='s4' && s>6)        return true;
+      return false;
+    });
+  }
+
+  // Would adding this pill return > 0 results?
+  function wouldMatch(r, opts) {
+    if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+    if (!passesTagFilters(r,   opts.tagGroup, opts.tagVal))    return false;
+    if (!passesTimeFilters(r,  opts.timeVal))                  return false;
+    if (!passesServesFilters(r, opts.servesVal))               return false;
+    return true;
   }
 
   let html = '';
 
-  // Tag groups — only show tags present on visible recipes
+  // ── TAG GROUPS ──
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     const relevant = tags.filter(t => allVisibleTags.has(t));
     if (!relevant.length) continue;
@@ -1529,59 +1533,69 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${relevant.map(t => {
           const active = activeTags.has(t);
-          const dim = !active && !wouldMatchTag(t);
+          const dim = !active && !visibleRecipes.some(r => wouldMatch(r, {tagGroup:group, tagVal:t}));
           return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
         }).join('')}
       </div>
     </div>`;
   }
 
-  // Time buckets — only show if at least one visible recipe is in that range
+  // ── COOK TIME ──
   const TIME_BUCKETS = [
-    ['quick',  'Under 30 min', r => passesTime(r,'quick')],
-    ['medium', '30 – 60 min',  r => passesTime(r,'medium')],
-    ['long',   '1 – 2 hrs',    r => passesTime(r,'long')],
-    ['vlong',  'Over 2 hrs',   r => passesTime(r,'vlong')],
+    ['quick',  'Under 30 min'],
+    ['medium', '30 – 60 min'],
+    ['long',   '1 – 2 hrs'],
+    ['vlong',  'Over 2 hrs'],
   ];
-  const relevantTimeBuckets = TIME_BUCKETS.filter(([,,test]) => visibleRecipes.some(r => test(r)));
-  if (relevantTimeBuckets.length) {
-    const timePills = relevantTimeBuckets.map(([v, l]) => {
-      const active = activeTime === v;
-      const dim = !active && !visibleRecipes.some(r => {
-        if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-        if (!passesActiveTags(r, null, null)) return false;
-        if (!passesServes(r, activeServes)) return false;
-        return passesTime(r, v);
-      });
-      return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setTimeFilter('${v}')">${l}</span>`;
-    }).join('');
-    html += `<div class="filter-sep"></div>
-      <div><div class="filter-group-label">Cook time</div>
-      <div class="filter-pill-row">${timePills}</div></div>`;
+  const relevantTime = TIME_BUCKETS.filter(([v]) => visibleRecipes.some(r => passesTimeFilters(r, v) && activeTimes.size === 0));
+  const showTimeBuckets = relevantTime.length > 0 || activeTimes.size > 0
+    ? TIME_BUCKETS.filter(([v]) => visibleRecipes.some(r => passesTimeFilters({serves:r.serves,hours:r.hours,minutes:r.minutes}, v)))
+    : [];
+  // simpler: just show buckets that have at least one visible recipe in them
+  const timeBuckets = TIME_BUCKETS.filter(([v]) => visibleRecipes.some(r => {
+    const m = totalMins(r);
+    if (v==='quick'  && m!=null && m<30)         return true;
+    if (v==='medium' && m!=null && m>=30&&m<=60)  return true;
+    if (v==='long'   && m!=null && m>60&&m<=120)  return true;
+    if (v==='vlong'  && m!=null && m>120)         return true;
+    return false;
+  }));
+  if (timeBuckets.length) {
+    html += `<div class="filter-sep"></div><div>
+      <div class="filter-group-label">Cook time</div>
+      <div class="filter-pill-row">
+        ${timeBuckets.map(([v,l]) => {
+          const active = activeTimes.has(v);
+          const dim = !active && !visibleRecipes.some(r => wouldMatch(r, {timeVal: v}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setTimeFilter('${v}')">${l}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
   }
 
-  // Serves buckets
+  // ── SERVES ──
   const SERVES_BUCKETS = [
-    ['s1', '1 – 2',  r => { const s=r.serves||0; return s>=1&&s<=2; }],
-    ['s2', '3 – 4',  r => { const s=r.serves||0; return s>=3&&s<=4; }],
-    ['s3', '5 – 6',  r => { const s=r.serves||0; return s>=5&&s<=6; }],
-    ['s4', '7+',     r => { const s=r.serves||0; return s>6; }],
+    ['s1','1 – 2'], ['s2','3 – 4'], ['s3','5 – 6'], ['s4','7+']
   ];
-  const relevantServesBuckets = SERVES_BUCKETS.filter(([,,test]) => visibleRecipes.some(r => test(r)));
-  if (relevantServesBuckets.length) {
-    const servesPills = relevantServesBuckets.map(([v, l]) => {
-      const active = activeServes === v;
-      const dim = !active && !visibleRecipes.some(r => {
-        if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-        if (!passesActiveTags(r, null, null)) return false;
-        if (!passesTime(r, activeTime)) return false;
-        return passesServes(r, v);
-      });
-      return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setServesFilter('${v}')">${l}</span>`;
-    }).join('');
-    html += `<div class="filter-sep"></div>
-      <div><div class="filter-group-label">Serves</div>
-      <div class="filter-pill-row">${servesPills}</div></div>`;
+  const servesBuckets = SERVES_BUCKETS.filter(([v]) => visibleRecipes.some(r => {
+    const s = r.serves||0;
+    if (v==='s1' && s>=1&&s<=2) return true;
+    if (v==='s2' && s>=3&&s<=4) return true;
+    if (v==='s3' && s>=5&&s<=6) return true;
+    if (v==='s4' && s>6)        return true;
+    return false;
+  }));
+  if (servesBuckets.length) {
+    html += `<div class="filter-sep"></div><div>
+      <div class="filter-group-label">Serves</div>
+      <div class="filter-pill-row">
+        ${servesBuckets.map(([v,l]) => {
+          const active = activeServes.has(v);
+          const dim = !active && !visibleRecipes.some(r => wouldMatch(r, {servesVal: v}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setServesFilter('${v}')">${l}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
   }
 
   document.getElementById('filter-body').innerHTML = html;
@@ -1594,27 +1608,27 @@ function toggleFilterTag(tag) {
   renderFilterModal();
 }
 
-function setTimeFilter(t) {
-  activeTime = (activeTime === t) ? '' : t;
+function setTimeFilter(v) {
+  if (activeTimes.has(v)) activeTimes.delete(v); else activeTimes.add(v);
   renderFilterModal();
 }
 
 function setServesFilter(v) {
-  activeServes = (activeServes === v) ? '' : v;
+  if (activeServes.has(v)) activeServes.delete(v); else activeServes.add(v);
   renderFilterModal();
 }
 
 function clearFilters() {
   activeTags.clear();
-  activeTime = '';
-  activeServes = '';
+  activeTimes.clear();
+  activeServes.clear();
   renderFilterModal();
 }
 
 function updateFilterCount() {
-  const total = activeTags.size + (activeTime!==''?1:0) + (activeServes!==''?1:0);
+  const total = activeTags.size + activeTimes.size + activeServes.size;
   const badge = document.getElementById('filter-count-badge');
-  const btn = document.getElementById('filter-btn');
+  const btn   = document.getElementById('filter-btn');
   badge.textContent = total;
   badge.style.display = total ? 'inline' : 'none';
   btn.classList.toggle('has-filters', total > 0);
@@ -1646,20 +1660,30 @@ function matchesFilters(r) {
     if (ungrouped.length && !ungrouped.every(t => r.tags?.some(rt=>rt.toLowerCase()===t.toLowerCase()))) return false;
   }
 
-  if (activeTime !== '') {
+  // Time: OR within — recipe must match at least one selected bucket
+  if (activeTimes.size > 0) {
     const m = totalMins(r);
-    if (activeTime==='quick'  && (m==null||m>=30))        return false;
-    if (activeTime==='medium' && (m==null||m<30||m>60))   return false;
-    if (activeTime==='long'   && (m==null||m<=60||m>120)) return false;
-    if (activeTime==='vlong'  && (m==null||m<=120))        return false;
+    const inAny = [...activeTimes].some(v => {
+      if (v==='quick'  && m!=null && m<30)        return true;
+      if (v==='medium' && m!=null && m>=30&&m<=60) return true;
+      if (v==='long'   && m!=null && m>60&&m<=120) return true;
+      if (v==='vlong'  && m!=null && m>120)        return true;
+      return false;
+    });
+    if (!inAny) return false;
   }
 
-  if (activeServes !== '') {
+  // Serves: OR within — recipe must match at least one selected bucket
+  if (activeServes.size > 0) {
     const s = r.serves || 0;
-    if (activeServes==='s1' && !(s>=1&&s<=2)) return false;
-    if (activeServes==='s2' && !(s>=3&&s<=4)) return false;
-    if (activeServes==='s3' && !(s>=5&&s<=6)) return false;
-    if (activeServes==='s4' && !(s>6))        return false;
+    const inAny = [...activeServes].some(v => {
+      if (v==='s1' && s>=1&&s<=2) return true;
+      if (v==='s2' && s>=3&&s<=4) return true;
+      if (v==='s3' && s>=5&&s<=6) return true;
+      if (v==='s4' && s>6)        return true;
+      return false;
+    });
+    if (!inAny) return false;
   }
 
   return true;
@@ -1700,20 +1724,16 @@ function render() {
   // Filter by draft visibility first, then apply other filters
   const visible = recipes.filter(r => showDrafts || r.status !== 'draft');
   const filtered = visible.filter(r => matchesFilters(r));
-  const total = activeTags.size + (activeTime!==''?1:0) + (activeServes!==''?1:0);
+  const total = activeTags.size + activeTimes.size + activeServes.size;
 
   // active chips
   const chips = document.getElementById('active-chips');
   const chipParts = [];
-  activeTags.forEach(t => chipParts.push(`<span class="active-chip" onclick="removeActiveTag('${t}')"><span>×</span>${t}</span>`));
-  if (activeTime!=='') {
-    const tLabels = {quick:'Under 30 min',medium:'30–60 min',long:'1–2 hrs',vlong:'Over 2 hrs'};
-    chipParts.push(`<span class="active-chip" onclick="removeTimeFilter()"><span>×</span>${tLabels[activeTime]}</span>`);
-  }
-  if (activeServes!=='') {
-    const sLabels = {s1:'Serves 1–2',s2:'Serves 3–4',s3:'Serves 5–6',s4:'Serves 7+'};
-    chipParts.push(`<span class="active-chip" onclick="removeServesFilter()"><span>×</span>${sLabels[activeServes]}</span>`);
-  }
+  activeTags.forEach(t   => chipParts.push(`<span class="active-chip" onclick="removeActiveTag('${t}')"><span>×</span>${t}</span>`));
+  const tLabels = {quick:'Under 30 min',medium:'30–60 min',long:'1–2 hrs',vlong:'Over 2 hrs'};
+  activeTimes.forEach(v  => chipParts.push(`<span class="active-chip" onclick="removeTimeFilter('${v}')"><span>×</span>${tLabels[v]}</span>`));
+  const sLabels = {s1:'Serves 1–2',s2:'Serves 3–4',s3:'Serves 5–6',s4:'Serves 7+'};
+  activeServes.forEach(v => chipParts.push(`<span class="active-chip" onclick="removeServesFilter('${v}')"><span>×</span>${sLabels[v]}</span>`));
   chips.innerHTML = chipParts.join('');
   chips.style.display = chipParts.length ? 'flex' : 'none';
 
@@ -1758,9 +1778,9 @@ function render() {
   }).join('');
 }
 
-function removeActiveTag(tag) { activeTags.delete(tag); render(); }
-function removeTimeFilter()   { activeTime='';   render(); }
-function removeServesFilter() { activeServes=''; render(); }
+function removeActiveTag(tag)   { activeTags.delete(tag);   render(); }
+function removeTimeFilter(v)    { activeTimes.delete(v);    render(); }
+function removeServesFilter(v)  { activeServes.delete(v);   render(); }
 
 // ── UNIT SYSTEM ───────────────────────────────────────────────────────────
 function getAllDropdownUnits() { return Object.values(UNIT_GROUPS).flat(); }
@@ -1892,13 +1912,18 @@ function renderViewBody(r) {
       out += `<tr><td colspan="3" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
     items.forEach(item => {
       const key = overrideKey();
-      const override = item.noscale && scaled && key ? (item.scaleOverrides?.[key] ?? null) : null;
+      const overrideData = item.noscale && scaled && key ? (item.scaleOverrides?.[key] ?? null) : null;
 
       let qtyDisplay = '', unitDisplay = '';
-      if (override !== null) {
-        // Has an explicit override for this scale — show it verbatim
-        qtyDisplay = override;
-        unitDisplay = '';
+      if (overrideData !== null) {
+        if (overrideData && (overrideData.amount != null || overrideData.unit)) {
+          // Structured override with amount+unit
+          const d = overrideData.amount != null ? fmtNum(overrideData.amount) : '';
+          const u = overrideData.unit || '';
+          qtyDisplay  = d;
+          unitDisplay = u;
+        }
+        // else blank = does not scale (handled below)
       } else if (!scaled || item.noscale) {
         qtyDisplay  = item.amount != null ? fmtNum(item.amount) : '';
         unitDisplay = item.unit || '';
@@ -1908,12 +1933,13 @@ function renderViewBody(r) {
         unitDisplay = unit || '';
       }
 
-      const isOverridden = override !== null && override !== '';
-      const qtyClass = scaled && !item.noscale ? ' class="scaled-qty"' : (isOverridden ? ' class="scaled-qty"' : '');
+      const hasOverride = overrideData && (overrideData.amount != null || overrideData.unit);
+      const qtyClass = (scaled && !item.noscale) || hasOverride ? ' class="scaled-qty"' : '';
       const qtyFull  = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
 
-      // noscale note — only show if flagged AND scaled AND override is blank/missing
-      const showNote = item.noscale && scaled && key && !override;
+      // Show note only when flagged+scaled and override is null/empty
+      const overrideIsBlank = overrideData === null || (!overrideData?.amount && !overrideData?.unit);
+      const showNote = item.noscale && scaled && key && overrideIsBlank;
       const noteRow  = showNote
         ? `<tr><td colspan="3" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
         : '';
@@ -2016,15 +2042,12 @@ function renderViewBody(r) {
         let noteHtml = '';
 
         if (override !== null && override !== '') {
-          // Has explicit override — replace step text with it, styled as override
-          displayText = override;
+          // Has explicit override — replace step text with it
+          displayText = typeof override === 'object' ? (override.text || text) : override;
           noteHtml = `<div style="font-size:0.72rem;color:var(--accent-text);font-style:italic;margin-top:2px">⟳ Override for ${scaleFactor}×</div>`;
-        } else if (ns && scaled && key && override === '') {
-          // Flagged but override blank — show "does not scale" note
+        } else if (ns && scaled && key) {
+          // Flagged but no override — show "does not scale"
           noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
-        } else if (ns && scaled && key && override === null) {
-          // Flagged, no overrides object at all — show generic note
-          noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale</div>`;
         }
 
         return `<div class="vstep"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}</div></div>`;
@@ -2161,6 +2184,11 @@ async function saveRecipe() {
       if (name) {
         const rawAmt = amountEl?.value.trim();
         const noscale = nsBtn?.classList.contains('on') || false;
+        const readOv = (cls) => {
+          const amt  = wrap.querySelector(`.${cls}-amt`)?.value.trim();
+          const unit = wrap.querySelector(`.${cls}-amt`)?.closest('.scale-override-row')?.querySelector('select')?.value || '';
+          return (amt || unit) ? { amount: amt ? parseFloat(amt) : null, unit } : null;
+        };
         items.push({
           name,
           amount: rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
@@ -2168,9 +2196,9 @@ async function saveRecipe() {
           prep:   prepEl?.value.trim() || '',
           noscale,
           scaleOverrides: noscale ? {
-            half:   wrap.querySelector('.ns-half')?.value.trim()  || '',
-            double: wrap.querySelector('.ns-double')?.value.trim() || '',
-            triple: wrap.querySelector('.ns-triple')?.value.trim() || ''
+            half:   readOv('ns-half'),
+            double: readOv('ns-double'),
+            triple: readOv('ns-triple')
           } : null
         });
       }
@@ -2415,6 +2443,41 @@ function switchUnitToDropdown(btn) {
   btn.remove();
 }
 
+function calcOverridePlaceholder(amount, unit, factor) {
+  if (amount == null || amount === '') return '';
+  const { display, unit: newUnit } = scaleAndFormat(amount, unit, factor);
+  const parts = [display, newUnit].filter(Boolean);
+  return parts.join('\u00a0') || '';
+}
+
+function buildOverrideRow(label, cls, ovData, amount, unit, factor) {
+  const ov = ovData || {};
+  const placeholder = calcOverridePlaceholder(amount, unit, factor);
+  const savedAmt  = ov.amount  != null ? ov.amount  : '';
+  const savedUnit = ov.unit    || '';
+  return `<div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+    <span class="scale-override-lbl">${label}</span>
+    <input type="number" min="0" step="any" class="${cls}-amt"
+      placeholder="${placeholder ? placeholder.split('\u00a0')[0] : 'amt'}"
+      value="${savedAmt}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+    ${buildOverrideUnitSelect(savedUnit, unit)}
+  </div>`;
+}
+
+function buildOverrideUnitSelect(selected, origUnit) {
+  const activeUnits = getActiveUnits();
+  let opts = `<option value="">— none —</option>`;
+  opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
+    const active = units.filter(u => !RETIRED_UNITS.includes(u));
+    if (!active.length) return '';
+    return `<optgroup label="${grp}">${active.map(u =>
+      `<option value="${u}"${u===selected?' selected':''}>${u}</option>`
+    ).join('')}</optgroup>`;
+  }).join('');
+  return `<select style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-faint)'};background:var(--warning-bg);outline:none;width:100%;cursor:pointer"
+    onchange="this.style.color=this.value?'var(--ink)':'var(--ink-faint)'">${opts}</select>`;
+}
+
 function addIngRow(btn, rowsEl, data) {
   if (!rowsEl) rowsEl = btn.closest('.ing-sec-block').querySelector('.ing-rows');
   const wrap = document.createElement('div');
@@ -2422,6 +2485,7 @@ function addIngRow(btn, rowsEl, data) {
   const ns  = data?.noscale || false;
   const ov  = data?.scaleOverrides || {};
   const unit = data?.unit || '';
+  const amt  = data?.amount;
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
   wrap.innerHTML = `
     <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
@@ -2433,16 +2497,17 @@ function addIngRow(btn, rowsEl, data) {
           oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
         <div class="ing-name-sugs"></div>
       </div>
-      <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${data?.amount != null ? data.amount : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
+      <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${amt != null ? amt : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
       ${buildUnitSelect(unit)}
       <input type="text" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
     </div>
     <div class="noscale-note-row${ns?' show':''}">
-      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="e.g. 1 tsp — or leave blank for 'does not scale'" value="${esc(ov.half||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="e.g. 3 tbsp — or leave blank for 'does not scale'" value="${esc(ov.double||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="e.g. ¼ cup — or leave blank for 'does not scale'"  value="${esc(ov.triple||'')}"></div>
+      <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
+      ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
+      ${buildOverrideRow('2×','ns-double', ov.double, amt, unit, 2)}
+      ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
     </div>`;
   rowsEl.appendChild(wrap);
 }
