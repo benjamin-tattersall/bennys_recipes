@@ -371,18 +371,46 @@ header{
 }
 .noscale-toggle:hover{border-color:var(--warning);color:var(--warning)}
 .noscale-toggle.on{background:var(--warning-bg);border-color:var(--warning);color:var(--warning)}
-.noscale-note-row{
-  display:none;padding:4px 0 2px;
+.noscale-note-row{display:none;padding:4px 0 2px;flex-direction:column;gap:3px}
+.noscale-note-row.show{display:flex}
+/* per-scale override fields */
+.scale-override-row{display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:center}
+.scale-override-lbl{
+  font-size:0.68rem;font-weight:500;color:var(--warning);text-align:center;
+  background:var(--warning-bg);border:1px solid var(--offline-border);
+  border-radius:4px;padding:2px 0;
 }
-.noscale-note-row.show{display:flex;gap:0.4rem;align-items:flex-start}
-.noscale-note-row textarea{
-  flex:1;border:1px solid var(--offline-border);border-radius:5px;padding:4px 7px;
+.scale-override-row input{
+  border:1px solid var(--offline-border);border-radius:5px;padding:4px 7px;
   font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);
-  background:var(--warning-bg);outline:none;resize:none;min-height:28px;
-  line-height:1.4;transition:border-color .15s;overflow:hidden;
+  background:var(--warning-bg);outline:none;width:100%;
+  transition:border-color .15s;
 }
-.noscale-note-row textarea:focus{border-color:var(--warning)}
-.noscale-note-row textarea::placeholder{color:var(--ink-faint)}
+.scale-override-row input:focus{border-color:var(--warning)}
+.scale-override-row input::placeholder{color:var(--ink-faint)}
+/* scalable toggle in form */
+.scalable-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.5rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--paper);cursor:pointer;
+}
+.scalable-toggle-row label{
+  font-size:0.82rem;color:var(--ink-mid);cursor:pointer;
+  display:flex;flex-direction:column;gap:1px;
+}
+.scalable-toggle-row label span{font-size:0.72rem;color:var(--ink-faint);font-weight:300}
+.stoggle-pip{
+  width:34px;height:20px;border-radius:10px;background:var(--accent);
+  position:relative;transition:background .15s;flex-shrink:0;
+}
+.stoggle-pip::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  transition:transform .15s;
+}
+.scalable-toggle-row.off .stoggle-pip{background:var(--border-mid)}
+.scalable-toggle-row.off .stoggle-pip::after{transform:none}
+.scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
 /* ── FILTER MODAL ── */
 .filter-modal{max-width:480px}
@@ -605,7 +633,7 @@ header{
       <h2 id="vname">Recipe</h2>
       <button class="xbtn" onclick="closeView()">✕</button>
     </div>
-    <div style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+    <div id="view-scale-bar" style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
       <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
       <button class="scale-seg active" data-scale="1" onclick="setScale(1)">1×</button>
       <button class="scale-seg" data-scale="0.5" onclick="setScale(0.5)">½×</button>
@@ -681,6 +709,14 @@ header{
       <div class="fg">
         <label>Source / URL</label>
         <input type="text" id="f-source">
+      </div>
+
+      <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
+        <label for="f-scalable">
+          Recipe can be scaled
+          <span>When off, hides scale controls and ⊘ flags</span>
+        </label>
+        <div class="stoggle-pip"></div>
       </div>
 
       <div class="fg">
@@ -882,6 +918,7 @@ const WHEEL_ITEMS = {
 let recipes = [];
 let activeTags = new Set();
 let activeTime = '';
+let activeServes = '';
 let currentId = null;
 let editId = null;
 let pendingSync = [];
@@ -1416,84 +1453,136 @@ function openFilter() {
 function closeFilter() { document.getElementById('fmodal').classList.remove('open'); render(); }
 
 function renderFilterModal() {
-  const allRecipeTags = new Set(recipes.flatMap(r => r.tags||[]));
   const q = document.getElementById('search').value.toLowerCase().trim();
 
-  // Build a map of group -> which tags are active in that group
+  // Only consider recipes that are currently visible (respects showDrafts)
+  const visibleRecipes = recipes.filter(r => showDrafts || r.status !== 'draft');
+  const allVisibleTags = new Set(visibleRecipes.flatMap(r => r.tags||[]));
+
+  // case-insensitive tag match helper
+  const hasTag = (recipe, tag) => recipe.tags?.some(t => t.toLowerCase() === tag.toLowerCase());
+
+  // Build a map of group -> active tags in that group
   const activeByGroup = {};
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     activeByGroup[group] = tags.filter(t => activeTags.has(t));
   }
 
-  // For each candidate tag, determine if selecting it (added to current filters) returns > 0 results
-  function wouldMatch(candidateTag) {
+  // Check if a recipe passes the current time filter
+  function passesTime(r, timeVal) {
+    if (!timeVal) return true;
+    const m = totalMins(r);
+    if (timeVal==='quick'  && (m==null||m>=30))        return false;
+    if (timeVal==='medium' && (m==null||m<30||m>60))   return false;
+    if (timeVal==='long'   && (m==null||m<=60||m>120)) return false;
+    if (timeVal==='vlong'  && (m==null||m<=120))        return false;
+    return true;
+  }
+
+  // Check if a recipe passes the current serves filter
+  function passesServes(r, servesVal) {
+    if (!servesVal) return true;
+    const s = r.serves || 0;
+    if (servesVal==='s1'  && !(s>=1 && s<=2))  return false;
+    if (servesVal==='s2'  && !(s>=3 && s<=4))  return false;
+    if (servesVal==='s3'  && !(s>=5 && s<=6))  return false;
+    if (servesVal==='s4'  && !(s>6))            return false;
+    return true;
+  }
+
+  // Check recipe passes ALL currently active tag group filters (OR within group, AND between)
+  function passesActiveTags(r, overrideGroup, overrideTag) {
+    for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+      const groupActive = activeByGroup[group] || [];
+      if (group === overrideGroup) {
+        const needed = [...groupActive, overrideTag];
+        if (!needed.some(t => hasTag(r, t))) return false;
+      } else {
+        if (groupActive.length > 0 && !groupActive.some(t => hasTag(r, t))) return false;
+      }
+    }
+    return true;
+  }
+
+  // Would selecting this tag return > 0 visible results given current filters?
+  function wouldMatchTag(candidateTag) {
     let candidateGroup = null;
     for (const [g, tags] of Object.entries(TAG_GROUPS)) {
-      if (tags.includes(candidateTag)) { candidateGroup = g; break; }
+      if (tags.map(t=>t.toLowerCase()).includes(candidateTag.toLowerCase())) { candidateGroup = g; break; }
     }
-    return recipes.some(r => {
-      if (r.status === 'draft' && !showDrafts) return false;
+    return visibleRecipes.some(r => {
       if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-      if (activeTime !== '') {
-        const m = totalMins(r);
-        if (activeTime==='quick'  && (m==null||m>=30))      return false;
-        if (activeTime==='medium' && (m==null||m<30||m>60)) return false;
-        if (activeTime==='long'   && (m==null||m<=60))       return false;
-      }
-      for (const [group, tags] of Object.entries(TAG_GROUPS)) {
-        const groupActive = activeByGroup[group] || [];
-        if (group === candidateGroup) {
-          const needed = [...groupActive, candidateTag];
-          if (!needed.some(t => r.tags?.includes(t))) return false;
-        } else {
-          // Only enforce if this group has active selections
-          if (groupActive.length > 0 && !groupActive.some(t => r.tags?.includes(t))) return false;
-        }
-      }
-      return true;
+      if (!passesTime(r, activeTime)) return false;
+      if (!passesServes(r, activeServes)) return false;
+      return passesActiveTags(r, candidateGroup, candidateTag);
     });
   }
 
   let html = '';
+
+  // Tag groups — only show tags present on visible recipes
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
-    const relevant = tags.filter(t => allRecipeTags.has(t));
+    const relevant = tags.filter(t => allVisibleTags.has(t));
     if (!relevant.length) continue;
     html += `<div>
       <div class="filter-group-label">${group}</div>
       <div class="filter-pill-row">
         ${relevant.map(t => {
           const active = activeTags.has(t);
-          // Only dim if not active AND selecting it would return nothing
-          const dim = !active && !wouldMatch(t);
+          const dim = !active && !wouldMatchTag(t);
           return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
         }).join('')}
       </div>
     </div>`;
   }
 
-  const timePills = [['quick','Under 30 min'],['medium','30 – 60 min'],['long','Over 60 min']].map(([v,l]) => {
-    const active = activeTime === v;
-    const dim = !active && !recipes.some(r => {
-      if (r.status === 'draft' && !showDrafts) return false;
-      if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-      // OR-within AND-between — skip groups with no active tags
-      for (const groupTags of Object.values(activeByGroup)) {
-        if (groupTags.length > 0 && !groupTags.some(t => r.tags?.includes(t))) return false;
-      }
-      const m = totalMins(r);
-      if (v==='quick'  && (m==null||m>=30))      return false;
-      if (v==='medium' && (m==null||m<30||m>60)) return false;
-      if (v==='long'   && (m==null||m<=60))       return false;
-      return true;
-    });
-    return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setTimeFilter('${v}')">${l}</span>`;
-  }).join('');
+  // Time buckets — only show if at least one visible recipe is in that range
+  const TIME_BUCKETS = [
+    ['quick',  'Under 30 min', r => passesTime(r,'quick')],
+    ['medium', '30 – 60 min',  r => passesTime(r,'medium')],
+    ['long',   '1 – 2 hrs',    r => passesTime(r,'long')],
+    ['vlong',  'Over 2 hrs',   r => passesTime(r,'vlong')],
+  ];
+  const relevantTimeBuckets = TIME_BUCKETS.filter(([,,test]) => visibleRecipes.some(r => test(r)));
+  if (relevantTimeBuckets.length) {
+    const timePills = relevantTimeBuckets.map(([v, l]) => {
+      const active = activeTime === v;
+      const dim = !active && !visibleRecipes.some(r => {
+        if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+        if (!passesActiveTags(r, null, null)) return false;
+        if (!passesServes(r, activeServes)) return false;
+        return passesTime(r, v);
+      });
+      return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setTimeFilter('${v}')">${l}</span>`;
+    }).join('');
+    html += `<div class="filter-sep"></div>
+      <div><div class="filter-group-label">Cook time</div>
+      <div class="filter-pill-row">${timePills}</div></div>`;
+  }
 
-  html += `<div class="filter-sep"></div>
-    <div>
-      <div class="filter-group-label">Cook time</div>
-      <div class="filter-pill-row">${timePills}</div>
-    </div>`;
+  // Serves buckets
+  const SERVES_BUCKETS = [
+    ['s1', '1 – 2',  r => { const s=r.serves||0; return s>=1&&s<=2; }],
+    ['s2', '3 – 4',  r => { const s=r.serves||0; return s>=3&&s<=4; }],
+    ['s3', '5 – 6',  r => { const s=r.serves||0; return s>=5&&s<=6; }],
+    ['s4', '7+',     r => { const s=r.serves||0; return s>6; }],
+  ];
+  const relevantServesBuckets = SERVES_BUCKETS.filter(([,,test]) => visibleRecipes.some(r => test(r)));
+  if (relevantServesBuckets.length) {
+    const servesPills = relevantServesBuckets.map(([v, l]) => {
+      const active = activeServes === v;
+      const dim = !active && !visibleRecipes.some(r => {
+        if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+        if (!passesActiveTags(r, null, null)) return false;
+        if (!passesTime(r, activeTime)) return false;
+        return passesServes(r, v);
+      });
+      return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="setServesFilter('${v}')">${l}</span>`;
+    }).join('');
+    html += `<div class="filter-sep"></div>
+      <div><div class="filter-group-label">Serves</div>
+      <div class="filter-pill-row">${servesPills}</div></div>`;
+  }
 
   document.getElementById('filter-body').innerHTML = html;
   updateFilterCount();
@@ -1510,20 +1599,25 @@ function setTimeFilter(t) {
   renderFilterModal();
 }
 
+function setServesFilter(v) {
+  activeServes = (activeServes === v) ? '' : v;
+  renderFilterModal();
+}
+
 function clearFilters() {
   activeTags.clear();
   activeTime = '';
+  activeServes = '';
   renderFilterModal();
 }
 
 function updateFilterCount() {
-  const total = activeTags.size + (activeTime !== '' ? 1 : 0);
+  const total = activeTags.size + (activeTime!==''?1:0) + (activeServes!==''?1:0);
   const badge = document.getElementById('filter-count-badge');
   const btn = document.getElementById('filter-btn');
   badge.textContent = total;
   badge.style.display = total ? 'inline' : 'none';
   btn.classList.toggle('has-filters', total > 0);
-  // count matching
   const matching = recipes.filter(r => matchesFilters(r)).length;
   document.getElementById('filter-count-info').textContent = total ? `${matching} recipe${matching!==1?'s':''} match` : '';
 }
@@ -1541,25 +1635,33 @@ function matchesFilters(r) {
   const q = document.getElementById('search').value.toLowerCase().trim();
   if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
 
-  // OR within group, AND between groups
+  // OR within group, AND between groups — case insensitive
   if (activeTags.size > 0) {
     const byGroup = getActiveTagsByGroup();
     for (const groupTags of Object.values(byGroup)) {
-      // Recipe must have at least one tag from this group's active selection
-      if (!groupTags.some(t => r.tags?.includes(t))) return false;
+      if (!groupTags.some(t => r.tags?.some(rt => rt.toLowerCase() === t.toLowerCase()))) return false;
     }
-    // Also handle any active tags not in a known group (free-form tags) — AND logic
-    const knownTags = new Set(Object.values(TAG_GROUPS).flat());
-    const ungrouped = [...activeTags].filter(t => !knownTags.has(t));
-    if (ungrouped.length && !ungrouped.every(t => r.tags?.includes(t))) return false;
+    const knownTags = new Set(Object.values(TAG_GROUPS).flat().map(t=>t.toLowerCase()));
+    const ungrouped = [...activeTags].filter(t => !knownTags.has(t.toLowerCase()));
+    if (ungrouped.length && !ungrouped.every(t => r.tags?.some(rt=>rt.toLowerCase()===t.toLowerCase()))) return false;
   }
 
   if (activeTime !== '') {
     const m = totalMins(r);
-    if (activeTime==='quick'  && (m==null||m>=30))      return false;
-    if (activeTime==='medium' && (m==null||m<30||m>60)) return false;
-    if (activeTime==='long'   && (m==null||m<=60))       return false;
+    if (activeTime==='quick'  && (m==null||m>=30))        return false;
+    if (activeTime==='medium' && (m==null||m<30||m>60))   return false;
+    if (activeTime==='long'   && (m==null||m<=60||m>120)) return false;
+    if (activeTime==='vlong'  && (m==null||m<=120))        return false;
   }
+
+  if (activeServes !== '') {
+    const s = r.serves || 0;
+    if (activeServes==='s1' && !(s>=1&&s<=2)) return false;
+    if (activeServes==='s2' && !(s>=3&&s<=4)) return false;
+    if (activeServes==='s3' && !(s>=5&&s<=6)) return false;
+    if (activeServes==='s4' && !(s>6))        return false;
+  }
+
   return true;
 }
 
@@ -1598,15 +1700,19 @@ function render() {
   // Filter by draft visibility first, then apply other filters
   const visible = recipes.filter(r => showDrafts || r.status !== 'draft');
   const filtered = visible.filter(r => matchesFilters(r));
-  const total = activeTags.size + (activeTime!==''?1:0);
+  const total = activeTags.size + (activeTime!==''?1:0) + (activeServes!==''?1:0);
 
   // active chips
   const chips = document.getElementById('active-chips');
   const chipParts = [];
   activeTags.forEach(t => chipParts.push(`<span class="active-chip" onclick="removeActiveTag('${t}')"><span>×</span>${t}</span>`));
   if (activeTime!=='') {
-    const labels = {quick:'Under 30 min',medium:'30–60 min',long:'Over 60 min'};
-    chipParts.push(`<span class="active-chip" onclick="removeTimeFilter()"><span>×</span>${labels[activeTime]}</span>`);
+    const tLabels = {quick:'Under 30 min',medium:'30–60 min',long:'1–2 hrs',vlong:'Over 2 hrs'};
+    chipParts.push(`<span class="active-chip" onclick="removeTimeFilter()"><span>×</span>${tLabels[activeTime]}</span>`);
+  }
+  if (activeServes!=='') {
+    const sLabels = {s1:'Serves 1–2',s2:'Serves 3–4',s3:'Serves 5–6',s4:'Serves 7+'};
+    chipParts.push(`<span class="active-chip" onclick="removeServesFilter()"><span>×</span>${sLabels[activeServes]}</span>`);
   }
   chips.innerHTML = chipParts.join('');
   chips.style.display = chipParts.length ? 'flex' : 'none';
@@ -1625,7 +1731,6 @@ function render() {
   badge.textContent = total;
   badge.style.display = total ? 'inline' : 'none';
   document.getElementById('filter-btn').classList.toggle('has-filters', total > 0);
-
   const grid = document.getElementById('grid');
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty">
@@ -1654,7 +1759,8 @@ function render() {
 }
 
 function removeActiveTag(tag) { activeTags.delete(tag); render(); }
-function removeTimeFilter() { activeTime=''; render(); }
+function removeTimeFilter()   { activeTime='';   render(); }
+function removeServesFilter() { activeServes=''; render(); }
 
 // ── UNIT SYSTEM ───────────────────────────────────────────────────────────
 function getAllDropdownUnits() { return Object.values(UNIT_GROUPS).flat(); }
@@ -1748,6 +1854,9 @@ function viewRecipe(id) {
   document.querySelectorAll('.scale-seg').forEach(b => {
     b.classList.toggle('active', parseFloat(b.dataset.scale) === 1);
   });
+  // Show/hide scale bar depending on recipe's scalable flag
+  const scalable = r.scalable !== false;
+  document.getElementById('view-scale-bar').style.display = scalable ? '' : 'none';
   document.getElementById('vname').textContent = r.name;
   updatePublishBtn(r);
   renderViewBody(r);
@@ -1768,14 +1877,29 @@ function renderViewBody(r) {
   }
   if (r.source) metaItems.push(`<span class="vmeta" style="font-size:0.78rem;color:var(--ink-faint)">${esc(r.source)}</span>`);
 
+  // Helper: get the override key for the current scaleFactor
+  function overrideKey() {
+    if (scaleFactor === 0.5) return 'half';
+    if (scaleFactor === 2)   return 'double';
+    if (scaleFactor === 3)   return 'triple';
+    return null;
+  }
+
   // build ingredient rows helper (used for both sectioned + full view)
   function buildIngRows(items, showSectionTitle, title) {
     let out = '';
     if (showSectionTitle && title)
       out += `<tr><td colspan="3" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
     items.forEach(item => {
+      const key = overrideKey();
+      const override = item.noscale && scaled && key ? (item.scaleOverrides?.[key] ?? null) : null;
+
       let qtyDisplay = '', unitDisplay = '';
-      if (!scaled || item.noscale) {
+      if (override !== null) {
+        // Has an explicit override for this scale — show it verbatim
+        qtyDisplay = override;
+        unitDisplay = '';
+      } else if (!scaled || item.noscale) {
         qtyDisplay  = item.amount != null ? fmtNum(item.amount) : '';
         unitDisplay = item.unit || '';
       } else {
@@ -1783,13 +1907,17 @@ function renderViewBody(r) {
         qtyDisplay  = display;
         unitDisplay = unit || '';
       }
-      const qtyClass = scaled && !item.noscale ? ' class="scaled-qty"' : '';
+
+      const isOverridden = override !== null && override !== '';
+      const qtyClass = scaled && !item.noscale ? ' class="scaled-qty"' : (isOverridden ? ' class="scaled-qty"' : '');
       const qtyFull  = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
-      // noscale note row — visibility controlled by data-scaled CSS
-      const noteContent = item.noscaleNote ? `⊘ ${esc(item.noscaleNote)}` : '⊘ Does not scale';
-      const noteRow = item.noscale
-        ? `<tr><td colspan="3" class="noscale-note-view">${noteContent}</td></tr>`
+
+      // noscale note — only show if flagged AND scaled AND override is blank/missing
+      const showNote = item.noscale && scaled && key && !override;
+      const noteRow  = showNote
+        ? `<tr><td colspan="3" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
         : '';
+
       out += `<tr><td>${esc(item.name||'')}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(item.prep||'')}</td></tr>${noteRow}`;
     });
     return out;
@@ -1879,13 +2007,27 @@ function renderViewBody(r) {
   if (r.method?.length) {
     const secs = r.method.map(sec => {
       const steps = (sec.steps || []).map((s, i) => {
-        const text   = typeof s === 'string' ? s : (s.text || '');
-        const ns     = typeof s === 'object' && s.noscale;
-        const nsNote = typeof s === 'object' ? (s.noscaleNote || '') : '';
-        const noteHtml = ns
-          ? `<div class="vstep-noscale-note">⊘ ${nsNote ? esc(nsNote) : 'Does not scale'}</div>`
-          : '';
-        return `<div class="vstep"><div class="vstep-num">${i+1}</div><div>${esc(text)}${noteHtml}</div></div>`;
+        const text = typeof s === 'string' ? s : (s.text || '');
+        const ns   = typeof s === 'object' && s.noscale;
+        const key  = overrideKey();
+        const override = ns && scaled && key ? (s.scaleOverrides?.[key] ?? null) : null;
+
+        let displayText = text;
+        let noteHtml = '';
+
+        if (override !== null && override !== '') {
+          // Has explicit override — replace step text with it, styled as override
+          displayText = override;
+          noteHtml = `<div style="font-size:0.72rem;color:var(--accent-text);font-style:italic;margin-top:2px">⟳ Override for ${scaleFactor}×</div>`;
+        } else if (ns && scaled && key && override === '') {
+          // Flagged but override blank — show "does not scale" note
+          noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
+        } else if (ns && scaled && key && override === null) {
+          // Flagged, no overrides object at all — show generic note
+          noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale</div>`;
+        }
+
+        return `<div class="vstep"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}</div></div>`;
       }).join('');
       return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
     }).join('');
@@ -1939,7 +2081,7 @@ function openAdd() { openEdit(null); }
 function openEdit(r) {
   editId = r ? r.id : null;
   document.getElementById('form-title').textContent = r ? 'Edit recipe' : 'Add recipe';
-  document.getElementById('f-name').value  = r?.name   || '';
+  document.getElementById('f-name').value   = r?.name   || '';
   document.getElementById('f-source').value = r?.source || '';
   document.getElementById('f-notes').value  = r?.notes  || '';
 
@@ -1949,6 +2091,12 @@ function openEdit(r) {
   setWheel('wh-hrs', r?.hours   ?? 0);
   setWheel('wh-min', r?.minutes ?? 0);
   setWheel('wh-srv', r?.serves  ?? 4);
+
+  // Scalable toggle — default true for new recipes, preserve for edits
+  const scalable = r?.scalable !== false; // undefined/true = scalable
+  const row = document.getElementById('scalable-row');
+  row.classList.toggle('off', !scalable);
+  applyScalableUI(scalable);
 
   // ingredients — sectioned
   const ib = document.getElementById('ing-builder');
@@ -1965,6 +2113,25 @@ function openEdit(r) {
   document.getElementById('emodal').classList.add('open');
 }
 
+function toggleScalable() {
+  const row = document.getElementById('scalable-row');
+  const nowOff = !row.classList.contains('off');
+  row.classList.toggle('off', nowOff);
+  applyScalableUI(!nowOff);
+}
+
+function applyScalableUI(scalable) {
+  // Show/hide all ⊘ noscale buttons in the form
+  document.querySelectorAll('.noscale-toggle').forEach(btn => {
+    btn.style.display = scalable ? '' : 'none';
+    // If turning off scaling, collapse any open noscale panels
+    if (!scalable) {
+      const noteRow = btn.closest('.ing-row-wrap, .step-wrap')?.querySelector('.noscale-note-row');
+      if (noteRow) noteRow.classList.remove('show');
+    }
+  });
+}
+
 function closeEdit() { document.getElementById('emodal').classList.remove('open'); }
 
 async function saveRecipe() {
@@ -1974,6 +2141,8 @@ async function saveRecipe() {
   const hrs  = getWheelVal('wh-hrs');
   const mins = getWheelVal('wh-min');
   const srv  = getWheelVal('wh-srv');
+
+  const scalable = !document.getElementById('scalable-row').classList.contains('off');
 
   // collect ingredients (sectioned)
   const ingredients = [];
@@ -1987,18 +2156,22 @@ async function saveRecipe() {
       const unitMan  = wrap.querySelector('.unit-manual');
       const prepEl   = wrap.querySelectorAll('.ing-fields input[type="text"]')[1];
       const nsBtn    = wrap.querySelector('.noscale-toggle');
-      const nsNote   = wrap.querySelector('.noscale-note-row textarea')?.value.trim() || '';
       const name     = toTitleCase(nameEl?.value.trim() || '');
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
       if (name) {
         const rawAmt = amountEl?.value.trim();
+        const noscale = nsBtn?.classList.contains('on') || false;
         items.push({
           name,
-          amount:      rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
-          unit:        rawUnit,
-          prep:        prepEl?.value.trim() || '',
-          noscale:     nsBtn?.classList.contains('on') || false,
-          noscaleNote: nsNote
+          amount: rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
+          unit:   rawUnit,
+          prep:   prepEl?.value.trim() || '',
+          noscale,
+          scaleOverrides: noscale ? {
+            half:   wrap.querySelector('.ns-half')?.value.trim()  || '',
+            double: wrap.querySelector('.ns-double')?.value.trim() || '',
+            triple: wrap.querySelector('.ns-triple')?.value.trim() || ''
+          } : null
         });
       }
     });
@@ -2014,11 +2187,15 @@ async function saveRecipe() {
       const text = wrap.querySelector('.step-ta')?.value.trim() || '';
       if (text) {
         const nsBtn = wrap.querySelector('.noscale-toggle');
-        const nsNote = wrap.querySelector('.noscale-note-row textarea')?.value.trim() || '';
+        const noscale = nsBtn?.classList.contains('on') || false;
         steps.push({
           text,
-          noscale: nsBtn?.classList.contains('on') || false,
-          noscaleNote: nsNote
+          noscale,
+          scaleOverrides: noscale ? {
+            half:   wrap.querySelector('.ns-half')?.value.trim()  || '',
+            double: wrap.querySelector('.ns-double')?.value.trim() || '',
+            triple: wrap.querySelector('.ns-triple')?.value.trim() || ''
+          } : null
         });
       }
     });
@@ -2028,6 +2205,7 @@ async function saveRecipe() {
   const data = {
     name, tags: formTags.map(toTitleCase),
     hours:hrs||null, minutes:mins||null, serves:srv,
+    scalable,
     source: document.getElementById('f-source').value.trim(),
     ingredients, method,
     notes: document.getElementById('f-notes').value.trim(),
@@ -2055,8 +2233,8 @@ function toTitleCase(s) {
 function normaliseRecipes(arr) {
   arr.forEach(r => {
     if (r.tags) r.tags = r.tags.map(toTitleCase);
-    // Default status to published for any recipe that doesn't have one set
     if (!r.status) r.status = 'published';
+    if (r.scalable === undefined) r.scalable = true;
   });
   return arr;
 }
@@ -2241,9 +2419,10 @@ function addIngRow(btn, rowsEl, data) {
   if (!rowsEl) rowsEl = btn.closest('.ing-sec-block').querySelector('.ing-rows');
   const wrap = document.createElement('div');
   wrap.className = 'ing-row-wrap';
-  const ns     = data?.noscale || false;
-  const nsNote = data?.noscaleNote || '';
-  const unit   = data?.unit || '';
+  const ns  = data?.noscale || false;
+  const ov  = data?.scaleOverrides || {};
+  const unit = data?.unit || '';
+  const scalable = !document.getElementById('scalable-row').classList.contains('off');
   wrap.innerHTML = `
     <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
       <span>Ingredient</span><span>Amount</span><span>Unit</span><span>Prep (opt.)</span><span></span><span></span>
@@ -2257,17 +2436,14 @@ function addIngRow(btn, rowsEl, data) {
       <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${data?.amount != null ? data.amount : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
       ${buildUnitSelect(unit)}
       <input type="text" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
-      <button class="noscale-toggle${ns?' on':''}" title="Mark as does not scale" onclick="toggleIngNoscale(this)">⊘</button>
+      <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
     </div>
     <div class="noscale-note-row${ns?' show':''}">
-      <textarea placeholder="Scale note — e.g. 'Use 1 tsp regardless'" rows="1">${esc(nsNote)}</textarea>
+      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="e.g. 1 tsp — or leave blank for 'does not scale'" value="${esc(ov.half||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="e.g. 3 tbsp — or leave blank for 'does not scale'" value="${esc(ov.double||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="e.g. ¼ cup — or leave blank for 'does not scale'"  value="${esc(ov.triple||'')}"></div>
     </div>`;
-  const ta = wrap.querySelector('.noscale-note-row textarea');
-  if (ta) {
-    ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
-    if (nsNote) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
-  }
   rowsEl.appendChild(wrap);
 }
 
@@ -2276,8 +2452,8 @@ function toggleIngNoscale(btn) {
   const noteRow = btn.closest('.ing-row-wrap').querySelector('.noscale-note-row');
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
-    const ta = noteRow.querySelector('textarea');
-    if (ta) ta.focus();
+    const first = noteRow.querySelector('input');
+    if (first) first.focus();
   }
 }
 
@@ -2358,29 +2534,27 @@ function addStep(btn, stepsEl, stepData) {
   if (!stepsEl) stepsEl = btn.closest('.method-sec-block').querySelector('.method-steps');
   const wrap = document.createElement('div');
   wrap.className = 'step-wrap';
-  const num = stepsEl.querySelectorAll('.step-wrap').length + 1;
+  const num  = stepsEl.querySelectorAll('.step-wrap').length + 1;
   const text = typeof stepData === 'string' ? stepData : (stepData?.text || '');
-  const ns = stepData?.noscale || false;
-  const nsNote = stepData?.noscaleNote || '';
+  const ns   = stepData?.noscale || false;
+  const ov   = stepData?.scaleOverrides || {};
+  const scalable = !document.getElementById('scalable-row').classList.contains('off');
   wrap.innerHTML = `
     <div class="step-row" style="align-items:flex-start">
       <div class="step-num-s">${num}</div>
       <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
-      <button class="noscale-toggle${ns?' on':''}" title="Mark as does not scale" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0">⊘</button>
+      <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
     </div>
     <div class="noscale-note-row${ns?' show':''}">
-      <textarea placeholder="Scale note — e.g. 'Still cook 45 min per kg regardless of batch size'" rows="1">${esc(nsNote)}</textarea>
+      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="Override for ½× — blank = 'does not scale'" value="${esc(ov.half||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="Override for 2× — blank = 'does not scale'" value="${esc(ov.double||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="Override for 3× — blank = 'does not scale'" value="${esc(ov.triple||'')}"></div>
     </div>`;
   stepsEl.appendChild(wrap);
   const ta = wrap.querySelector('.step-ta');
   ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
-  if (text) { setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0); }
-  const nsTA = wrap.querySelector('.noscale-note-row textarea');
-  if (nsTA) {
-    nsTA.addEventListener('input', ()=>{ nsTA.style.height='auto'; nsTA.style.height=nsTA.scrollHeight+'px'; });
-    if (nsNote) { setTimeout(()=>{ nsTA.style.height='auto'; nsTA.style.height=nsTA.scrollHeight+'px'; }, 0); }
-  }
+  if (text) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
 }
 
 function toggleStepNoscale(btn) {
@@ -2388,8 +2562,8 @@ function toggleStepNoscale(btn) {
   const noteRow = btn.closest('.step-wrap').querySelector('.noscale-note-row');
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
-    const ta = noteRow.querySelector('textarea');
-    if (ta) ta.focus();
+    const first = noteRow.querySelector('input');
+    if (first) first.focus();
   }
 }
 
