@@ -1432,6 +1432,7 @@ function renderFilterModal() {
       if (tags.includes(candidateTag)) { candidateGroup = g; break; }
     }
     return recipes.some(r => {
+      if (r.status === 'draft' && !showDrafts) return false;
       if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
       if (activeTime !== '') {
         const m = totalMins(r);
@@ -1439,14 +1440,13 @@ function renderFilterModal() {
         if (activeTime==='medium' && (m==null||m<30||m>60)) return false;
         if (activeTime==='long'   && (m==null||m<=60))       return false;
       }
-      // Check each group using OR-within, AND-between
       for (const [group, tags] of Object.entries(TAG_GROUPS)) {
         const groupActive = activeByGroup[group] || [];
         if (group === candidateGroup) {
-          // Include candidate in this group's OR check
           const needed = [...groupActive, candidateTag];
           if (!needed.some(t => r.tags?.includes(t))) return false;
         } else {
+          // Only enforce if this group has active selections
           if (groupActive.length > 0 && !groupActive.some(t => r.tags?.includes(t))) return false;
         }
       }
@@ -1474,10 +1474,11 @@ function renderFilterModal() {
   const timePills = [['quick','Under 30 min'],['medium','30 – 60 min'],['long','Over 60 min']].map(([v,l]) => {
     const active = activeTime === v;
     const dim = !active && !recipes.some(r => {
+      if (r.status === 'draft' && !showDrafts) return false;
       if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-      // Apply current tag filters with OR-within AND-between
+      // OR-within AND-between — skip groups with no active tags
       for (const groupTags of Object.values(activeByGroup)) {
-        if (!groupTags.some(t => r.tags?.includes(t))) return false;
+        if (groupTags.length > 0 && !groupTags.some(t => r.tags?.includes(t))) return false;
       }
       const m = totalMins(r);
       if (v==='quick'  && (m==null||m>=30))      return false;
