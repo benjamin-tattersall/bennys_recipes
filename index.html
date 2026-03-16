@@ -412,6 +412,44 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
+/* ── GROUP BY ── */
+.group-btn{
+  background:var(--card);border:1px solid var(--border);color:var(--ink-muted);
+  padding:0.42rem 0.75rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;
+}
+.group-btn:hover{border-color:var(--border-mid);color:var(--ink)}
+.group-btn.active{background:var(--paper);border-color:var(--accent);color:var(--accent-text);font-weight:500}
+.group-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.group-section{margin-bottom:1.6rem}
+.group-heading{
+  font-family:'Playfair Display',serif;font-size:1rem;font-weight:500;
+  color:var(--ink-mid);margin-bottom:0.7rem;padding-bottom:0.4rem;
+  border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:0.5rem;
+}
+.group-heading .group-count{font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-faint);font-weight:400}
+.group-modal{max-width:360px}
+.group-modal-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.4rem;max-height:60vh;overflow-y:auto}
+.gpill{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.55rem 0.7rem;border-radius:var(--radius);border:1px solid var(--border);
+  background:none;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+  color:var(--ink-muted);cursor:pointer;transition:all .12s;width:100%;text-align:left;
+}
+.gpill:hover{border-color:var(--border-mid);color:var(--ink);background:var(--paper)}
+.gpill.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent-text);font-weight:500}
+.gpill .check{font-size:0.8rem;color:var(--accent);display:none}
+.gpill.active .check{display:inline}
+/* serves range */
+.serves-mode-toggle{display:flex;gap:4px;margin-bottom:0.4rem}
+.srv-mode-btn{
+  flex:1;padding:3px 0;border:1px solid var(--border);border-radius:5px;background:none;
+  font-family:'Instrument Sans',sans-serif;font-size:0.73rem;color:var(--ink-muted);cursor:pointer;transition:all .12s;
+}
+.srv-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.srv-mode-btn:hover:not(.active){background:var(--paper);color:var(--ink)}
+
 /* ── FILTER MODAL ── */
 .filter-modal{max-width:480px}
 .fbody-filter{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:1rem;max-height:72vh;overflow-y:auto}
@@ -615,6 +653,10 @@ header{
         Filter
         <span id="filter-count-badge" style="display:none;background:var(--accent);color:#fff;font-size:0.65rem;padding:0 5px;border-radius:8px;margin-left:2px"></span>
       </button>
+      <button class="group-btn" id="group-btn" onclick="openGroupBy()">
+        <svg viewBox="0 0 14 12"><line x1="1" y1="2" x2="9" y2="2"/><line x1="1" y1="6" x2="13" y2="6"/><line x1="1" y1="10" x2="11" y2="10"/></svg>
+        Group
+      </button>
       <button class="draft-toggle" id="draft-toggle-btn" onclick="toggleShowDrafts()" title="Show draft recipes">
         <span class="toggle-pip"></span>
         Drafts
@@ -696,12 +738,34 @@ header{
         </div>
         <div class="wheel-panel">
           <div class="wheel-panel-title">Serves</div>
-          <div class="wg">
+          <div class="serves-mode-toggle">
+            <button class="srv-mode-btn active" id="srv-exact-btn" onclick="setServesMode('exact')">Exact</button>
+            <button class="srv-mode-btn" id="srv-range-btn" onclick="setServesMode('range')">Range</button>
+          </div>
+          <div id="srv-exact-wrap" class="wg">
             <div class="wheel-outer" id="wh-srv" data-val="4" onmousedown="wheelStart(event,'wh-srv')" ontouchstart="wheelStart(event,'wh-srv')">
               <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
               <div class="wheel-inner" id="wi-srv"></div>
             </div>
             <div class="wg-lbl">people</div>
+          </div>
+          <div id="srv-range-wrap" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+              <div class="wg">
+                <div class="wheel-outer" id="wh-srv-min" data-val="2" onmousedown="wheelStart(event,'wh-srv-min')" ontouchstart="wheelStart(event,'wh-srv-min')">
+                  <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
+                  <div class="wheel-inner" id="wi-srv-min"></div>
+                </div>
+                <div class="wg-lbl">min</div>
+              </div>
+              <div class="wg">
+                <div class="wheel-outer" id="wh-srv-max" data-val="4" onmousedown="wheelStart(event,'wh-srv-max')" ontouchstart="wheelStart(event,'wh-srv-max')">
+                  <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
+                  <div class="wheel-inner" id="wi-srv-max"></div>
+                </div>
+                <div class="wg-lbl">max</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -746,6 +810,21 @@ header{
     <div class="form-foot">
       <button class="btn-sec" onclick="closeEdit()">Cancel</button>
       <button class="btn-pri" onclick="saveRecipe()">Save recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- GROUP BY MODAL -->
+<div class="backdrop" id="gmodal">
+  <div class="modal group-modal">
+    <div class="modal-head">
+      <h2>Group by</h2>
+      <button class="xbtn" onclick="closeGroupBy()">✕</button>
+    </div>
+    <div class="group-modal-body" id="group-modal-body"></div>
+    <div class="form-foot" style="justify-content:space-between">
+      <button class="btn-sec" onclick="clearGroupBy()">None</button>
+      <button class="btn-pri" onclick="closeGroupBy()">Done</button>
     </div>
   </div>
 </div>
@@ -909,9 +988,11 @@ let RETIRED_UNITS = []; // unit strings that are retired (hidden from new dropdo
 let CUSTOM_TAG_GROUPS = {}; // extra tags added by user per group
 
 const WHEEL_ITEMS = {
-  'wh-hrs': Array.from({length:13},(_,i)=>({val:i,label:String(i)})),
-  'wh-min': [0,5,10,15,20,25,30,35,40,45,50,55].map(v=>({val:v,label:String(v).padStart(2,'0')})),
-  'wh-srv': Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)}))
+  'wh-hrs':     Array.from({length:13},(_,i)=>({val:i,label:String(i)})),
+  'wh-min':     [0,5,10,15,20,25,30,35,40,45,50,55].map(v=>({val:v,label:String(v).padStart(2,'0')})),
+  'wh-srv':     Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)})),
+  'wh-srv-min': Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)})),
+  'wh-srv-max': Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)}))
 };
 
 // ── STATE ─────────────────────────────────────────────────────────────────
@@ -926,7 +1007,9 @@ let formTags = [];
 let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
-let showDrafts = false;
+let showDrafts  = false;
+let groupBy     = null; // null | 'Meal' | 'Cuisine' | 'Type' | 'Cook Time' | 'Serves' | custom
+let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 function init() {
@@ -1497,18 +1580,20 @@ function renderFilterModal() {
     });
   }
 
-  // Does recipe pass the active serves filters? (OR within set)
+  // Does recipe pass the active serves filters? (OR within set, range-aware)
   function passesServesFilters(r, candidateV) {
     const checkSet = candidateV
       ? new Set([...activeServes, candidateV])
       : activeServes;
     if (checkSet.size === 0) return true;
-    const s = r.serves || 0;
+    const sMin = getServesMin(r.serves);
+    const sMax = getServesMax(r.serves);
+    if (sMin == null) return false;
     return [...checkSet].some(v => {
-      if (v==='s1' && s>=1&&s<=2) return true;
-      if (v==='s2' && s>=3&&s<=4) return true;
-      if (v==='s3' && s>=5&&s<=6) return true;
-      if (v==='s4' && s>6)        return true;
+      if (v==='s1' && sMax>=1 && sMin<=2) return true;
+      if (v==='s2' && sMax>=3 && sMin<=4) return true;
+      if (v==='s3' && sMax>=5 && sMin<=6) return true;
+      if (v==='s4' && sMax>6)             return true;
       return false;
     });
   }
@@ -1578,11 +1663,13 @@ function renderFilterModal() {
     ['s1','1 – 2'], ['s2','3 – 4'], ['s3','5 – 6'], ['s4','7+']
   ];
   const servesBuckets = SERVES_BUCKETS.filter(([v]) => visibleRecipes.some(r => {
-    const s = r.serves||0;
-    if (v==='s1' && s>=1&&s<=2) return true;
-    if (v==='s2' && s>=3&&s<=4) return true;
-    if (v==='s3' && s>=5&&s<=6) return true;
-    if (v==='s4' && s>6)        return true;
+    const sMin = getServesMin(r.serves);
+    const sMax = getServesMax(r.serves);
+    if (sMin == null) return false;
+    if (v==='s1' && sMax>=1 && sMin<=2) return true;
+    if (v==='s2' && sMax>=3 && sMin<=4) return true;
+    if (v==='s3' && sMax>=5 && sMin<=6) return true;
+    if (v==='s4' && sMax>6)             return true;
     return false;
   }));
   if (servesBuckets.length) {
@@ -1673,20 +1760,115 @@ function matchesFilters(r) {
     if (!inAny) return false;
   }
 
-  // Serves: OR within — recipe must match at least one selected bucket
+  // Serves: OR within — recipe must match at least one selected bucket (range-aware)
   if (activeServes.size > 0) {
-    const s = r.serves || 0;
+    const sMin = getServesMin(r.serves);
+    const sMax = getServesMax(r.serves);
+    if (sMin == null) return false;
     const inAny = [...activeServes].some(v => {
-      if (v==='s1' && s>=1&&s<=2) return true;
-      if (v==='s2' && s>=3&&s<=4) return true;
-      if (v==='s3' && s>=5&&s<=6) return true;
-      if (v==='s4' && s>6)        return true;
+      if (v==='s1' && sMax>=1 && sMin<=2) return true;
+      if (v==='s2' && sMax>=3 && sMin<=4) return true;
+      if (v==='s3' && sMax>=5 && sMin<=6) return true;
+      if (v==='s4' && sMax>6)             return true;
       return false;
     });
     if (!inAny) return false;
   }
 
   return true;
+}
+
+// ── GROUP BY ──────────────────────────────────────────────────────────────
+function openGroupBy() {
+  renderGroupModal();
+  document.getElementById('gmodal').classList.add('open');
+}
+function closeGroupBy() {
+  document.getElementById('gmodal').classList.remove('open');
+  render();
+}
+function clearGroupBy() {
+  groupBy = null;
+  document.getElementById('group-btn').classList.remove('active');
+  document.getElementById('group-btn').querySelector('svg').nextSibling.textContent = ' Group';
+  closeGroupBy();
+}
+
+function renderGroupModal() {
+  const OPTIONS = [
+    ...Object.keys(TAG_GROUPS),
+    'Cook Time',
+    'Serves'
+  ];
+  const body = document.getElementById('group-modal-body');
+  body.innerHTML = OPTIONS.map(opt => `
+    <button class="gpill${groupBy===opt?' active':''}" onclick="selectGroupBy('${opt.replace(/'/g,"\\'")}')">
+      ${esc(opt)}
+      <span class="check">✓</span>
+    </button>`).join('');
+}
+
+function selectGroupBy(opt) {
+  groupBy = (groupBy === opt) ? null : opt;
+  const btn = document.getElementById('group-btn');
+  btn.classList.toggle('active', !!groupBy);
+  renderGroupModal();
+}
+
+// Get the group key(s) for a recipe under the current groupBy
+function getRecipeGroups(r) {
+  if (!groupBy) return [null];
+  if (groupBy === 'Cook Time') {
+    const m = totalMins(r);
+    if (m == null) return ['No time'];
+    if (m < 30)        return ['Under 30 min'];
+    if (m <= 60)       return ['30 – 60 min'];
+    if (m <= 120)      return ['1 – 2 hrs'];
+    return ['Over 2 hrs'];
+  }
+  if (groupBy === 'Serves') {
+    const sMin = getServesMin(r.serves);
+    const sMax = getServesMax(r.serves);
+    const groups = new Set();
+    if (sMin == null) return ['Unspecified'];
+    // A range can span multiple buckets
+    if (sMin <= 2 && sMax >= 1) groups.add('1 – 2');
+    if (sMin <= 4 && sMax >= 3) groups.add('3 – 4');
+    if (sMin <= 6 && sMax >= 5) groups.add('5 – 6');
+    if (sMax > 6)               groups.add('7+');
+    return groups.size ? [...groups] : ['Unspecified'];
+  }
+  // Tag group
+  const groupTags = TAG_GROUPS[groupBy] || [];
+  const matches = (r.tags || []).filter(t => groupTags.some(gt => gt.toLowerCase() === t.toLowerCase()));
+  return matches.length ? matches : ['Other'];
+}
+
+// ── SERVES RANGE HELPERS ──────────────────────────────────────────────────
+function getServesMin(serves) {
+  if (serves == null) return null;
+  if (typeof serves === 'object') return serves.min ?? null;
+  return serves;
+}
+function getServesMax(serves) {
+  if (serves == null) return null;
+  if (typeof serves === 'object') return serves.max ?? serves.min ?? null;
+  return serves;
+}
+function fmtServes(serves) {
+  if (serves == null) return '';
+  if (typeof serves === 'object' && serves.min != null && serves.max != null && serves.min !== serves.max)
+    return `${serves.min}–${serves.max} serves`;
+  const n = typeof serves === 'object' ? (serves.min ?? serves.max) : serves;
+  return n != null ? String(n) : '';
+}
+
+function setServesMode(mode) {
+  servesMode = mode;
+  document.getElementById('srv-exact-btn').classList.toggle('active', mode==='exact');
+  document.getElementById('srv-range-btn').classList.toggle('active', mode==='range');
+  document.getElementById('srv-exact-wrap').style.display = mode==='exact' ? '' : 'none';
+  document.getElementById('srv-range-wrap').style.display = mode==='range' ? '' : 'none';
 }
 
 // ── DRAFT / PUBLISH ───────────────────────────────────────────────────────
@@ -1761,12 +1943,14 @@ function render() {
     return;
   }
 
-  grid.innerHTML = filtered.map(r => {
+  // build a single card HTML
+  function makeCard(r) {
     const isDraft = r.status === 'draft';
     const mins = totalMins(r);
     const metaParts = [];
     if (mins) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg>${fmtTime(mins)}</span>`);
-    if (r.serves) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>${r.serves}</span>`);
+    const srv = fmtServes(r.serves);
+    if (srv) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>${srv}</span>`);
     return `<div class="rcard${isDraft?' draft':''}" onclick="viewRecipe(${r.id})">
       <div class="card-stripe${isDraft?' draft':''}"></div>
       <div class="card-body">
@@ -1775,7 +1959,36 @@ function render() {
         ${metaParts.length ? `<div class="card-meta">${metaParts.join('')}</div>` : ''}
       </div>
     </div>`;
-  }).join('');
+  }
+
+  if (!groupBy) {
+    grid.innerHTML = filtered.map(makeCard).join('');
+  } else {
+    // Group recipes — a recipe can appear in multiple groups
+    const groupMap = new Map(); // group label -> Set of recipe ids (preserve order)
+    filtered.forEach(r => {
+      getRecipeGroups(r).forEach(label => {
+        if (!groupMap.has(label)) groupMap.set(label, []);
+        groupMap.get(label).push(r);
+      });
+    });
+
+    // Sort group keys — 'Other'/'Unspecified'/'No time' always last
+    const LAST = new Set(['Other','Unspecified','No time']);
+    const sortedKeys = [...groupMap.keys()].sort((a, b) => {
+      if (LAST.has(a) && !LAST.has(b)) return 1;
+      if (!LAST.has(a) && LAST.has(b)) return -1;
+      return a.localeCompare(b);
+    });
+
+    grid.innerHTML = sortedKeys.map(label => {
+      const groupRecipes = groupMap.get(label);
+      return `<div class="group-section">
+        <div class="group-heading">${esc(label)} <span class="group-count">${groupRecipes.length} recipe${groupRecipes.length!==1?'s':''}</span></div>
+        <div class="grid" style="margin-bottom:0">${groupRecipes.map(makeCard).join('')}</div>
+      </div>`;
+    }).join('');
+  }
 }
 
 function removeActiveTag(tag)   { activeTags.delete(tag);   render(); }
@@ -1912,8 +2125,8 @@ function renderViewBody(r) {
   const metaItems = [];
   if (mins) metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg><strong>${fmtTime(mins)}</strong></span>`);
   if (r.serves) {
-    const srv = fmtNum(r.serves * scaleFactor);
-    metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>Serves <strong>${srv}</strong></span>`);
+    const srvStr = fmtServes(r.serves);
+    if (srvStr) metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>Serves <strong>${esc(srvStr)}</strong></span>`);
   }
   if (r.source) metaItems.push(`<span class="vmeta" style="font-size:0.78rem;color:var(--ink-faint)">${esc(r.source)}</span>`);
 
@@ -2133,7 +2346,16 @@ function openEdit(r) {
 
   setWheel('wh-hrs', r?.hours   ?? 0);
   setWheel('wh-min', r?.minutes ?? 0);
-  setWheel('wh-srv', r?.serves  ?? 4);
+  // Serves — detect range vs exact
+  const isRange = typeof r?.serves === 'object' && r?.serves !== null;
+  servesMode = isRange ? 'range' : 'exact';
+  setServesMode(servesMode);
+  if (isRange) {
+    setWheel('wh-srv-min', r.serves.min ?? 2);
+    setWheel('wh-srv-max', r.serves.max ?? 4);
+  } else {
+    setWheel('wh-srv', r?.serves ?? 4);
+  }
 
   // Scalable toggle — default true for new recipes, preserve for edits
   const scalable = r?.scalable !== false; // undefined/true = scalable
@@ -2183,7 +2405,9 @@ async function saveRecipe() {
 
   const hrs  = getWheelVal('wh-hrs');
   const mins = getWheelVal('wh-min');
-  const srv  = getWheelVal('wh-srv');
+  const srv = servesMode === 'range'
+    ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
+    : getWheelVal('wh-srv');
 
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
 
@@ -2711,24 +2935,26 @@ function removeStep(btn) {
 // ── WHEELS ────────────────────────────────────────────────────────────────
 function buildWheels() {
   Object.keys(WHEEL_ITEMS).forEach(id => {
-    const items = WHEEL_ITEMS[id];
-    const suffix = id.split('-')[1];
-    const inner = document.getElementById('wi-'+suffix);
+    const items  = WHEEL_ITEMS[id];
+    const suffix = id.slice(3); // remove 'wh-' prefix → 'hrs', 'min', 'srv', 'srv-min', 'srv-max'
+    const inner  = document.getElementById('wi-'+suffix);
     if (!inner) return;
     inner.innerHTML =
       `<div class="witem" style="height:32px"></div>` +
       items.map((item,i)=>`<div class="witem" data-idx="${i}">${item.label}</div>`).join('') +
       `<div class="witem" style="height:32px"></div>`;
-    setWheel(id, id==='wh-srv' ? 4 : 0);
+    const def = id==='wh-srv'||id==='wh-srv-max' ? 4 : (id==='wh-srv-min' ? 2 : 0);
+    setWheel(id, def);
   });
 }
 
 function setWheel(id, val) {
-  const items = WHEEL_ITEMS[id];
+  const items  = WHEEL_ITEMS[id];
+  if (!items) return;
   let idx = items.findIndex(i=>i.val===val);
   if (idx<0) idx=0;
-  const suffix = id.split('-')[1];
-  const inner = document.getElementById('wi-'+suffix);
+  const suffix = id.slice(3);
+  const inner  = document.getElementById('wi-'+suffix);
   if (!inner) return;
   inner.style.transform = `translateY(${-(idx*32)}px)`;
   inner.querySelectorAll('.witem[data-idx]').forEach((el,i)=>el.classList.toggle('sel',i===idx));
@@ -2740,7 +2966,7 @@ function getWheelVal(id) { return parseInt(document.getElementById(id).dataset.v
 function wheelStart(e, id) {
   e.preventDefault();
   const outer = document.getElementById(id);
-  const suffix = id.split('-')[1];
+  const suffix = id.slice(3); // 'wh-srv-min' → 'srv-min'
   const inner = document.getElementById('wi-'+suffix);
   const items = WHEEL_ITEMS[id];
   const startY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -2801,7 +3027,7 @@ function toast(msg) {
 }
 
 // backdrop close
-['vmodal','emodal','fmodal','imodal','settings-modal'].forEach(id => {
+['vmodal','emodal','fmodal','imodal','settings-modal','gmodal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target===e.currentTarget) {
       if(id==='vmodal') closeView();
@@ -2809,6 +3035,7 @@ function toast(msg) {
       else if(id==='fmodal') closeFilter();
       else if(id==='imodal') closeInfo();
       else if(id==='settings-modal') closeSettings();
+      else if(id==='gmodal') closeGroupBy();
     }
   });
 });
