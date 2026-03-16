@@ -495,13 +495,19 @@ header{
 .fcount-info{font-size:0.78rem;color:var(--ink-faint)}
 
 /* ── INFO MODAL ── */
-.info-body{padding:0;font-size:0.86rem;line-height:1.7;color:var(--ink-mid);display:flex;flex-direction:column;max-height:76vh}
-.info-body h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem;margin-top:0.8rem}
+.info-body{padding:0;font-size:0.86rem;line-height:1.7;color:var(--ink-mid);display:flex;flex-direction:column;max-height:76vh;overflow:hidden}
+.info-body h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem;margin-top:0.9rem}
 .info-body h3:first-child{margin-top:0}
 .info-body ol,.info-body ul{padding-left:1.1rem;display:flex;flex-direction:column;gap:0.3rem}
 .info-body code{background:var(--paper);padding:1px 6px;border-radius:4px;font-size:0.8rem;color:var(--accent-text);font-family:monospace}
 .info-body p{font-size:0.84rem}
-.info-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;padding:0 1rem}
+.info-tabs{
+  display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;
+  padding:0 1rem;overflow-x:auto;
+  scrollbar-width:none; /* Firefox */
+  -ms-overflow-style:none; /* IE */
+}
+.info-tabs::-webkit-scrollbar{display:none} /* Chrome/Safari */
 .info-tab{
   background:none;border:none;border-bottom:2px solid transparent;
   padding:0.6rem 0.7rem;font-family:'Instrument Sans',sans-serif;font-size:0.78rem;
@@ -509,12 +515,12 @@ header{
 }
 .info-tab:hover{color:var(--ink)}
 .info-tab.active{color:var(--accent-text);border-bottom-color:var(--accent);font-weight:500}
-.info-pane{display:none;padding:1.1rem 1.3rem;overflow-y:auto;flex:1}
+.info-pane{display:none;padding:1.1rem 1.3rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
 .info-pane.active{display:block}
 .info-tip{
   background:var(--accent-light);border-left:3px solid var(--accent);
   padding:0.5rem 0.7rem;border-radius:0 var(--radius) var(--radius) 0;
-  font-size:0.81rem;color:var(--accent-text);margin-top:0.5rem;
+  font-size:0.81rem;color:var(--accent-text);margin-top:0.6rem;line-height:1.5;
 }
 /* auth modal */
 .auth-modal{max-width:400px}
@@ -937,62 +943,65 @@ header{
       </div>
 
       <div class="info-pane active" id="info-pane-start">
-        <h3>Welcome</h3>
-        <p>Benny's Recipes is your personal recipe book, stored privately in a GitHub Gist so it syncs across all your devices. Add, edit, scale and organise recipes — all in one place.</p>
-        <h3>Connecting to GitHub</h3>
+        <h3>Welcome to Benny's Recipes</h3>
+        <p>This is your personal digital recipe book. Your recipes are saved privately online using a free service called GitHub, so they're always backed up and available on any device you use.</p>
+        <h3>Connecting for the first time</h3>
+        <p>To save and load your recipes, you'll need to connect to a free GitHub account. Here's how:</p>
         <ol>
           <li>Create a free account at <strong>github.com</strong></li>
-          <li>Go to <strong>gist.github.com</strong> and create a new <em>secret</em> Gist</li>
-          <li>Name the file <code>recipes.json</code>, set the content to <code>[]</code>, and save</li>
-          <li>Copy the Gist ID from the URL (the long string at the end)</li>
-          <li>Go to <strong>github.com/settings/tokens</strong> → generate a classic token with the <code>gist</code> scope only</li>
-          <li>Tap the <strong>🔑 key icon</strong> in the header and paste both values in</li>
+          <li>Go to <strong>gist.github.com</strong> and create a new <em>secret</em> Gist — think of this as a private file in the cloud where your recipes will live</li>
+          <li>Name the file <code>recipes.json</code>, set the content to <code>[]</code>, and save it</li>
+          <li>Copy the long code from the URL — that's your Gist ID</li>
+          <li>Go to <strong>github.com/settings/tokens</strong>, generate a classic token, and tick only the <code>gist</code> permission</li>
+          <li>Tap the <strong>🔑 key icon</strong> in the top right of this page and paste both values in</li>
         </ol>
-        <div class="info-tip">Your credentials are stored only in your browser's localStorage and are never sent anywhere except GitHub's API directly.</div>
+        <div class="info-tip">Your login details are saved only on your own device and are never shared with anyone other than GitHub.</div>
       </div>
 
       <div class="info-pane" id="info-pane-recipes">
         <h3>Adding a recipe</h3>
-        <p>Tap <strong>Add recipe</strong> in the top right. Fill in the name, tags, cook time, and serves. New recipes are saved as <strong>Drafts</strong> — they won't appear on the main page until you publish them.</p>
-        <h3>Draft &amp; Publish</h3>
-        <p>Open any recipe and use the <strong>Publish</strong> button in the footer to make it visible on the main page. Use <strong>Unpublish</strong> to move it back to draft. Toggle <strong>Drafts</strong> in the toolbar to view your unpublished recipes.</p>
-        <h3>Tags</h3>
-        <p>Tags organise your recipes into categories like Meal, Cuisine, and Type. Type any tag in the tag field when editing — if it's new, it's added to the <strong>Other</strong> category automatically. In Settings → Tags you can rename, move, or remove tags, and create new categories.</p>
-        <h3>YouTube reference video</h3>
-        <p>Paste any YouTube URL into the <strong>YouTube reference video</strong> field when editing a recipe. An embedded player appears at the bottom of the recipe view.</p>
+        <p>Tap <strong>Add recipe</strong> in the top right corner. You can fill in the name, tags, how long it takes to cook, and how many people it serves. You can also add a YouTube link and it will appear as a playable video inside the recipe.</p>
+        <h3>Drafts and publishing</h3>
+        <p>Every new recipe starts as a <strong>Draft</strong>, which means it's saved but hidden from your main page while you're still working on it. When it's ready, open the recipe and tap <strong>Publish</strong> at the bottom. You can always unpublish it again if you want to make changes. To see your drafts, toggle the <strong>Drafts</strong> switch in the toolbar.</p>
+        <h3>Organising with tags</h3>
+        <p>Tags help you categorise your recipes — things like "Dinner", "Italian", or "Bake". You can type any tag you like when editing a recipe. New tags you create will appear under an <strong>Other</strong> category, and you can move them into the right category later through <strong>Settings → Tags</strong>.</p>
         <h3>Serves</h3>
-        <p>You can enter an exact number of serves, or switch to <strong>Range</strong> mode to specify a min–max (e.g. 2–4 serves). This is useful for recipes where portion size varies.</p>
+        <p>You can set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum (for example, 2–4 people). This is useful when a recipe can comfortably feed different numbers depending on appetite.</p>
       </div>
 
       <div class="info-pane" id="info-pane-scaling">
-        <h3>Scaling a recipe</h3>
-        <p>Open any recipe and use the <strong>1× / ½× / 2× / 3×</strong> buttons to scale. Ingredient quantities update automatically, with smart unit conversion (e.g. 3 tsp → 1 tbsp). Metric ingredients stay metric.</p>
-        <h3>Marking ingredients that don't scale</h3>
-        <p>Tap the <strong>⊘ button</strong> on any ingredient or method step to flag it. When flagged, you can enter specific overrides for each scale (½×, 2×, 3×) with their own amount and unit. If you leave an override blank, the recipe view shows a <em>"does not scale"</em> note at that scale.</p>
-        <h3>Non-scalable recipes</h3>
-        <p>Use the <strong>Recipe can be scaled</strong> toggle in the edit form to disable scaling entirely for a recipe. The scale bar won't appear in the view, and the ⊘ buttons are hidden in the form.</p>
+        <h3>Scaling a recipe up or down</h3>
+        <p>When viewing a recipe, use the <strong>1× / ½× / 2× / 3×</strong> buttons at the top to change the serving size. All ingredient quantities will update automatically — and the units will adjust sensibly too, for example 3 teaspoons becoming 1 tablespoon.</p>
+        <h3>Ingredients that don't scale well</h3>
+        <p>Some ingredients don't simply double or halve — like salt, spices, or baking powder. You can flag these by tapping the <strong>⊘ button</strong> next to any ingredient when editing. This lets you set a specific amount for each scale size separately. If you leave a scale size blank, the recipe will show a small note that this ingredient doesn't scale at that size.</p>
+        <h3>Method steps that change with scale</h3>
+        <p>The same flag works for method steps too — useful for things like cooking times or temperatures that need a different instruction at different batch sizes.</p>
+        <h3>Turning off scaling for a recipe</h3>
+        <p>Some recipes just don't make sense to scale at all. When editing, you'll find a <strong>Recipe can be scaled</strong> toggle — switch it off and the scale controls won't appear when viewing that recipe.</p>
       </div>
 
       <div class="info-pane" id="info-pane-filter">
-        <h3>Filtering</h3>
-        <p>Tap <strong>Filter</strong> in the toolbar to open the filter panel. Select any number of pills — within a category the logic is OR (e.g. Breakfast or Dinner), and between categories it's AND (e.g. Korean AND Dinner). Active filters appear as chips below the toolbar, each removable individually.</p>
-        <h3>Cook time &amp; Serves filters</h3>
-        <p>Cook time and Serves work the same as tag filters — select multiple buckets within each section. Only buckets that match at least one visible recipe are shown.</p>
-        <h3>Group By</h3>
-        <p>Tap <strong>Group</strong> in the toolbar to group recipes by a category. Recipes appear under labelled headings. A recipe tagged with two values in the same group (e.g. both Dinner and Lunch) appears under both headings.</p>
+        <h3>Searching for a recipe</h3>
+        <p>Use the search bar at the top to find recipes by name or tag. On a phone, tap the magnifying glass icon to bring up the search field.</p>
+        <h3>Filtering your recipes</h3>
+        <p>Tap <strong>Filter</strong> in the toolbar to narrow down which recipes are shown. You can select as many options as you like. Within the same category (for example, choosing both "Breakfast" and "Dinner") the app will show recipes that match either one. Across different categories (for example, "Korean" and "Dinner") the app will only show recipes that match both. Each active filter appears as a removable tag below the toolbar so you can see exactly what's applied and remove individual ones easily.</p>
+        <h3>Filtering by cook time or serves</h3>
+        <p>The filter panel also includes cook time and serves ranges. These work the same way — select one or more time ranges or serving sizes to narrow down your results. Only ranges that match at least one of your recipes will be shown.</p>
+        <h3>Grouping recipes</h3>
+        <p>Tap <strong>Group</strong> in the toolbar to organise your recipes into sections on the main page. Choose a category like Meal or Cuisine and your recipes will be arranged under labelled headings. A recipe that fits into more than one group — for example tagged both "Dinner" and "Lunch" — will appear under both headings.</p>
       </div>
 
       <div class="info-pane" id="info-pane-mobile">
-        <h3>Using on iPhone</h3>
+        <h3>Using on your iPhone</h3>
         <ol>
-          <li>Host the HTML file on <strong>GitHub Pages</strong> (free) and open it in Safari</li>
-          <li>Tap <strong>Share → Add to Home Screen</strong> to install it as a full-screen app</li>
-          <li>Recipes load from GitHub and cache locally so the last synced data is always available</li>
-          <li>On smaller screens, the search bar collapses into a magnifying glass icon — tap it to expand</li>
+          <li>The easiest way is to host the app on <strong>GitHub Pages</strong> (free) — this gives it a web address you can open in Safari from anywhere</li>
+          <li>Once open in Safari, tap the <strong>Share button</strong> (the square with an arrow) and choose <strong>Add to Home Screen</strong></li>
+          <li>The app will appear on your home screen and open full-screen just like a native app</li>
+          <li>Your recipes are loaded from GitHub each time you open the app and saved locally on your device as a backup</li>
         </ol>
-        <h3>Offline mode</h3>
-        <p>When offline, you can still browse and edit recipes. Changes are queued and synced to GitHub automatically when your connection returns. A banner at the top of the page shows your current connection status.</p>
-        <div class="info-tip">Tip: if recipes aren't loading, check your credentials using the 🔑 button in the header.</div>
+        <h3>Using without internet</h3>
+        <p>If you lose your connection, the app will keep working using the last version of your recipes that was loaded. You can still browse, search, and even add or edit recipes — any changes you make will be saved and automatically sent to GitHub the next time you're back online. A banner at the top of the page will let you know when you're offline.</p>
+        <div class="info-tip">If your recipes aren't loading, check that your credentials are set up correctly by tapping the 🔑 key icon in the top right.</div>
       </div>
     </div>
     <div class="form-foot">
