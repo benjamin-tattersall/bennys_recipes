@@ -961,6 +961,30 @@ header{
   </div>
 </div>
 
+<!-- REPLACE TAG MODAL -->
+<div class="backdrop" id="replace-tag-modal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <h2 id="replace-tag-modal-title">Replace tag with…</h2>
+      <button class="xbtn" onclick="closeReplaceTagModal()">✕</button>
+    </div>
+    <div style="padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.75rem">
+      <div class="fg">
+        <label>Category</label>
+        <select id="replace-cat-select" class="replace-select" onchange="renderReplaceTagOptions()"></select>
+      </div>
+      <div class="fg">
+        <label>Replace with</label>
+        <select id="replace-tag-select-modal" class="replace-select"></select>
+      </div>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeReplaceTagModal()">Cancel</button>
+      <button class="btn-pri" onclick="confirmReplaceTag()">Replace</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM DIALOG -->
 <div class="confirm-overlay" id="confirm-overlay">
   <div class="confirm-box">
@@ -1438,16 +1462,13 @@ function addTagToGroup(group) {
 function removeTagFromGroup(group, tag) {
   const affected = recipes.filter(r => r.tags?.some(t => t.toLowerCase() === tag.toLowerCase()));
   if (affected.length > 0) {
-    // Build a list of all other tags for the replace option
-    const allOtherTags = [...new Set(Object.values(TAG_GROUPS).flat())].filter(t => t.toLowerCase() !== tag.toLowerCase()).sort();
-    const selectOpts = allOtherTags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
     showConfirm(
       `Remove "${tag}"?`,
       `Used on ${affected.length} recipe${affected.length>1?'s':''}. Choose what to do:`,
       [
         { label: 'Remove from all recipes', danger: true,  fn: () => doRemoveTag(group, tag, 'remove') },
         { label: 'Remove from list only',   danger: false, fn: () => doRemoveTag(group, tag, 'listonly') },
-        { label: 'Replace with…',           danger: false, fn: () => doRemoveTag(group, tag, 'replace'), selectOpts }
+        { label: 'Replace with…',           danger: false, fn: () => openReplaceTagModal(group, tag) }
       ]
     );
   } else {
@@ -1455,16 +1476,60 @@ function removeTagFromGroup(group, tag) {
   }
 }
 
+// Dedicated replace-tag modal state
+let _replaceTagSrc = null; // { group, tag }
+
+function openReplaceTagModal(group, tag) {
+  _replaceTagSrc = { group, tag };
+  renderReplaceTagModal();
+  document.getElementById('replace-tag-modal').classList.add('open');
+}
+
+function closeReplaceTagModal() {
+  document.getElementById('replace-tag-modal').classList.remove('open');
+  _replaceTagSrc = null;
+}
+
+function renderReplaceTagModal() {
+  if (!_replaceTagSrc) return;
+  const { group, tag } = _replaceTagSrc;
+
+  // Build category options — default to same group as the tag being replaced
+  const groupOpts = Object.keys(TAG_GROUPS)
+    .filter(g => TAG_GROUPS[g].some(t => t.toLowerCase() !== tag.toLowerCase()))
+    .map(g => `<option value="${esc(g)}"${g===group?' selected':''}>${esc(g)}</option>`)
+    .join('');
+
+  document.getElementById('replace-tag-modal-title').textContent = `Replace "${tag}" with…`;
+  document.getElementById('replace-cat-select').innerHTML = groupOpts;
+  renderReplaceTagOptions();
+}
+
+function renderReplaceTagOptions() {
+  if (!_replaceTagSrc) return;
+  const { tag } = _replaceTagSrc;
+  const catSel  = document.getElementById('replace-cat-select');
+  const selectedGroup = catSel.value;
+  const tags = (TAG_GROUPS[selectedGroup] || []).filter(t => t.toLowerCase() !== tag.toLowerCase());
+  const tagOpts = tags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  document.getElementById('replace-tag-select-modal').innerHTML = tagOpts || '<option value="">— no tags in this category —</option>';
+}
+
+function confirmReplaceTag() {
+  if (!_replaceTagSrc) return;
+  const { group, tag } = _replaceTagSrc;
+  const rep = document.getElementById('replace-tag-select-modal').value;
+  if (!rep) { toast('Please choose a replacement tag'); return; }
+  closeReplaceTagModal();
+  doRemoveTag(group, tag, 'replace', rep);
+}
+
 function doRemoveTag(group, tag, mode, replacementTag) {
   if (mode === 'replace') {
-    // Read replacement from the select in the confirm box if not passed directly
-    const sel = document.getElementById('replace-tag-select');
-    const rep = replacementTag || sel?.value;
-    if (!rep) { toast('Please choose a replacement tag'); return; }
+    if (!replacementTag) { toast('Please choose a replacement tag'); return; }
     recipes.forEach(r => {
       if (r.tags) {
-        r.tags = r.tags.map(t => t.toLowerCase()===tag.toLowerCase() ? rep : t);
-        // deduplicate
+        r.tags = r.tags.map(t => t.toLowerCase()===tag.toLowerCase() ? replacementTag : t);
         r.tags = [...new Set(r.tags)];
       }
     });
@@ -1475,7 +1540,6 @@ function doRemoveTag(group, tag, mode, replacementTag) {
     });
     saveToGist();
   }
-  // Always remove from the predefined list
   TAG_GROUPS[group] = (TAG_GROUPS[group]||[]).filter(t => t.toLowerCase() !== tag.toLowerCase());
   if (CUSTOM_TAG_GROUPS[group])
     CUSTOM_TAG_GROUPS[group] = CUSTOM_TAG_GROUPS[group].filter(t => t.toLowerCase() !== tag.toLowerCase());
@@ -3138,7 +3202,7 @@ function toast(msg) {
 }
 
 // backdrop close
-['vmodal','emodal','fmodal','imodal','settings-modal','gmodal'].forEach(id => {
+['vmodal','emodal','fmodal','imodal','settings-modal','gmodal','replace-tag-modal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target===e.currentTarget) {
       if(id==='vmodal') closeView();
@@ -3147,6 +3211,7 @@ function toast(msg) {
       else if(id==='imodal') closeInfo();
       else if(id==='settings-modal') closeSettings();
       else if(id==='gmodal') closeGroupBy();
+      else if(id==='replace-tag-modal') closeReplaceTagModal();
     }
   });
 });
