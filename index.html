@@ -81,6 +81,24 @@ header{
 .toolbar{display:flex;align-items:center;gap:0.6rem;margin-bottom:1.1rem;flex-wrap:wrap}
 .toolbar-left{display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0}
 .search-wrap{position:relative;flex:1;min-width:0;max-width:320px}
+/* mobile search button (hidden on desktop) */
+.search-icon-btn{
+  display:none;background:var(--card);border:1px solid var(--border);
+  color:var(--ink-muted);padding:0.42rem 0.6rem;border-radius:var(--radius);
+  cursor:pointer;transition:all .12s;flex-shrink:0;
+}
+.search-icon-btn:hover{border-color:var(--border-mid);color:var(--ink)}
+.search-icon-btn.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+.search-icon-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;display:block}
+/* expandable search row below toolbar (mobile) */
+.search-row-expand{
+  display:none;margin-bottom:0.7rem;
+}
+.search-row-expand.show{display:block}
+@media(max-width:520px){
+  .search-wrap{display:none}
+  .search-icon-btn{display:flex;align-items:center}
+}
 .search-wrap input{
   width:100%;background:var(--card);border:1px solid var(--border);
   border-radius:var(--radius);padding:0.45rem 0.75rem 0.45rem 2rem;
@@ -527,6 +545,9 @@ header{
 .stg-tag button:hover{color:var(--danger)}
 .stg-tag.custom{background:var(--accent-light);color:var(--accent-text)}
 .stg-tag.custom button{color:var(--accent-text);opacity:.7}
+/* move tag button */
+.stg-tag .move-btn{font-size:0.78rem;opacity:.55;margin-right:1px;cursor:pointer;background:none;border:none;color:inherit;padding:0 1px}
+.stg-tag .move-btn:hover{opacity:1;color:var(--accent-text)}
 /* tag edit/rename inline */
 .stg-tag-edit-wrap{display:flex;align-items:center;gap:4px;background:var(--cream);border:1px solid var(--accent);border-radius:12px;padding:1px 6px}
 .stg-tag-edit-wrap input{border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.75rem;color:var(--ink);width:90px}
@@ -644,10 +665,15 @@ header{
 <div class="app">
   <div class="toolbar">
     <div class="toolbar-left">
+      <!-- Desktop: inline search bar -->
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
         <input type="text" id="search" placeholder="Search recipes…" oninput="render()">
       </div>
+      <!-- Mobile: icon button that expands search row below -->
+      <button class="search-icon-btn" id="search-icon-btn" onclick="toggleMobileSearch()" title="Search">
+        <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      </button>
       <button class="filter-btn" id="filter-btn" onclick="openFilter()">
         <svg viewBox="0 0 14 12"><line x1="1" y1="2" x2="13" y2="2"/><line x1="3" y1="6" x2="11" y2="6"/><line x1="5" y1="10" x2="9" y2="10"/></svg>
         Filter
@@ -661,6 +687,13 @@ header{
         <span class="toggle-pip"></span>
         Drafts
       </button>
+    </div>
+  </div>
+  <!-- Mobile expandable search row -->
+  <div class="search-row-expand" id="search-row-expand">
+    <div class="search-wrap" style="max-width:100%;display:block">
+      <svg class="search-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" id="search-mobile" placeholder="Search recipes…" oninput="syncMobileSearch(this)">
     </div>
   </div>
   <div id="active-chips" class="active-filter-chips"></div>
@@ -1212,18 +1245,23 @@ function switchStgTab(name, btn) {
 function renderStgTags() {
   const pane = document.getElementById('stg-pane-tags');
   let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
-    Manage predefined tags. Custom additions appear highlighted. Use ✎ to rename a tag across all recipes.
+    Manage predefined tags. Custom additions appear highlighted. Use ✎ to rename, → to move to another category.
   </div>`;
   for (const [group, tags] of Object.entries(TAG_GROUPS)) {
     const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
     const isCustomGroup = !DEFAULT_TAG_GROUPS[group];
+    const isOther = group === 'Other';
     const tagPills = tags.map(t => {
       const isCustom = !defaultTags.includes(t);
       const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const safeG = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const moveBtn = isOther
+        ? `<button class="move-btn" onclick="startMoveTag('${safeT}')" title="Move to another category">→</button>`
+        : '';
       return `<span class="stg-tag${isCustom?' custom':''}">
         ${esc(t)}
         <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename tag" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
+        ${moveBtn}
         <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove tag">×</button>
       </span>`;
     }).join('');
@@ -1231,7 +1269,7 @@ function renderStgTags() {
     html += `<div class="stg-group">
       <div class="stg-group-head">
         <span class="stg-group-name">${esc(group)}</span>
-        ${isCustomGroup ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
+        ${isCustomGroup && !isOther ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
       </div>
       <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No tags yet — add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
@@ -1293,6 +1331,45 @@ function removeTagCategory(group) {
       toast(`"${group}" removed`);
     }}
   ]);
+}
+
+function startMoveTag(tag) {
+  // Build list of all categories except Other
+  const targetGroups = Object.keys(TAG_GROUPS).filter(g => g !== 'Other');
+  if (!targetGroups.length) { toast('No other categories to move to'); return; }
+  const selectOpts = targetGroups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  showConfirm(
+    `Move "${tag}"`,
+    `Choose a category to move "${tag}" into. It will be removed from Other.`,
+    [{ label: 'Move tag', danger: false, fn: () => confirmMoveTag(tag), selectOpts }]
+  );
+}
+
+function confirmMoveTag(tag) {
+  const sel = document.getElementById('replace-tag-select');
+  const dest = sel?.value;
+  if (!dest) { toast('Please choose a category'); return; }
+  // Remove from Other
+  TAG_GROUPS['Other'] = (TAG_GROUPS['Other'] || []).filter(t => t.toLowerCase() !== tag.toLowerCase());
+  if (CUSTOM_TAG_GROUPS['Other'])
+    CUSTOM_TAG_GROUPS['Other'] = CUSTOM_TAG_GROUPS['Other'].filter(t => t.toLowerCase() !== tag.toLowerCase());
+  // If Other is now empty, remove the group entirely
+  if (TAG_GROUPS['Other'].length === 0) {
+    delete TAG_GROUPS['Other'];
+    delete CUSTOM_TAG_GROUPS['Other'];
+  }
+  // Add to destination
+  if (!TAG_GROUPS[dest]) TAG_GROUPS[dest] = [];
+  if (!TAG_GROUPS[dest].map(t=>t.toLowerCase()).includes(tag.toLowerCase())) {
+    TAG_GROUPS[dest].push(tag);
+  }
+  if (!CUSTOM_TAG_GROUPS[dest]) CUSTOM_TAG_GROUPS[dest] = [];
+  if (!CUSTOM_TAG_GROUPS[dest].map(t=>t.toLowerCase()).includes(tag.toLowerCase())) {
+    CUSTOM_TAG_GROUPS[dest].push(tag);
+  }
+  saveSettings();
+  renderStgTags();
+  toast(`"${tag}" moved to ${dest}`);
 }
 
 function startRenameTag(group, tag) {
@@ -1860,7 +1937,7 @@ function fmtServes(serves) {
   if (typeof serves === 'object' && serves.min != null && serves.max != null && serves.min !== serves.max)
     return `${serves.min}–${serves.max} serves`;
   const n = typeof serves === 'object' ? (serves.min ?? serves.max) : serves;
-  return n != null ? String(n) : '';
+  return n != null ? `${n} serves` : '';
 }
 
 function setServesMode(mode) {
@@ -1869,6 +1946,29 @@ function setServesMode(mode) {
   document.getElementById('srv-range-btn').classList.toggle('active', mode==='range');
   document.getElementById('srv-exact-wrap').style.display = mode==='exact' ? '' : 'none';
   document.getElementById('srv-range-wrap').style.display = mode==='range' ? '' : 'none';
+}
+
+// ── MOBILE SEARCH ─────────────────────────────────────────────────────────
+function toggleMobileSearch() {
+  const row = document.getElementById('search-row-expand');
+  const btn = document.getElementById('search-icon-btn');
+  const open = row.classList.toggle('show');
+  btn.classList.toggle('active', open);
+  if (open) {
+    const inp = document.getElementById('search-mobile');
+    inp.value = document.getElementById('search').value;
+    inp.focus();
+  } else {
+    // Clear search when closing
+    document.getElementById('search').value = '';
+    document.getElementById('search-mobile').value = '';
+    render();
+  }
+}
+
+function syncMobileSearch(inp) {
+  document.getElementById('search').value = inp.value;
+  render();
 }
 
 // ── DRAFT / PUBLISH ───────────────────────────────────────────────────────
@@ -2534,6 +2634,17 @@ function addFormTag(raw) {
   renderFormTags();
   document.getElementById('tag-input').value = '';
   showTagSugs('');
+  // If this tag isn't in any known group, add it to 'Other'
+  const knownTags = new Set(Object.values(TAG_GROUPS).flat().map(t=>t.toLowerCase()));
+  if (!knownTags.has(tag.toLowerCase())) {
+    if (!TAG_GROUPS['Other']) TAG_GROUPS['Other'] = [];
+    if (!TAG_GROUPS['Other'].map(t=>t.toLowerCase()).includes(tag.toLowerCase())) {
+      TAG_GROUPS['Other'].push(tag);
+      if (!CUSTOM_TAG_GROUPS['Other']) CUSTOM_TAG_GROUPS['Other'] = [];
+      CUSTOM_TAG_GROUPS['Other'].push(tag);
+      saveSettings();
+    }
+  }
 }
 
 function removeFormTag(tag) {
