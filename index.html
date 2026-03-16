@@ -118,10 +118,55 @@ header{
   display:flex;flex-direction:column;
 }
 .rcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(26,20,16,.09);border-color:var(--border-mid)}
+.rcard.draft{border-style:dashed;border-color:var(--border-mid)}
 .card-stripe{height:4px;background:var(--accent);opacity:.65}
+.card-stripe.draft{background:var(--ink-faint);opacity:.5}
 .card-body{padding:0.8rem 0.9rem 0.9rem;flex:1;display:flex;flex-direction:column;gap:0.55rem}
 .card-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:500;line-height:1.3;color:var(--ink)}
 .card-meta{display:flex;gap:0.75rem;margin-top:auto;padding-top:0.4rem}
+.draft-pill{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:0.65rem;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;
+  background:var(--paper);color:var(--ink-faint);border:1px solid var(--border-mid);
+  padding:2px 7px;border-radius:10px;margin-bottom:2px;width:fit-content;
+}
+.draft-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--ink-faint);display:inline-block}
+/* draft toggle in toolbar */
+.draft-toggle{
+  display:flex;align-items:center;gap:5px;
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  padding:0.42rem 0.75rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;transition:all .12s;white-space:nowrap;user-select:none;
+}
+.draft-toggle:hover{border-color:var(--border-mid);color:var(--ink)}
+.draft-toggle.active{background:var(--paper);border-color:var(--border-mid);color:var(--ink)}
+.toggle-pip{
+  width:28px;height:16px;border-radius:8px;background:var(--border-mid);
+  position:relative;transition:background .15s;flex-shrink:0;
+}
+.toggle-pip::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:12px;height:12px;border-radius:50%;background:#fff;
+  transition:transform .15s;
+}
+.draft-toggle.active .toggle-pip{background:var(--accent)}
+.draft-toggle.active .toggle-pip::after{transform:translateX(12px)}
+/* publish button */
+.btn-publish{
+  background:none;border:1px solid var(--success);color:var(--success);
+  padding:0.42rem 0.85rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;transition:all .1s;
+}
+.btn-publish:hover{background:var(--success-bg)}
+.btn-unpublish{
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  padding:0.42rem 0.85rem;border-radius:var(--radius);
+  font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
+  cursor:pointer;transition:all .1s;
+}
+.btn-unpublish:hover{background:var(--paper);color:var(--ink)}
 .cmeta{font-size:0.74rem;color:var(--ink-faint);display:flex;align-items:center;gap:3px}
 .cmeta svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 
@@ -542,6 +587,10 @@ header{
         Filter
         <span id="filter-count-badge" style="display:none;background:var(--accent);color:#fff;font-size:0.65rem;padding:0 5px;border-radius:8px;margin-left:2px"></span>
       </button>
+      <button class="draft-toggle" id="draft-toggle-btn" onclick="toggleShowDrafts()" title="Show draft recipes">
+        <span class="toggle-pip"></span>
+        Drafts
+      </button>
     </div>
   </div>
   <div id="active-chips" class="active-filter-chips"></div>
@@ -567,6 +616,7 @@ header{
     <div class="view-foot">
       <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
       <button class="btn-sec" onclick="closeView()">Close</button>
+      <button id="publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
       <button class="btn-pri" onclick="editCurrent()">Edit</button>
     </div>
   </div>
@@ -839,6 +889,7 @@ let formTags = [];
 let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
+let showDrafts = false;
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 function init() {
@@ -857,7 +908,7 @@ function init() {
     const cached = localStorage.getItem('recipes_cache');
     if (cached) {
       recipes = JSON.parse(cached);
-      recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); });
+      normaliseRecipes(recipes);
       render();
     } else {
       recipes = seedSamples();
@@ -888,7 +939,7 @@ async function loadFromGist() {
     if (!r.ok) throw new Error();
     const data = await r.json();
     recipes = JSON.parse(data.files['recipes.json']?.content || '[]');
-    recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); });
+    normaliseRecipes(recipes);
     localStorage.setItem('recipes_cache', JSON.stringify(recipes));
     // load remote settings if present
     if (data.files['settings.json']?.content) {
@@ -899,7 +950,7 @@ async function loadFromGist() {
     if (pendingSync.length) syncPending();
   } catch(e) {
     const cached = localStorage.getItem('recipes_cache');
-    if (cached) { recipes = JSON.parse(cached); recipes.forEach(r => { if (r.tags) r.tags = r.tags.map(toTitleCase); }); render(); }
+    if (cached) { recipes = JSON.parse(cached); normaliseRecipes(recipes); render(); }
     else toast('Could not load — check credentials in ⓘ');
   }
 }
@@ -1511,9 +1562,41 @@ function matchesFilters(r) {
   return true;
 }
 
+// ── DRAFT / PUBLISH ───────────────────────────────────────────────────────
+function toggleShowDrafts() {
+  showDrafts = !showDrafts;
+  document.getElementById('draft-toggle-btn').classList.toggle('active', showDrafts);
+  render();
+}
+
+async function togglePublish() {
+  const r = recipes.find(x => x.id === currentId);
+  if (!r) return;
+  r.status = (r.status === 'published') ? 'draft' : 'published';
+  isOnline ? await saveToGist() : saveLocally();
+  // Update the button label immediately
+  updatePublishBtn(r);
+  render();
+  toast(r.status === 'published' ? 'Recipe published ✓' : 'Moved back to drafts');
+}
+
+function updatePublishBtn(r) {
+  const btn = document.getElementById('publish-btn');
+  if (!btn) return;
+  if (r.status === 'published') {
+    btn.textContent = 'Unpublish';
+    btn.className   = 'btn-unpublish';
+  } else {
+    btn.textContent = 'Publish';
+    btn.className   = 'btn-publish';
+  }
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────
 function render() {
-  const filtered = recipes.filter(r => matchesFilters(r));
+  // Filter by draft visibility first, then apply other filters
+  const visible = recipes.filter(r => showDrafts || r.status !== 'draft');
+  const filtered = visible.filter(r => matchesFilters(r));
   const total = activeTags.size + (activeTime!==''?1:0);
 
   // active chips
@@ -1527,10 +1610,14 @@ function render() {
   chips.innerHTML = chipParts.join('');
   chips.style.display = chipParts.length ? 'flex' : 'none';
 
-  // result info
-  document.getElementById('result-info').textContent = total
-    ? `${filtered.length} of ${recipes.length} recipes`
-    : `${recipes.length} recipe${recipes.length!==1?'s':''}`;
+  // result info — count published vs draft separately for context
+  const draftCount = recipes.filter(r => r.status === 'draft').length;
+  const draftNote = !showDrafts && draftCount > 0
+    ? ` <span style="font-size:0.75rem;color:var(--ink-faint)">(${draftCount} draft${draftCount!==1?'s':''} hidden)</span>`
+    : '';
+  document.getElementById('result-info').innerHTML = total
+    ? `${filtered.length} of ${visible.length} recipes${draftNote}`
+    : `${visible.length} recipe${visible.length!==1?'s':''}${draftNote}`;
 
   // filter btn badge
   const badge = document.getElementById('filter-count-badge');
@@ -1549,13 +1636,15 @@ function render() {
   }
 
   grid.innerHTML = filtered.map(r => {
+    const isDraft = r.status === 'draft';
     const mins = totalMins(r);
     const metaParts = [];
     if (mins) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg>${fmtTime(mins)}</span>`);
     if (r.serves) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="5" r="2.5"/><path d="M2 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/></svg>${r.serves}</span>`);
-    return `<div class="rcard" onclick="viewRecipe(${r.id})">
-      <div class="card-stripe"></div>
+    return `<div class="rcard${isDraft?' draft':''}" onclick="viewRecipe(${r.id})">
+      <div class="card-stripe${isDraft?' draft':''}"></div>
       <div class="card-body">
+        ${isDraft ? '<div class="draft-pill">Draft</div>' : ''}
         <div class="card-name">${esc(r.name)}</div>
         ${metaParts.length ? `<div class="card-meta">${metaParts.join('')}</div>` : ''}
       </div>
@@ -1564,7 +1653,7 @@ function render() {
 }
 
 function removeActiveTag(tag) { activeTags.delete(tag); render(); }
-function removeTimeFilter() { activeTime='all'; render(); }
+function removeTimeFilter() { activeTime=''; render(); }
 
 // ── UNIT SYSTEM ───────────────────────────────────────────────────────────
 function getAllDropdownUnits() { return Object.values(UNIT_GROUPS).flat(); }
@@ -1659,6 +1748,7 @@ function viewRecipe(id) {
     b.classList.toggle('active', parseFloat(b.dataset.scale) === 1);
   });
   document.getElementById('vname').textContent = r.name;
+  updatePublishBtn(r);
   renderViewBody(r);
   document.getElementById('vmodal').classList.add('open');
 }
@@ -1947,6 +2037,7 @@ async function saveRecipe() {
     if (idx>=0) recipes[idx] = { ...recipes[idx], ...data };
   } else {
     data.id = Date.now(); data.created = Date.now();
+    data.status = 'draft'; // new recipes start as drafts
     recipes.unshift(data);
   }
 
@@ -1957,6 +2048,15 @@ async function saveRecipe() {
 // ── TAGS INPUT ────────────────────────────────────────────────────────────
 function toTitleCase(s) {
   return s.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function normaliseRecipes(arr) {
+  arr.forEach(r => {
+    if (r.tags) r.tags = r.tags.map(toTitleCase);
+    // Default status to published for any recipe that doesn't have one set
+    if (!r.status) r.status = 'published';
+  });
+  return arr;
 }
 
 function renderFormTags() {
