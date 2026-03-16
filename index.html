@@ -1285,42 +1285,42 @@ function updateOfflineBanner() {
 }
 
 // ── UNDO / REDO ───────────────────────────────────────────────────────────
-function pushUndo(prevRecipes, prevBin) {
-  undoStack.push({ recipes: JSON.parse(JSON.stringify(prevRecipes)), bin: JSON.parse(JSON.stringify(prevBin)) });
+function pushUndo(prevRecipes, prevBin, description) {
+  undoStack.push({ recipes: JSON.parse(JSON.stringify(prevRecipes)), bin: JSON.parse(JSON.stringify(prevBin)), description: description || 'Change' });
   if (undoStack.length > MAX_UNDO) undoStack.shift();
-  redoStack = []; // clear redo on new action
+  redoStack = [];
   updateUndoButtons();
 }
 
 function updateUndoButtons() {
   const u = document.getElementById('undo-btn');
   const r = document.getElementById('redo-btn');
-  if (u) u.disabled = undoStack.length === 0;
-  if (r) r.disabled = redoStack.length === 0;
+  if (u) { u.disabled = undoStack.length === 0; u.title = undoStack.length ? `Undo: ${undoStack[undoStack.length-1].description} (⌘Z)` : 'Nothing to undo'; }
+  if (r) { r.disabled = redoStack.length === 0; r.title = redoStack.length ? `Redo: ${redoStack[redoStack.length-1].description} (⌘⇧Z)` : 'Nothing to redo'; }
 }
 
 async function undoAction() {
   if (!undoStack.length) return;
-  redoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)) });
   const prev = undoStack.pop();
+  redoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)), description: prev.description });
   recipes = prev.recipes;
   bin     = prev.bin;
   normaliseRecipes(recipes);
   isOnline ? await saveToGistSilent() : saveLocallySilent();
   render(); updateBinBtn(); updateUndoButtons();
-  toast('Undone ↩');
+  toast(`Undone: ${prev.description} ↩`);
 }
 
 async function redoAction() {
   if (!redoStack.length) return;
-  undoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)) });
   const next = redoStack.pop();
+  undoStack.push({ recipes: JSON.parse(JSON.stringify(recipes)), bin: JSON.parse(JSON.stringify(bin)), description: next.description });
   recipes = next.recipes;
   bin     = next.bin;
   normaliseRecipes(recipes);
   isOnline ? await saveToGistSilent() : saveLocallySilent();
   render(); updateBinBtn(); updateUndoButtons();
-  toast('Redone ↪');
+  toast(`Redone: ${next.description} ↪`);
 }
 
 // Silent versions for undo/redo — don't push to undo stack themselves
@@ -1382,14 +1382,12 @@ async function loadFromGist() {
   }
 }
 
-async function saveToGist() {
-  if (!gistId || !ghToken) { saveLocally(); return; }
-  // Capture state for undo BEFORE modifying (caller already changed recipes/bin)
-  // We read the previous state from localStorage cache
+async function saveToGist(description) {
+  if (!gistId || !ghToken) { saveLocally(description); return; }
   try {
     const prevRecipes = JSON.parse(localStorage.getItem('recipes_cache') || '[]');
     const prevBin     = JSON.parse(localStorage.getItem('bin_cache')     || '[]');
-    pushUndo(prevRecipes, prevBin);
+    pushUndo(prevRecipes, prevBin, description);
   } catch(e) {}
   try {
     const files = {
@@ -1412,12 +1410,11 @@ async function saveToGist() {
   }
 }
 
-function saveLocally() {
-  // Capture state for undo before overwriting cache
+function saveLocally(description) {
   try {
     const prevRecipes = JSON.parse(localStorage.getItem('recipes_cache') || '[]');
     const prevBin     = JSON.parse(localStorage.getItem('bin_cache')     || '[]');
-    pushUndo(prevRecipes, prevBin);
+    pushUndo(prevRecipes, prevBin, description);
   } catch(e) {}
   localStorage.setItem('recipes_cache', JSON.stringify(recipes));
   localStorage.setItem('bin_cache', JSON.stringify(bin));
@@ -1618,7 +1615,7 @@ function removeTagCategory(group) {
       });
       delete TAG_GROUPS[group];
       delete CUSTOM_TAG_GROUPS[group];
-      if (affectedRecipes.length > 0) saveToGist();
+      if (affectedRecipes.length > 0) saveToGist(`Removed tag category "${group}"`);
       saveSettings();
       renderStgTags();
       render();
@@ -1706,7 +1703,7 @@ function confirmRenameTag(group, oldTag) {
     if (r.tags) r.tags = r.tags.map(t => t.toLowerCase()===oldTag.toLowerCase() ? newTag : t);
   });
   saveSettings();
-  saveToGist();
+  saveToGist(`Renamed tag "${oldTag}" to "${newTag}"`);
   renderStgTags();
   render();
   toast(`"${oldTag}" renamed to "${newTag}" across all recipes`);
@@ -1803,12 +1800,12 @@ function doRemoveTag(group, tag, mode, replacementTag) {
         r.tags = [...new Set(r.tags)];
       }
     });
-    saveToGist();
+    saveToGist(`Replaced tag "${tag}" with "${replacementTag}"`);
   } else if (mode === 'remove') {
     recipes.forEach(r => {
       if (r.tags) r.tags = r.tags.filter(t => t.toLowerCase() !== tag.toLowerCase());
     });
-    saveToGist();
+    saveToGist(`Removed tag "${tag}" from all recipes`);
   }
   TAG_GROUPS[group] = (TAG_GROUPS[group]||[]).filter(t => t.toLowerCase() !== tag.toLowerCase());
   if (CUSTOM_TAG_GROUPS[group])
@@ -2331,7 +2328,8 @@ async function togglePublish() {
   const r = recipes.find(x => x.id === currentId);
   if (!r) return;
   r.status = (r.status === 'published') ? 'draft' : 'published';
-  isOnline ? await saveToGist() : saveLocally();
+  const action = r.status === 'published' ? 'Published' : 'Unpublished';
+  isOnline ? await saveToGist(`${action} "${r.name}"`) : saveLocally(`${action} "${r.name}"`);
   // Update the button label immediately
   updatePublishBtn(r);
   render();
@@ -2793,7 +2791,7 @@ async function deleteRecipe() {
     { label: 'Move to bin', danger: true, fn: async () => {
       recipes = recipes.filter(x => x.id !== currentId);
       bin.unshift({ ...r, deletedAt: Date.now() });
-      isOnline ? await saveToGist() : saveLocally();
+      isOnline ? await saveToGist(`Deleted "${r.name}"`) : saveLocally(`Deleted "${r.name}"`);
       closeView(); render(); updateBinBtn();
       toast(`"${r.name}" moved to bin`);
     }}
@@ -2850,7 +2848,7 @@ async function restoreRecipe(id) {
   // Remove deletedAt before restoring
   delete r.deletedAt;
   recipes.unshift(r);
-  isOnline ? await saveToGist() : saveLocally();
+  isOnline ? await saveToGist(`Restored "${r.name}"`) : saveLocally(`Restored "${r.name}"`);
   renderBin(); render(); updateBinBtn();
   toast(`"${r.name}" restored`);
 }
@@ -2862,7 +2860,7 @@ async function permanentlyDelete(id) {
     'This cannot be undone — the recipe will be gone forever.',
     [{ label: 'Delete permanently', danger: true, fn: async () => {
       bin = bin.filter(x => x.id !== id);
-      isOnline ? await saveToGist() : saveLocally();
+      isOnline ? await saveToGist(`Permanently deleted "${r.name}"`) : saveLocally(`Permanently deleted "${r.name}"`);
       renderBin(); updateBinBtn();
       toast(`"${r.name}" permanently deleted`);
     }}]
@@ -2875,7 +2873,7 @@ async function emptyBin() {
     `This will permanently delete all ${bin.length} recipe${bin.length>1?'s':''} in the bin. This cannot be undone.`,
     [{ label: 'Empty bin', danger: true, fn: async () => {
       bin = [];
-      isOnline ? await saveToGist() : saveLocally();
+      isOnline ? await saveToGist('Emptied bin') : saveLocally('Emptied bin');
       renderBin(); updateBinBtn();
       toast('Bin emptied');
     }}]
@@ -3058,11 +3056,12 @@ async function saveRecipe() {
     if (idx>=0) recipes[idx] = { ...recipes[idx], ...data };
   } else {
     data.id = Date.now(); data.created = Date.now();
-    data.status = 'draft'; // new recipes start as drafts
+    data.status = 'draft';
     recipes.unshift(data);
   }
 
-  isOnline ? await saveToGist() : saveLocally();
+  const saveDesc = editId ? `Edited "${name}"` : `Added "${name}"`;
+  isOnline ? await saveToGist(saveDesc) : saveLocally(saveDesc);
   closeEdit(); render();
 }
 
