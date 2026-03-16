@@ -67,14 +67,19 @@ header{
 .logo em{font-style:italic;color:var(--accent-dim)}
 .hbtn{
   background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.75);
-  padding:0.4rem 0.75rem;border-radius:var(--radius);
+  padding:0;border-radius:var(--radius);width:34px;height:34px;
   font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
-  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;
 }
 .hbtn:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
-.hbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.hbtn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+.hbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.hbtn-accent{background:var(--accent);border-color:var(--accent);color:#fff;width:auto;padding:0 0.85rem;gap:5px}
 .hbtn-accent:hover{background:var(--accent-text);border-color:var(--accent-text);color:#fff}
+.hbtn-accent-label{} /* shown on desktop */
+@media(max-width:520px){
+  .hbtn-accent{width:34px;padding:0;gap:0}
+  .hbtn-accent-label{display:none}
+}
 
 /* ── MAIN ── */
 .app{height:calc(100vh - var(--header));overflow-y:auto;padding:1.2rem 1.2rem 3rem}
@@ -95,9 +100,19 @@ header{
   display:none;margin-bottom:0.7rem;
 }
 .search-row-expand.show{display:block}
-@media(max-width:520px){
+@media(max-width:600px){
   .search-wrap{display:none}
   .search-icon-btn{display:flex;align-items:center}
+  /* ingredient row: name on own line on mobile */
+  .ing-name-row{display:block !important} /* show mobile name row */
+  .ing-fields-inner{
+    grid-template-columns:68px minmax(0,1fr) minmax(0,1fr) auto auto auto !important;
+  }
+  .ing-fields-inner .ing-name-wrap{display:none !important} /* hide name from inner grid */
+  .ing-col-labels{
+    grid-template-columns:68px minmax(0,1fr) minmax(0,1fr) auto auto auto !important;
+  }
+  .ing-col-labels .ing-col-name-lbl{display:none}
 }
 .search-wrap input{
   width:100%;background:var(--card);border:1px solid var(--border);
@@ -201,7 +216,7 @@ header{
 }
 .backdrop.open{display:flex}
 .modal{
-  background:var(--card);border-radius:var(--radius-lg);width:100%;max-width:660px;
+  background:var(--card);border-radius:var(--radius-lg);width:100%;max-width:900px;
   flex-shrink:0;box-shadow:0 20px 60px rgba(26,20,16,.22);margin:auto;
 }
 .modal-head{
@@ -430,6 +445,91 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
+/* ── SUBSTITUTE INGREDIENTS ── */
+.sub-toggle{
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:1px solid var(--border);border-radius:5px;
+  width:22px;height:22px;cursor:pointer;flex-shrink:0;
+  font-size:0.72rem;color:var(--ink-faint);transition:all .12s;
+  line-height:1;padding:0;font-family:'Instrument Sans',sans-serif;
+}
+.sub-toggle:hover{border-color:var(--accent);color:var(--accent-text)}
+.sub-toggle.on{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+.sub-panel{display:none;padding:5px 0 2px 0;flex-direction:column;gap:6px}
+.sub-panel.show{display:flex}
+.sub-panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:0.67rem;font-weight:500;color:var(--accent-text);
+  text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px;
+}
+.sub-entry{
+  border:1px solid var(--accent);border-radius:var(--radius);
+  overflow:hidden;background:var(--accent-light);
+}
+.sub-entry-head{
+  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.4fr) auto auto auto;
+  gap:0.35rem;align-items:center;padding:5px 6px;
+}
+.sub-entry-head input,.sub-entry-head select{
+  border:1px solid var(--accent);border-radius:6px;padding:4px 6px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);
+  background:var(--cream);outline:none;width:100%;min-width:0;
+}
+.sub-entry-head input:focus,.sub-entry-head select:focus{border-color:var(--accent-text)}
+.sub-entry-head input::placeholder{color:var(--ink-faint);font-size:0.75rem}
+.sub-entry-head select{color:var(--ink-muted);cursor:pointer}
+.sub-entry-head select.has-val{color:var(--ink)}
+/* per-sub scale overrides */
+.sub-overrides{
+  display:none;padding:4px 6px 5px;border-top:1px solid var(--accent);
+  flex-direction:column;gap:3px;background:var(--accent-light);
+}
+.sub-overrides.show{display:flex}
+.sub-overrides .sub-ov-lbl{font-size:0.67rem;font-weight:500;color:var(--accent-text);padding:1px 0 2px}
+.sub-noscale-toggle{
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:1px solid var(--accent);border-radius:5px;
+  width:22px;height:22px;cursor:pointer;flex-shrink:0;
+  font-size:0.72rem;color:var(--accent-text);opacity:.6;transition:all .12s;
+  line-height:1;padding:0;font-family:'Instrument Sans',sans-serif;
+}
+.sub-noscale-toggle:hover{opacity:1}
+.sub-noscale-toggle.on{background:var(--accent);color:#fff;opacity:1}
+.add-sub-btn{
+  background:none;border:1px dashed var(--accent);color:var(--accent-text);
+  padding:5px;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;
+  font-size:0.77rem;cursor:pointer;transition:all .12s;display:flex;
+  align-items:center;justify-content:center;gap:4px;
+}
+.add-sub-btn:hover{background:var(--accent);color:#fff}
+.add-sub-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+/* view */
+.sub-indicator{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:0.68rem;font-weight:500;color:var(--accent-text);
+  background:var(--accent-light);border:1px solid var(--accent);
+  padding:1px 6px;border-radius:10px;cursor:pointer;margin-left:4px;
+  vertical-align:middle;transition:all .12s;white-space:nowrap;
+}
+.sub-indicator:hover{background:var(--accent);color:#fff}
+.sub-indicator.active{background:var(--accent);color:#fff}
+.sub-note-view{font-size:0.72rem;color:var(--accent-text);font-style:italic;padding:2px 0 3px}
+/* sub chooser popup */
+.sub-chooser{
+  position:fixed;z-index:500;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:0 8px 24px rgba(26,20,16,.15);padding:0.5rem;
+  min-width:180px;max-width:260px;
+}
+.sub-chooser-item{
+  display:flex;align-items:center;gap:6px;padding:6px 10px;
+  border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;
+  font-size:0.82rem;color:var(--ink-mid);cursor:pointer;transition:background .1s;
+}
+.sub-chooser-item:hover{background:var(--paper);color:var(--ink)}
+.sub-chooser-item.active{background:var(--accent-light);color:var(--accent-text);font-weight:500}
+.sub-chooser-item .sub-chooser-icon{font-size:0.75rem;opacity:.6}
+
 /* ── UNDO / REDO ── */
 .undo-btn{
   background:none;border:1px solid var(--border);color:var(--ink-muted);
@@ -442,7 +542,7 @@ header{
 .undo-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── BIN ── */
-.bin-modal{max-width:560px}
+.bin-modal{max-width:600px}
 .bin-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.6rem;max-height:65vh;overflow-y:auto}
 .bin-empty{text-align:center;padding:2rem 0;color:var(--ink-faint);font-size:0.9rem}
 .bin-item{
@@ -487,7 +587,7 @@ header{
   border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:0.5rem;
 }
 .group-heading .group-count{font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-faint);font-weight:400}
-.group-modal{max-width:360px}
+.group-modal{max-width:380px}
 .group-modal-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.4rem;max-height:60vh;overflow-y:auto}
 .gpill{
   display:flex;align-items:center;justify-content:space-between;
@@ -509,7 +609,7 @@ header{
 .srv-mode-btn:hover:not(.active){background:var(--paper);color:var(--ink)}
 
 /* ── FILTER MODAL ── */
-.filter-modal{max-width:480px}
+.filter-modal{max-width:520px}
 .fbody-filter{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:1rem;max-height:72vh;overflow-y:auto}
 .filter-group-label{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-faint);margin-bottom:0.5rem}
 .filter-pill-row{display:flex;flex-wrap:wrap;gap:6px}
@@ -555,7 +655,7 @@ header{
   font-size:0.81rem;color:var(--accent-text);margin-top:0.6rem;line-height:1.5;
 }
 /* auth modal */
-.auth-modal{max-width:400px}
+.auth-modal{max-width:420px}
 .auth-body{padding:1.2rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem}
 .auth-note{font-size:0.78rem;color:var(--ink-faint);line-height:1.5}
 .info-sep{height:1px;background:var(--border)}
@@ -575,7 +675,7 @@ header{
 .form-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:flex-end}
 
 /* ── SETTINGS MODAL ── */
-.settings-modal{max-width:560px}
+.settings-modal{max-width:600px}
 .stg-body{padding:0;max-height:78vh;overflow-y:auto;display:flex;flex-direction:column}
 .stg-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
 .stg-tab{
@@ -737,7 +837,7 @@ header{
   </button>
   <button class="hbtn hbtn-accent" onclick="openAdd()">
     <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
-    Add recipe
+    <span class="hbtn-accent-label">Add recipe</span>
   </button>
 </header>
 
@@ -786,9 +886,12 @@ header{
   <div class="grid" id="grid"></div>
 </div>
 
+<!-- SUB CHOOSER POPUP -->
+<div class="sub-chooser" id="sub-chooser" style="display:none"></div>
+
 <!-- VIEW MODAL -->
 <div class="backdrop" id="vmodal">
-  <div class="modal" style="max-width:680px">
+  <div class="modal" style="max-width:980px">
     <div class="modal-head">
       <h2 id="vname">Recipe</h2>
       <button class="xbtn" onclick="closeView()">✕</button>
@@ -972,7 +1075,7 @@ header{
 
 <!-- INFO MODAL -->
 <div class="backdrop" id="imodal">
-  <div class="modal" style="max-width:540px">
+  <div class="modal" style="max-width:620px">
     <div class="modal-head">
       <h2>How to use Benny's Recipes</h2>
       <button class="xbtn" onclick="closeInfo()">✕</button>
@@ -2536,6 +2639,65 @@ function fmtNum(n) {
 // ── SCALE STATE ───────────────────────────────────────────────────────────
 let scaleFactor = 1;
 
+// Global map for substitute toggle state per recipe view
+const subToggledMap = {};
+
+function toggleSubView(key, subIdx) {
+  if (subToggledMap[key] === subIdx) delete subToggledMap[key];
+  else subToggledMap[key] = subIdx;
+  const r = recipes.find(x => x.id === currentId);
+  if (r) renderViewBody(r);
+}
+
+// Sub chooser popup
+let _subChooserKey = null;
+
+function openSubChooser(btn, itemKey, subs) {
+  _subChooserKey = itemKey;
+  const chooser = document.getElementById('sub-chooser');
+  const currentIdx = subToggledMap[itemKey];
+
+  chooser.innerHTML = [
+    { label: 'Original recipe', idx: undefined },
+    ...subs.map((s, i) => ({ label: s.name || `Substitute ${i+1}`, idx: i }))
+  ].map(({ label, idx }) => {
+    const isActive = currentIdx === idx;
+    return `<div class="sub-chooser-item${isActive?' active':''}" onclick="selectSubFromChooser('${itemKey}',${idx === undefined ? 'undefined' : idx})">
+      <span class="sub-chooser-icon">${isActive ? '✓' : (idx === undefined ? '○' : '⇄')}</span>
+      ${esc(label)}
+    </div>`;
+  }).join('');
+
+  // Position near the button
+  const rect = btn.getBoundingClientRect();
+  chooser.style.display = 'block';
+  const ch = chooser.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  chooser.style.top  = spaceBelow > ch + 8 ? `${rect.bottom + window.scrollY + 4}px` : `${rect.top + window.scrollY - ch - 4}px`;
+  chooser.style.left = `${Math.min(rect.left, window.innerWidth - 270)}px`;
+}
+
+function selectSubFromChooser(key, idx) {
+  closeSubChooser();
+  if (idx === undefined || idx === 'undefined') delete subToggledMap[key];
+  else subToggledMap[key] = parseInt(idx);
+  const r = recipes.find(x => x.id === currentId);
+  if (r) renderViewBody(r);
+}
+
+function closeSubChooser() {
+  document.getElementById('sub-chooser').style.display = 'none';
+  _subChooserKey = null;
+}
+
+// Close chooser on outside click
+document.addEventListener('click', e => {
+  const chooser = document.getElementById('sub-chooser');
+  if (chooser && chooser.style.display !== 'none' && !chooser.contains(e.target) && !e.target.closest('.sub-col-btn')) {
+    closeSubChooser();
+  }
+});
+
 function setScale(factor) {
   scaleFactor = factor;
   document.querySelectorAll('.scale-seg').forEach(b => {
@@ -2551,6 +2713,8 @@ function viewRecipe(id) {
   if (!r) return;
   currentId = id;
   scaleFactor = 1;
+  // Clear substitute toggle state for the new recipe
+  Object.keys(subToggledMap).forEach(k => delete subToggledMap[k]);
   document.querySelectorAll('.scale-seg').forEach(b => {
     b.classList.toggle('active', parseFloat(b.dataset.scale) === 1);
   });
@@ -2589,42 +2753,77 @@ function renderViewBody(r) {
   function buildIngRows(items, showSectionTitle, title) {
     let out = '';
     if (showSectionTitle && title)
-      out += `<tr><td colspan="3" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
-    items.forEach(item => {
+      out += `<tr><td colspan="4" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
+    items.forEach((item, idx) => {
+      // Normalise: support both old `substitute` and new `substitutes`
+      const subs = item.substitutes?.length ? item.substitutes
+                 : (item.substitute?.name   ? [item.substitute] : []);
+
+      const itemKey   = (item.name||'').toLowerCase().replace(/[^a-z0-9]/g,'_') + '_' + idx;
+      const activeSubIdx = subToggledMap[itemKey];
+      const showSub   = activeSubIdx !== undefined && activeSubIdx < subs.length;
+      const activeSub = showSub ? subs[activeSubIdx] : null;
+      const displayItem = activeSub || item;
       const key = overrideKey();
-      const overrideData = item.noscale && scaled && key ? (item.scaleOverrides?.[key] ?? null) : null;
+
+      // Scale override for active display item
+      let overrideData = null;
+      if (activeSub) {
+        if (activeSub.noscale && scaled && key) overrideData = activeSub.scaleOverrides?.[key] ?? null;
+      } else {
+        if (item.noscale && scaled && key) overrideData = item.scaleOverrides?.[key] ?? null;
+      }
 
       let qtyDisplay = '', unitDisplay = '';
       if (overrideData !== null) {
         if (overrideData && (overrideData.amount != null || overrideData.unit)) {
-          // Structured override with amount+unit
-          const d = overrideData.amount != null ? fmtNum(overrideData.amount) : '';
-          const u = overrideData.unit || '';
-          qtyDisplay  = d;
-          unitDisplay = u;
+          qtyDisplay  = overrideData.amount != null ? fmtNum(overrideData.amount) : '';
+          unitDisplay = overrideData.unit || '';
         }
-        // else blank = does not scale (handled below)
-      } else if (!scaled || item.noscale) {
-        qtyDisplay  = item.amount != null ? fmtNum(item.amount) : '';
-        unitDisplay = item.unit || '';
+      } else if (!scaled || ((item.noscale && !activeSub) || activeSub?.noscale)) {
+        qtyDisplay  = displayItem.amount != null ? fmtNum(displayItem.amount) : '';
+        unitDisplay = displayItem.unit || '';
       } else {
-        const { display, unit } = scaleAndFormat(item.amount, item.unit, scaleFactor);
+        const { display, unit } = scaleAndFormat(displayItem.amount, displayItem.unit, scaleFactor);
         qtyDisplay  = display;
         unitDisplay = unit || '';
       }
 
       const hasOverride = overrideData && (overrideData.amount != null || overrideData.unit);
-      const qtyClass = (scaled && !item.noscale) || hasOverride ? ' class="scaled-qty"' : '';
-      const qtyFull  = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
+      const qtyClass    = (scaled && !(item.noscale && !activeSub) && !activeSub?.noscale) || hasOverride ? ' class="scaled-qty"' : '';
+      const qtyFull     = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
 
-      // Show note only when flagged+scaled and override is null/empty
+      // Name cell — asterisk + orange when substitute is active
+      const nameCell = activeSub
+        ? `<span style="color:var(--accent-text);font-weight:600">${esc(activeSub.name||'')}*</span>`
+        : `${esc(item.name||'')}`;
+
+      // Sub column — ⇄ button only if substitutes exist
+      const subsJson = esc(JSON.stringify(subs.map(s => ({ name: s.name || '' }))));
+      const subCol = subs.length
+        ? `<td style="text-align:center;padding:5px 2px">
+            <button class="sub-col-btn${showSub?' active':''}"
+              onclick="openSubChooser(this,'${itemKey}',JSON.parse(this.dataset.subs))"
+              data-subs="${subsJson}"
+              title="Switch ingredient"
+              style="background:${showSub?'var(--accent)':'var(--accent-light)'};border:1px solid var(--accent);border-radius:5px;color:${showSub?'#fff':'var(--accent-text)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>
+           </td>`
+        : '<td></td>';
+
+      // Does not scale note
+      const noscaleActive = activeSub ? activeSub.noscale : item.noscale;
       const overrideIsBlank = overrideData === null || (!overrideData?.amount && !overrideData?.unit);
-      const showNote = item.noscale && scaled && key && overrideIsBlank;
+      const showNote = noscaleActive && scaled && key && overrideIsBlank;
       const noteRow  = showNote
-        ? `<tr><td colspan="3" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
+        ? `<tr><td colspan="4" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
         : '';
 
-      out += `<tr><td>${esc(item.name||'')}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(item.prep||'')}</td></tr>${noteRow}`;
+      // Sub note
+      const subNoteRow = activeSub?.note
+        ? `<tr><td colspan="4" class="sub-note-view">${esc(activeSub.note)}</td></tr>`
+        : '';
+
+      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? '' : (item.prep||''))}</td>${subCol}</tr>${noteRow}${subNoteRow}`;
     });
     return out;
   }
@@ -2702,7 +2901,7 @@ function renderViewBody(r) {
     ingHtml = `<div class="view-sec">
       <div class="vsec-lbl" style="display:flex;align-items:center">Ingredients${scaleNote}${toggleBtn}</div>
       <table class="ing-table" id="ing-view-table">
-        <thead><tr><th>Ingredient</th><th>Quantity</th><th>Prep</th></tr></thead>
+        <thead><tr><th>Ingredient</th><th>Quantity</th><th>Prep</th><th style="text-align:center;width:28px" title="Substitutes">⇄</th></tr></thead>
         <tbody id="ing-view-body" data-sectioned="${esc(JSON.stringify(sectionedRows))}" data-full="${esc(JSON.stringify(buildFullList()))}">${sectionedRows}</tbody>
       </table>
     </div>`;
@@ -2979,11 +3178,20 @@ async function saveRecipe() {
     const title = sec.querySelector('.ing-sec-title-inp')?.value.trim() || '';
     const items = [];
     sec.querySelectorAll('.ing-row-wrap').forEach(wrap => {
-      const nameEl   = wrap.querySelector('.ing-fields input[type="text"]');
+      // Read name from whichever input has a value (desktop preferred, mobile fallback)
+      const desktopNameEl = wrap.querySelector('.ing-fields-inner .ing-name-wrap input[type="text"]');
+      const mobileNameEl  = wrap.querySelector('.ing-name-mobile');
+      const nameEl = desktopNameEl || mobileNameEl;
+      // Sync mobile ↔ desktop so both carry the same value
+      if (desktopNameEl && mobileNameEl) {
+        const val = desktopNameEl.value.trim() || mobileNameEl.value.trim();
+        desktopNameEl.value = val;
+        mobileNameEl.value  = val;
+      }
       const amountEl = wrap.querySelector('.amount-inp');
       const unitSel  = wrap.querySelector('.unit-sel');
       const unitMan  = wrap.querySelector('.unit-manual');
-      const prepEl   = wrap.querySelectorAll('.ing-fields input[type="text"]')[1];
+      const prepEl   = wrap.querySelector('.prep-inp');
       const nsBtn    = wrap.querySelector('.noscale-toggle');
       const name     = toTitleCase(nameEl?.value.trim() || '');
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
@@ -2999,12 +3207,44 @@ async function saveRecipe() {
           const unit   = manEl ? manEl.value.trim() : (selEl?.value || '');
           return (amt || unit) ? { amount: amt ? parseFloat(amt) : null, unit } : null;
         };
+        // collect substitutes array
+        const substitutes = [];
+        wrap.querySelectorAll('.sub-entry').forEach(entry => {
+          const sName = entry.querySelector('.sub-name')?.value.trim();
+          if (!sName) return;
+          const sAmt    = entry.querySelector('.sub-amt')?.value.trim();
+          const sSel    = entry.querySelector('.unit-sel');
+          const sUnit   = sSel?.value || '';
+          const sNote   = entry.querySelector('.sub-note-inp')?.value.trim() || '';
+          const sNs     = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
+          const readSubOv = (cls) => {
+            const amtEl = entry.querySelector(`.${cls}-amt`);
+            if (!amtEl) return null;
+            const a = amtEl.value.trim();
+            const row = amtEl.closest('.scale-override-row');
+            const u = row?.querySelector('.unit-sel')?.value || '';
+            return (a || u) ? { amount: a ? parseFloat(a) : null, unit: u } : null;
+          };
+          substitutes.push({
+            name:   toTitleCase(sName),
+            amount: sAmt ? parseFloat(sAmt) : null,
+            unit:   sUnit,
+            note:   sNote,
+            noscale: sNs,
+            scaleOverrides: sNs ? {
+              half:   readSubOv('sub-half'),
+              double: readSubOv('sub-double'),
+              triple: readSubOv('sub-triple')
+            } : null
+          });
+        });
         items.push({
           name,
           amount: rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
           unit:   rawUnit,
           prep:   prepEl?.value.trim() || '',
           noscale,
+          substitutes,
           scaleOverrides: noscale ? {
             half:   readOv('ns-half'),
             double: readOv('ns-double'),
@@ -3277,7 +3517,7 @@ function buildOverrideRow(label, cls, ovData, amount, unit, factor) {
   const ov = ovData || {};
   const placeholder = calcOverridePlaceholder(amount, unit, factor);
   const savedAmt  = ov.amount  != null ? ov.amount  : '';
-  const savedUnit = ov.unit    || '';
+  const savedUnit = ov.unit    || unit || ''; // default to parent unit
   return `<div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
     <span class="scale-override-lbl">${label}</span>
     <input type="number" min="0" step="any" class="${cls}-amt"
@@ -3347,20 +3587,91 @@ function switchOvUnitToDropdown(btn) {
   btn.remove();
 }
 
+function buildSubEntry(sub, parentAmt, parentUnit) {
+  const ns  = sub?.noscale || false;
+  const ov  = sub?.scaleOverrides || {};
+  const unit = sub?.unit || '';
+  const amt  = sub?.amount;
+  const placeholder = {
+    half:   calcOverridePlaceholder(amt, unit, 0.5),
+    double: calcOverridePlaceholder(amt, unit, 2),
+    triple: calcOverridePlaceholder(amt, unit, 3)
+  };
+  return `<div class="sub-entry">
+    <div class="sub-entry-head">
+      <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
+      <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
+      ${buildUnitSelect(unit)}
+      <input type="text" class="sub-note-inp" placeholder="Note (e.g. use if dairy-free)" value="${esc(sub?.note||'')}">
+      <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
+      <button class="del-btn" onclick="this.closest('.sub-entry').remove();updateSubToggle(this)" style="color:var(--accent-text)">×</button>
+    </div>
+    <div class="sub-overrides${ns?' show':''}">
+      <div class="sub-ov-lbl">Scale overrides for this substitute</div>
+      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">½×</span>
+        <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
+        ${buildUnitSelect(ov.half?.unit||unit)}
+      </div>
+      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">2×</span>
+        <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
+        ${buildUnitSelect(ov.double?.unit||unit)}
+      </div>
+      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">3×</span>
+        <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
+        ${buildUnitSelect(ov.triple?.unit||unit)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleSubNoscale(btn) {
+  btn.classList.toggle('on');
+  btn.closest('.sub-entry').querySelector('.sub-overrides').classList.toggle('show', btn.classList.contains('on'));
+}
+
+function updateSubToggle(el) {
+  const wrap   = el.closest('.ing-row-wrap');
+  const panel  = wrap?.querySelector('.sub-panel');
+  const toggle = wrap?.querySelector('.sub-toggle');
+  if (!panel || !toggle) return;
+  const hasEntries = panel.querySelectorAll('.sub-entry').length > 0;
+  toggle.classList.toggle('on', hasEntries);
+  panel.classList.toggle('show', hasEntries);
+}
+
 function addIngRow(btn, rowsEl, data) {
   if (!rowsEl) rowsEl = btn.closest('.ing-sec-block').querySelector('.ing-rows');
   const wrap = document.createElement('div');
   wrap.className = 'ing-row-wrap';
-  const ns  = data?.noscale || false;
-  const ov  = data?.scaleOverrides || {};
+  const ns   = data?.noscale || false;
+  const ov   = data?.scaleOverrides || {};
   const unit = data?.unit || '';
   const amt  = data?.amount;
+  const subs = data?.substitutes || (data?.substitute ? [data.substitute] : []); // migrate old single-sub
+  const hasSub = subs.length > 0;
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
+
+  const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
+
   wrap.innerHTML = `
-    <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
-      <span>Ingredient</span><span>Amount</span><span>Unit</span><span>Prep (opt.)</span><span></span><span></span>
+    <!-- Mobile name row (hidden on desktop via CSS) -->
+    <div class="ing-name-row" style="display:none;margin-top:4px;margin-bottom:2px">
+      <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px">Ingredient</div>
+      <div class="ing-name-wrap" style="width:100%">
+        <input type="text" class="ing-name-mobile" placeholder="Ingredient name" value="${esc(data?.name||'')}"
+          oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
+        <div class="ing-name-sugs"></div>
+      </div>
     </div>
-    <div class="ing-fields" style="display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto;gap:0.35rem;align-items:center">
+    <!-- Column labels (desktop) -->
+    <div class="ing-col-labels" style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
+      <span class="ing-col-name-lbl">Ingredient</span><span>Amount</span><span>Unit</span><span>Prep (opt.)</span><span></span><span></span><span></span>
+    </div>
+    <!-- Main fields row -->
+    <div class="ing-fields-inner" style="display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto auto;gap:0.35rem;align-items:center">
       <div class="ing-name-wrap">
         <input type="text" placeholder="Ingredient name" value="${esc(data?.name||'')}"
           oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
@@ -3368,9 +3679,20 @@ function addIngRow(btn, rowsEl, data) {
       </div>
       <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${amt != null ? amt : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
       ${buildUnitSelect(unit)}
-      <input type="text" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+      <input type="text" class="prep-inp" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+      <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
+    </div>
+    <div class="sub-panel${hasSub?' show':''}">
+      <div class="sub-panel-head">
+        <span>Substitutes</span>
+      </div>
+      <div class="sub-entries">${subEntries}</div>
+      <button class="add-sub-btn" onclick="addSubEntry(this)">
+        <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+        Add substitute
+      </button>
     </div>
     <div class="noscale-note-row${ns?' show':''}">
       <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
@@ -3379,6 +3701,27 @@ function addIngRow(btn, rowsEl, data) {
       ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
     </div>`;
   rowsEl.appendChild(wrap);
+}
+
+function toggleSubPanel(btn) {
+  btn.classList.toggle('on');
+  const panel = btn.closest('.ing-row-wrap').querySelector('.sub-panel');
+  panel.classList.toggle('show', btn.classList.contains('on'));
+  if (btn.classList.contains('on')) {
+    const entries = panel.querySelector('.sub-entries');
+    if (!entries.querySelector('.sub-entry')) {
+      // Auto-add first entry
+      addSubEntry(panel.querySelector('.add-sub-btn'));
+    }
+  }
+}
+
+function addSubEntry(btn) {
+  const entries = btn.closest('.sub-panel').querySelector('.sub-entries');
+  const div = document.createElement('div');
+  div.innerHTML = buildSubEntry(null, null, '');
+  entries.appendChild(div.firstElementChild);
+  entries.querySelector('.sub-entry:last-child .sub-name')?.focus();
 }
 
 function toggleIngNoscale(btn) {
@@ -3396,10 +3739,10 @@ function ingNameInput(input) {
   const sugsEl = input.closest('.ing-name-wrap')?.querySelector('.ing-name-sugs');
   if (!sugsEl) return;
 
-  // Gather all ingredient names already entered in this form (excluding this input)
+  // Gather all ingredient names from both mobile and desktop inputs (excluding this one)
   const allNames = new Set();
-  document.querySelectorAll('#ing-builder .ing-fields input[type="text"]').forEach(el => {
-    if (el !== input && el.closest('.ing-name-wrap')) {
+  document.querySelectorAll('#ing-builder .ing-name-wrap input[type="text"], #ing-builder .ing-name-mobile').forEach(el => {
+    if (el !== input) {
       const v = el.value.trim();
       if (v) allNames.add(toTitleCase(v));
     }
@@ -3408,20 +3751,14 @@ function ingNameInput(input) {
   const val = input.value.toLowerCase().trim();
   let matches;
   if (!val) {
-    // Show all existing names in this recipe as suggestions
     matches = [...allNames];
   } else {
-    // Starts-with first, then contains
     const sw = [...allNames].filter(n => n.toLowerCase().startsWith(val));
     const co = [...allNames].filter(n => !n.toLowerCase().startsWith(val) && n.toLowerCase().includes(val));
     matches = [...sw, ...co];
   }
-
-  // Filter out exact match (no point suggesting what's already typed)
   matches = matches.filter(n => n.toLowerCase() !== input.value.toLowerCase().trim());
-
   if (!matches.length) { sugsEl.classList.remove('show'); return; }
-
   sugsEl.innerHTML = matches.slice(0, 8).map(m =>
     `<div class="ing-name-sug" onmousedown="pickIngName(this,'${esc(m)}')">${esc(m)}</div>`
   ).join('');
@@ -3430,8 +3767,16 @@ function ingNameInput(input) {
 
 function pickIngName(el, name) {
   const wrap  = el.closest('.ing-name-wrap');
+  const row   = el.closest('.ing-row-wrap');
+  // Set value on whichever input is in this wrap
   const input = wrap?.querySelector('input[type="text"]');
   if (input) { input.value = name; input.dispatchEvent(new Event('input')); }
+  // Also sync the mobile name input if it exists in the same row
+  const mobileInp = row?.querySelector('.ing-name-mobile');
+  if (mobileInp && mobileInp !== input) mobileInp.value = name;
+  // And sync the desktop name input if we picked from the mobile
+  const desktopInp = row?.querySelector('.ing-fields-inner .ing-name-wrap input[type="text"]');
+  if (desktopInp && desktopInp !== input) desktopInp.value = name;
   el.closest('.ing-name-sugs').classList.remove('show');
 }
 
