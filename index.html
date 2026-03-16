@@ -430,6 +430,27 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
+/* ── BIN ── */
+.bin-modal{max-width:560px}
+.bin-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.6rem;max-height:65vh;overflow-y:auto}
+.bin-empty{text-align:center;padding:2rem 0;color:var(--ink-faint);font-size:0.9rem}
+.bin-item{
+  display:flex;align-items:center;gap:0.7rem;
+  padding:0.65rem 0.8rem;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--card);
+}
+.bin-item-info{flex:1;min-width:0}
+.bin-item-name{font-size:0.88rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bin-item-meta{font-size:0.73rem;color:var(--ink-faint);margin-top:1px}
+.bin-item-actions{display:flex;gap:0.4rem;flex-shrink:0}
+.btn-restore{
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  padding:0.3rem 0.65rem;border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;
+  font-size:0.75rem;cursor:pointer;transition:all .1s;white-space:nowrap;
+}
+.btn-restore:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
+.hbtn-bin-active{color:var(--danger)!important}
+
 /* ── YOUTUBE EMBED ── */
 .yt-wrap{
   position:relative;width:100%;padding-bottom:56.25%;
@@ -692,6 +713,12 @@ header{
       <rect x="3" y="7" width="10" height="7" rx="1.5"/>
       <path d="M5 7V5a3 3 0 016 0v2"/>
       <circle cx="8" cy="11" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  </button>
+  <button class="hbtn" id="bin-btn" onclick="openBin()" title="Deleted recipes">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3,4 13,4"/><path d="M5 4V3h6v1"/><rect x="4" y="5" width="8" height="9" rx="1"/>
+      <line x1="7" y1="8" x2="7" y2="12"/><line x1="9" y1="8" x2="9" y2="12"/>
     </svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
@@ -959,6 +986,8 @@ header{
       </div>
 
       <div class="info-pane" id="info-pane-recipes">
+        <h3>Deleting a recipe</h3>
+        <p>When you delete a recipe it moves to the <strong>bin</strong>, accessible via the 🗑️ bin icon in the header. From there you can restore it to your main page, or permanently delete it. Use <strong>Empty bin</strong> to clear everything at once. The bin icon turns red when it contains recipes.</p>
         <h3>Adding a recipe</h3>
         <p>Tap <strong>Add recipe</strong> in the top right corner. You can fill in the name, tags, how long it takes to cook, and how many people it serves. You can also add a YouTube link and it will appear as a playable video inside the recipe.</p>
         <h3>Drafts and publishing</h3>
@@ -1031,6 +1060,21 @@ header{
     <div class="form-foot">
       <button class="btn-sec" onclick="closeAuth()">Cancel</button>
       <button class="btn-pri" onclick="saveAuthCreds()">Save &amp; reconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- BIN MODAL -->
+<div class="backdrop" id="bin-modal">
+  <div class="modal bin-modal">
+    <div class="modal-head">
+      <h2>Deleted recipes</h2>
+      <button class="xbtn" onclick="closeBin()">✕</button>
+    </div>
+    <div class="bin-body" id="bin-body"></div>
+    <div class="form-foot" style="justify-content:space-between">
+      <button class="btn-danger" id="bin-empty-btn" onclick="emptyBin()">Empty bin</button>
+      <button class="btn-sec" onclick="closeBin()">Close</button>
     </div>
   </div>
 </div>
@@ -1162,6 +1206,7 @@ let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
 let showDrafts  = false;
+let bin         = []; // soft-deleted recipes
 let groupBy     = null; // null | 'Meal' | 'Cuisine' | 'Type' | 'Cook Time' | 'Serves' | custom
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
@@ -1170,6 +1215,10 @@ function init() {
   gistId   = localStorage.getItem('gist_id') || '';
   ghToken  = localStorage.getItem('gh_token') || '';
   pendingSync = JSON.parse(localStorage.getItem('pending_sync') || '[]');
+
+  // Load bin from cache
+  const binCached = localStorage.getItem('bin_cache');
+  if (binCached) { try { bin = JSON.parse(binCached); } catch(e) { bin = []; } }
 
   loadSettings();
   buildWheels();
@@ -1193,6 +1242,7 @@ function init() {
   } else {
     loadFromGist();
   }
+  updateBinBtn();
 }
 
 // ── OFFLINE ───────────────────────────────────────────────────────────────
@@ -1215,17 +1265,26 @@ async function loadFromGist() {
     recipes = JSON.parse(data.files['recipes.json']?.content || '[]');
     normaliseRecipes(recipes);
     localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+    // load bin
+    if (data.files['bin.json']?.content) {
+      bin = JSON.parse(data.files['bin.json'].content);
+      localStorage.setItem('bin_cache', data.files['bin.json'].content);
+    }
     // load remote settings if present
     if (data.files['settings.json']?.content) {
       applySettingsObj(JSON.parse(data.files['settings.json'].content));
       localStorage.setItem('settings_cache', data.files['settings.json'].content);
     }
     render();
+    updateBinBtn();
     if (pendingSync.length) syncPending();
   } catch(e) {
     const cached = localStorage.getItem('recipes_cache');
     if (cached) { recipes = JSON.parse(cached); normaliseRecipes(recipes); render(); }
-    else toast('Could not load — check credentials via the 🔑 button');
+    const binCached = localStorage.getItem('bin_cache');
+    if (binCached) { bin = JSON.parse(binCached); }
+    updateBinBtn();
+    if (!cached) toast('Could not load — check credentials via the 🔑 button');
   }
 }
 
@@ -1234,6 +1293,7 @@ async function saveToGist() {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
+      'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
     };
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -1243,6 +1303,7 @@ async function saveToGist() {
     });
     if (!r.ok) throw new Error();
     localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+    localStorage.setItem('bin_cache', JSON.stringify(bin));
     toast('Saved ✓');
   } catch(e) {
     saveLocally();
@@ -1251,7 +1312,8 @@ async function saveToGist() {
 
 function saveLocally() {
   localStorage.setItem('recipes_cache', JSON.stringify(recipes));
-  pendingSync.push({ ts:Date.now(), recipes:JSON.parse(JSON.stringify(recipes)) });
+  localStorage.setItem('bin_cache', JSON.stringify(bin));
+  pendingSync.push({ ts:Date.now(), recipes:JSON.parse(JSON.stringify(recipes)), bin:JSON.parse(JSON.stringify(bin)) });
   localStorage.setItem('pending_sync', JSON.stringify(pendingSync));
   updateOfflineBanner();
   toast('Saved locally — will sync when online');
@@ -1260,11 +1322,14 @@ function saveLocally() {
 async function syncPending() {
   if (!isOnline || !gistId || !ghToken || !pendingSync.length) return;
   try {
-    const latest = pendingSync[pendingSync.length-1].recipes;
+    const latest = pendingSync[pendingSync.length-1];
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
       method:'PATCH',
       headers:{ Authorization:`token ${ghToken}`, 'Content-Type':'application/json' },
-      body:JSON.stringify({ files:{ 'recipes.json':{ content:JSON.stringify(latest,null,2) } } })
+      body:JSON.stringify({ files:{
+        'recipes.json':{ content:JSON.stringify(latest.recipes||[],null,2) },
+        'bin.json':    { content:JSON.stringify(latest.bin||[],null,2) }
+      }})
     });
     if (!r.ok) throw new Error();
     pendingSync = [];
@@ -2613,10 +2678,112 @@ function editCurrent() {
 }
 
 async function deleteRecipe() {
-  if (!currentId||!confirm('Delete this recipe?')) return;
-  recipes = recipes.filter(r=>r.id!==currentId);
+  if (!currentId) return;
+  const r = recipes.find(x => x.id === currentId);
+  if (!r) return;
+  showConfirm('Move to bin?', `"${r.name}" will be moved to the bin. You can restore it later.`, [
+    { label: 'Move to bin', danger: true, fn: async () => {
+      recipes = recipes.filter(x => x.id !== currentId);
+      bin.unshift({ ...r, deletedAt: Date.now() });
+      isOnline ? await saveToGist() : saveLocally();
+      closeView(); render(); updateBinBtn();
+      toast(`"${r.name}" moved to bin`);
+    }}
+  ]);
+}
+
+// ── BIN ────────────────────────────────────────────────────────────────────
+function updateBinBtn() {
+  const btn = document.getElementById('bin-btn');
+  if (!btn) return;
+  btn.classList.toggle('hbtn-bin-active', bin.length > 0);
+  btn.title = bin.length > 0 ? `Bin (${bin.length})` : 'Bin — empty';
+}
+
+function openBin() {
+  renderBin();
+  document.getElementById('bin-modal').classList.add('open');
+}
+function closeBin() { document.getElementById('bin-modal').classList.remove('open'); }
+
+function renderBin() {
+  const body = document.getElementById('bin-body');
+  const emptyBtn = document.getElementById('bin-empty-btn');
+  if (!bin.length) {
+    body.innerHTML = `<div class="bin-empty">
+      <div style="font-size:1.5rem;margin-bottom:0.4rem">🗑️</div>
+      <p>The bin is empty.</p>
+      <p style="font-size:0.78rem;margin-top:0.2rem">Deleted recipes will appear here so you can restore them if needed.</p>
+    </div>`;
+    emptyBtn.style.display = 'none';
+    return;
+  }
+  emptyBtn.style.display = '';
+  body.innerHTML = bin.map(r => {
+    const when = r.deletedAt ? fmtRelativeDate(r.deletedAt) : 'some time ago';
+    const tags = r.tags?.length ? r.tags.slice(0,3).join(', ') + (r.tags.length>3?'…':'') : '';
+    return `<div class="bin-item">
+      <div class="bin-item-info">
+        <div class="bin-item-name">${esc(r.name)}</div>
+        <div class="bin-item-meta">Deleted ${when}${tags?' · '+esc(tags):''}</div>
+      </div>
+      <div class="bin-item-actions">
+        <button class="btn-restore" onclick="restoreRecipe(${r.id})">Restore</button>
+        <button class="del-btn" onclick="permanentlyDelete(${r.id})" title="Delete permanently" style="font-size:1.1rem">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function restoreRecipe(id) {
+  const idx = bin.findIndex(r => r.id === id);
+  if (idx < 0) return;
+  const r = bin.splice(idx, 1)[0];
+  // Remove deletedAt before restoring
+  delete r.deletedAt;
+  recipes.unshift(r);
   isOnline ? await saveToGist() : saveLocally();
-  closeView(); render(); toast('Recipe deleted');
+  renderBin(); render(); updateBinBtn();
+  toast(`"${r.name}" restored`);
+}
+
+async function permanentlyDelete(id) {
+  const r = bin.find(x => x.id === id);
+  if (!r) return;
+  showConfirm(`Permanently delete "${r.name}"?`,
+    'This cannot be undone — the recipe will be gone forever.',
+    [{ label: 'Delete permanently', danger: true, fn: async () => {
+      bin = bin.filter(x => x.id !== id);
+      isOnline ? await saveToGist() : saveLocally();
+      renderBin(); updateBinBtn();
+      toast(`"${r.name}" permanently deleted`);
+    }}]
+  );
+}
+
+async function emptyBin() {
+  if (!bin.length) return;
+  showConfirm('Empty the bin?',
+    `This will permanently delete all ${bin.length} recipe${bin.length>1?'s':''} in the bin. This cannot be undone.`,
+    [{ label: 'Empty bin', danger: true, fn: async () => {
+      bin = [];
+      isOnline ? await saveToGist() : saveLocally();
+      renderBin(); updateBinBtn();
+      toast('Bin emptied');
+    }}]
+  );
+}
+
+function fmtRelativeDate(ts) {
+  const diff = Date.now() - ts;
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  if (mins < 1)   return 'just now';
+  if (mins < 60)  return `${mins} minute${mins>1?'s':''} ago`;
+  if (hours < 24) return `${hours} hour${hours>1?'s':''} ago`;
+  if (days < 7)   return `${days} day${days>1?'s':''} ago`;
+  return new Date(ts).toLocaleDateString();
 }
 
 // ── FORM ──────────────────────────────────────────────────────────────────
@@ -3335,7 +3502,7 @@ function toast(msg) {
 }
 
 // backdrop close
-['vmodal','emodal','fmodal','imodal','settings-modal','gmodal','replace-tag-modal','auth-modal'].forEach(id => {
+['vmodal','emodal','fmodal','imodal','settings-modal','gmodal','replace-tag-modal','auth-modal','bin-modal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => {
     if (e.target===e.currentTarget) {
       if(id==='vmodal') closeView();
@@ -3346,6 +3513,7 @@ function toast(msg) {
       else if(id==='gmodal') closeGroupBy();
       else if(id==='replace-tag-modal') closeReplaceTagModal();
       else if(id==='auth-modal') closeAuth();
+      else if(id==='bin-modal') closeBin();
     }
   });
 });
