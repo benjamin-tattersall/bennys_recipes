@@ -1508,6 +1508,11 @@ let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 function init() {
   gistId   = localStorage.getItem('gist_id')  || EMBEDDED_GIST_ID;
   ghToken  = localStorage.getItem('gh_token') || EMBEDDED_TOKEN;
+
+  // Treat un-replaced placeholder values as missing
+  const credsMissing = !gistId || !ghToken
+    || gistId  === 'YOUR_GIST_ID_HERE'
+    || ghToken === 'YOUR_TOKEN_HERE';
   pendingSync = JSON.parse(localStorage.getItem('pending_sync') || '[]');
 
   // Load bin from cache
@@ -1532,7 +1537,7 @@ function init() {
     if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redoAction(); }
   });
 
-  if (!gistId || !ghToken) {
+  if (credsMissing) {
     const cached = localStorage.getItem('recipes_cache');
     if (cached) {
       recipes = JSON.parse(cached);
@@ -1545,6 +1550,12 @@ function init() {
       document.getElementById('setup-modal').classList.add('open');
     }
   } else {
+    // Always fetch fresh from Gist — show cache immediately while fetch runs
+    const cached = localStorage.getItem('recipes_cache');
+    if (cached) {
+      try { recipes = JSON.parse(cached); normaliseRecipes(recipes); render(); } catch(e) {}
+    }
+    // Fetch always runs regardless of cache — overwrites with authoritative Gist data
     loadFromGist();
   }
   updateBinBtn();
@@ -4240,121 +4251,26 @@ function toast(msg) {
 function seedSamples() {
   return [
     {
-      id:1, name:"Chicken Pho", created:Date.now(),
-      tags:['Dinner','Lunch','Vietnamese','Soup'],
-      hours:1, minutes:30, serves:4, source:'',
-      ingredients:[
-        { title:'Broth', items:[
-          {name:'Whole chicken',      amount:1.5, unit:'kg',   prep:''},
-          {name:'Chicken stock',      amount:2,   unit:'L',    prep:''},
-          {name:'Ginger',             amount:null,unit:'',     prep:'5 cm piece, halved & charred'},
-          {name:'Brown onion',        amount:1,   unit:'whole',prep:'halved & charred'},
-          {name:'Star anise',         amount:4,   unit:'piece',prep:''},
-          {name:'Cinnamon stick',     amount:1,   unit:'piece',prep:''},
-          {name:'Fish sauce',         amount:2,   unit:'tbsp', prep:''},
-        ]},
-        { title:'To serve', items:[
-          {name:'Rice noodles',  amount:400, unit:'g',    prep:''},
-          {name:'Spring onion',  amount:4,   unit:'whole',prep:'sliced'},
-          {name:'Bean sprouts',  amount:1,   unit:'cup',  prep:''},
-          {name:'Fresh chilli',  amount:1,   unit:'whole',prep:'sliced'},
+      id: Date.now(),
+      name: "Example Recipe",
+      status: "published",
+      scalable: true,
+      created: Date.now(),
+      updated: Date.now(),
+      tags: ['Dinner'],
+      hours: 0, minutes: 30,
+      serves: 4,
+      source: '', youtube: '', notes: 'This is an example recipe to help you get started. Edit or delete it and add your own!',
+      ingredients: [
+        { title: '', items: [
+          { name: 'Ingredient name', amount: 1, unit: 'cup', prep: 'e.g. chopped', noscale: false, scaleOverrides: null, substitutes: [] }
         ]}
       ],
-      method:[
-        {title:'Broth', steps:[
-          {text:'Place chicken, stock, ginger, onion and spices in a large pot. Cover with water.',noscale:false,noscaleNote:''},
-          {text:'Bring to a boil then reduce to a gentle simmer for 1 hour.',noscale:true,noscaleNote:'Simmer time stays at 1 hour regardless of batch size — flavour extraction doesn\'t change.'},
-          {text:'Remove chicken and shred the meat. Strain broth and season with fish sauce.',noscale:false,noscaleNote:''}
-        ]},
-        {title:'Serve', steps:[
-          {text:'Cook noodles per packet instructions.',noscale:false,noscaleNote:''},
-          {text:'Divide noodles into bowls and top with shredded chicken.',noscale:false,noscaleNote:''},
-          {text:'Ladle hot broth over. Serve with spring onion, bean sprouts and chilli.',noscale:false,noscaleNote:''}
+      method: [
+        { title: '', steps: [
+          { text: 'Describe your first step here.', noscale: false, scaleOverrides: null }
         ]}
-      ],
-      notes:'Char the ginger and onion directly over a gas flame for a smokier, deeper broth.'
-    },
-    {
-      id:2, name:"Banana Oat Pancakes", created:Date.now()-50000,
-      tags:['Breakfast','Snack'],
-      hours:0, minutes:20, serves:2, source:'',
-      ingredients:[
-        { title:'', items:[
-          {name:'Ripe bananas',   amount:2,   unit:'whole',prep:'mashed'},
-          {name:'Eggs',           amount:2,   unit:'',     prep:''},
-          {name:'Rolled oats',    amount:80,  unit:'g',    prep:''},
-          {name:'Baking powder',  amount:0.5, unit:'tsp',  prep:''},
-          {name:'Cinnamon',       amount:1,   unit:'pinch',prep:''},
-          {name:'Butter',         amount:null,unit:'',     prep:'small knob, for frying'},
-        ]}
-      ],
-      method:[
-        {title:'', steps:[
-          {text:'Mash bananas well in a mixing bowl.',noscale:false,noscaleNote:''},
-          {text:'Beat in the eggs.',noscale:false,noscaleNote:''},
-          {text:'Stir in oats, baking powder and cinnamon. Rest for 5 minutes.',noscale:false,noscaleNote:''},
-          {text:'Heat butter in a pan over medium heat. Cook tablespoon-sized rounds for 2 min each side until golden.',noscale:true,noscaleNote:'Cook time per pancake stays 2 min each side — just cook in more batches.'}
-        ]}
-      ],
-      notes:'Great with fresh berries or a drizzle of honey.'
-    },
-    {
-      id:3, name:"Korean Beef Bibimbap", created:Date.now()-20000,
-      tags:['Dinner','Korean','Bowl'],
-      hours:0, minutes:45, serves:4, source:'',
-      ingredients:[
-        { title:'General', items:[
-          {name:'Eggs',                amount:4,    unit:'whole', prep:''},
-          {name:'Rice',                amount:1.5,  unit:'cup',   prep:'rinsed'},
-          {name:'Brown sugar',         amount:2,    unit:'tbsp',  prep:''},
-          {name:'Soy sauce',           amount:0.5,  unit:'cup',   prep:''},
-          {name:'Stir fry beef',       amount:500,  unit:'g',     prep:''},
-          {name:'Sugar snap peas',     amount:150,  unit:'g',     prep:'cut into matchsticks'},
-          {name:'Red onion',           amount:1,    unit:'whole', prep:''},
-          {name:'Carrots',             amount:2,    unit:'whole', prep:'cut into matchsticks'},
-          {name:'Lebanese cucumbers',  amount:2,    unit:'whole', prep:'cut into quarter moons'},
-          {name:'Ginger',              amount:null, unit:'',      prep:'small knob, finely grated'},
-          {name:'Garlic',              amount:2,    unit:'clove', prep:'finely grated, large cloves'},
-          {name:'Coconut milk',        amount:300,  unit:'ml',    prep:''},
-          {name:'Kewpie mayo',         amount:null, unit:'',      prep:'store-bought or see Kewpie section'},
-          {name:'Fried shallots',      amount:null, unit:'',      prep:'to garnish'},
-          {name:'Sesame seeds',        amount:null, unit:'',      prep:'to garnish'},
-        ]},
-        { title:'Kewpie mayo (if making)', items:[
-          {name:'Regular mayo',        amount:10,   unit:'tbsp',  prep:''},
-          {name:'Rice wine vinegar',   amount:1,    unit:'tbsp',  prep:''},
-        ]}
-      ],
-      method:[
-        {title:'Prep', steps:[
-          {text:'Finely grate or chop garlic and ginger.',noscale:false,noscaleNote:''},
-          {text:'Cut carrots and sugar snap peas into matchsticks.',noscale:false,noscaleNote:''},
-          {text:'Cut cucumber into quarter moons.',noscale:false,noscaleNote:''},
-          {text:'If making kewpie mayo: combine mayo and rice wine vinegar in a 10:1 ratio and mix well.',noscale:false,noscaleNote:''},
-        ]},
-        {title:'Marinade', steps:[
-          {text:'Combine garlic, ginger, soy sauce, brown sugar and 2 tbsp water.',noscale:false,noscaleNote:''},
-          {text:'Divide the mixture in half. Combine one half with the beef strips and marinate for at least 10 minutes. Reserve the remaining half.',noscale:false,noscaleNote:''},
-        ]},
-        {title:'Pickle', steps:[
-          {text:'Cut red onion in half then into thin strips.',noscale:false,noscaleNote:''},
-          {text:'Place in a jar or glass. Add 2 tsp caster sugar. Top with rice wine vinegar to halfway up the onions, then fill to just above with boiling water. Seal or cover with cling wrap.',noscale:true,noscaleNote:'Pickling liquid ratio stays the same regardless of batch — adjust volume to fit your container.'},
-        ]},
-        {title:'Cooking', steps:[
-          {text:'Add 1½ cups water, coconut milk and a pinch of salt to a saucepan. Bring to the boil. Add 1½ cups rinsed rice, stir occasionally to avoid sticking. Once boiling, cover and reduce to the lowest heat.',noscale:false,noscaleNote:''},
-          {text:'Set a timer for 13 minutes. Once done, remove from heat and let sit covered for a further 10 minutes.',noscale:true,noscaleNote:'Rice timing stays the same — cook in separate batches if scaling up significantly.'},
-          {text:'Heat a large pan on high with a drizzle of olive oil. Cook carrots and peas until just tender, then set aside.',noscale:false,noscaleNote:''},
-          {text:'Cook marinated beef on high heat until caramelised and cooked through. Set aside.',noscale:false,noscaleNote:''},
-          {text:'Fry eggs to your liking.',noscale:false,noscaleNote:''},
-        ]},
-        {title:'Plate up', steps:[
-          {text:'Build the bowl: rice base, then beef, carrots & peas, pickled red onion and cucumber.',noscale:false,noscaleNote:''},
-          {text:'Drizzle with the reserved soy marinade mixture.',noscale:false,noscaleNote:''},
-          {text:'Top with the fried egg and a drizzle of kewpie mayo.',noscale:false,noscaleNote:''},
-          {text:'Finish with sesame seeds and fried shallots.',noscale:false,noscaleNote:''},
-        ]}
-      ],
-      notes:'The pickled onion is worth making ahead — even 30 mins makes a difference, overnight is best. The coconut milk in the rice gives it a subtle richness that works really well with the soy marinade.'
+      ]
     }
   ];
 }
