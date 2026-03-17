@@ -346,26 +346,30 @@ header{
   position:relative; /* for corner delete button */
 }
 
-/* ── DESKTOP: shared header above ingredient list ── */
-.ing-list-header{
-  display:none; /* shown on desktop only */
+/* ── DESKTOP: ghost header card (invisible border, same grid as ing cards) ── */
+.ing-list-header{display:none}
+.ing-header-card{
+  display:none;
+  border:1px solid transparent;
+  border-radius:var(--radius);
+  background:transparent;
+  padding-top:0.55rem; /* match the ing-rows gap for symmetry */
 }
-/* The cards have 8px padding + 1px border each side = 10px total.
-   We add matching padding to the header row so columns align with card contents */
-.ing-list-header-inner{
+.ing-header-card-inner{
+  /* identical grid to .ing-desktop-row */
   display:grid;
   grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
   gap:6px;
-  padding:0 9px; /* matches card padding (8px) + border (1px) */
-  margin-bottom:3px;
+  padding:0 8px 4px; /* bottom pad gives breathing room above first card */
+  align-items:center;
 }
-.ing-list-header-inner span{
+.ing-header-card-inner span{
   font-size:0.6rem;font-weight:500;color:var(--ink-faint);
   text-transform:uppercase;letter-spacing:0.05em;
+  text-align:center;display:block;
 }
-.ing-list-header-inner .btn-spacer{width:22px;flex-shrink:0}
-
-/* hide the per-card header divs (kept in HTML for structure, hidden via CSS) */
+.ing-header-card-inner .btn-spacer{width:22px;flex-shrink:0}
+/* hide the old per-card header divs */
 .ing-desktop-header{display:none !important}
 .ing-desktop-row{
   display:grid;
@@ -391,7 +395,8 @@ header{
 .ing-desktop-row .amount-inp{text-align:right}
 /* hide mobile rows on desktop */
 .ing-mobile-rows{display:none}
-.ing-list-header{display:block} /* show on desktop */
+.ing-list-header{display:none} /* not used any more */
+.ing-header-card{display:block} /* show ghost card on desktop */
 /* corner delete — desktop (hidden, use inline button) */
 .ing-corner-del{display:none}
 
@@ -1482,6 +1487,12 @@ let currentId = null;
 let editId = null;
 let pendingSync = [];
 let formTags = [];
+// ── EMBEDDED CREDENTIALS (optional) ─────────────────────────────────────
+// Fill these in to give anyone instant access without needing to authenticate.
+// localStorage credentials always take priority if set.
+const EMBEDDED_GIST_ID = '8cadb80652180bc8f64c87c7c72a3c06';
+const EMBEDDED_TOKEN   = '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';
+
 let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
@@ -1495,8 +1506,8 @@ let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 function init() {
-  gistId   = localStorage.getItem('gist_id') || '';
-  ghToken  = localStorage.getItem('gh_token') || '';
+  gistId   = localStorage.getItem('gist_id')  || EMBEDDED_GIST_ID;
+  ghToken  = localStorage.getItem('gh_token') || EMBEDDED_TOKEN;
   pendingSync = JSON.parse(localStorage.getItem('pending_sync') || '[]');
 
   // Load bin from cache
@@ -2199,8 +2210,8 @@ function switchInfoTab(name, btn) {
 }
 
 function openAuth() {
-  document.getElementById('auth-gist').value  = localStorage.getItem('gist_id')  || '';
-  document.getElementById('auth-token').value = localStorage.getItem('gh_token') || '';
+  document.getElementById('auth-gist').value  = localStorage.getItem('gist_id')  || EMBEDDED_GIST_ID;
+  document.getElementById('auth-token').value = localStorage.getItem('gh_token') || EMBEDDED_TOKEN;
   document.getElementById('auth-modal').classList.add('open');
 }
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
@@ -3610,8 +3621,8 @@ function addIngSection(data) {
       <input type="text" class="ing-sec-title-inp" placeholder="Section name (e.g. Marinade, Salad, Dressing…)" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="this.closest('.ing-sec-block').remove()" title="Remove section">×</button>
     </div>
-    <div class="ing-list-header">
-      <div class="ing-list-header-inner">
+    <div class="ing-header-card">
+      <div class="ing-header-card-inner">
         <span>Ingredient</span>
         <span>Amount</span>
         <span>Unit</span>
