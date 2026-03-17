@@ -103,16 +103,6 @@ header{
 @media(max-width:600px){
   .search-wrap{display:none}
   .search-icon-btn{display:flex;align-items:center}
-  /* ingredient row: name on own line on mobile */
-  .ing-name-row{display:block !important} /* show mobile name row */
-  .ing-fields-inner{
-    grid-template-columns:68px minmax(0,1fr) minmax(0,1fr) auto auto auto !important;
-  }
-  .ing-fields-inner .ing-name-wrap{display:none !important} /* hide name from inner grid */
-  .ing-col-labels{
-    grid-template-columns:68px minmax(0,1fr) minmax(0,1fr) auto auto auto !important;
-  }
-  .ing-col-labels .ing-col-name-lbl{display:none}
 }
 .search-wrap input{
   width:100%;background:var(--card);border:1px solid var(--border);
@@ -347,20 +337,71 @@ header{
 .ing-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
 .ing-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;color:var(--ink-mid)}
 .ing-sec-head input::placeholder{color:var(--ink-faint)}
-.ing-rows{padding:0.45rem 0.5rem;display:flex;flex-direction:column;gap:0.4rem}
-.ing-row-wrap{display:flex;flex-direction:column;gap:2px}
-.ing-fields{display:grid;grid-template-columns:minmax(0,2fr) 72px minmax(0,1.2fr) minmax(0,1.2fr) auto auto;gap:0.35rem;align-items:center}
-.ing-fields input,.ing-fields select{
-  border:1px solid var(--border);border-radius:6px;padding:4px 6px;
-  font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);
-  background:var(--cream);outline:none;width:100%;transition:border-color .15s;min-width:0;
+.ing-rows{padding:0.45rem 0.5rem;display:flex;flex-direction:column;gap:0.55rem}
+
+/* ingredient card — borders all rows for one ingredient */
+.ing-row-wrap{
+  border:1px solid var(--border-mid);border-radius:var(--radius);
+  overflow:hidden;background:var(--card);
 }
-.ing-fields input:focus,.ing-fields select:focus{border-color:var(--accent)}
-.ing-fields input::placeholder{color:var(--ink-faint);font-size:0.75rem}
-.ing-fields select{color:var(--ink-muted);cursor:pointer;padding-right:4px}
-.ing-fields select.has-val{color:var(--ink)}
+/* row labels */
+.ing-row-labels{
+  display:grid;grid-template-columns:1fr;gap:0;
+  font-size:0.6rem;color:var(--ink-faint);font-weight:500;
+  text-transform:uppercase;letter-spacing:0.05em;
+  padding:4px 8px 2px;background:var(--paper);
+  border-bottom:1px solid var(--border);
+}
+/* row 1: full-width name */
+.ing-row-1{padding:5px 8px 5px;border-bottom:1px solid var(--border)}
+.ing-row-1 .ing-name-wrap{width:100%}
+.ing-row-1 input{
+  width:100%;border:1px solid var(--border);border-radius:6px;
+  padding:5px 8px;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;
+  color:var(--ink);background:var(--cream);outline:none;
+  transition:border-color .15s;
+}
+.ing-row-1 input:focus{border-color:var(--accent)}
+.ing-row-1 input::placeholder{color:var(--ink-faint)}
+/* row 2: amount (1/3) + unit (2/3) */
+.ing-row-2{
+  display:grid;grid-template-columns:1fr 2fr;gap:6px;
+  padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;
+}
+.ing-row-2 input{
+  border:1px solid var(--border);border-radius:6px;padding:5px 8px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);
+  background:var(--cream);outline:none;width:100%;text-align:right;
+  transition:border-color .15s;
+}
+.ing-row-2 input:focus{border-color:var(--accent)}
+.ing-row-2 .unit-sel,.ing-row-2 .unit-manual{
+  border:1px solid var(--border);border-radius:6px;padding:5px 8px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;
+  color:var(--ink-muted);background:var(--cream);outline:none;width:100%;
+  cursor:pointer;transition:border-color .15s;
+}
+.ing-row-2 .unit-sel:focus,.ing-row-2 .unit-manual:focus{border-color:var(--accent)}
+.ing-row-2 .unit-sel.has-val{color:var(--ink)}
+/* row 3: prep + action buttons */
+.ing-row-3{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;
+}
+.ing-row-3 .prep-inp{
+  flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);
+  background:var(--cream);outline:none;min-width:0;transition:border-color .15s;
+}
+.ing-row-3 .prep-inp:focus{border-color:var(--accent)}
+.ing-row-3 .prep-inp::placeholder{color:var(--ink-faint)}
+/* sub-panel and noscale inside card */
+.ing-row-wrap .sub-panel{padding:6px 8px;border-top:1px solid var(--border);background:var(--accent-light)}
+.ing-row-wrap .noscale-note-row{padding:6px 8px;border-top:1px solid var(--border);background:var(--warning-bg)}
+.ing-row-wrap .noscale-note-row.show{display:flex;flex-direction:column;gap:3px}
+
 .ing-col-lbl{font-size:0.62rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px}
-.del-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:1.05rem;line-height:1;padding:2px 3px;border-radius:4px;transition:color .1s}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:1.05rem;line-height:1;padding:2px 3px;border-radius:4px;transition:color .1s;flex-shrink:0}
 .del-btn:hover{color:var(--danger)}
 .ing-sec-foot{padding:0.3rem 0.5rem 0.45rem;display:flex;gap:0.4rem}
 .add-row-btn{
@@ -3178,16 +3219,8 @@ async function saveRecipe() {
     const title = sec.querySelector('.ing-sec-title-inp')?.value.trim() || '';
     const items = [];
     sec.querySelectorAll('.ing-row-wrap').forEach(wrap => {
-      // Read name from whichever input has a value (desktop preferred, mobile fallback)
-      const desktopNameEl = wrap.querySelector('.ing-fields-inner .ing-name-wrap input[type="text"]');
-      const mobileNameEl  = wrap.querySelector('.ing-name-mobile');
-      const nameEl = desktopNameEl || mobileNameEl;
-      // Sync mobile ↔ desktop so both carry the same value
-      if (desktopNameEl && mobileNameEl) {
-        const val = desktopNameEl.value.trim() || mobileNameEl.value.trim();
-        desktopNameEl.value = val;
-        mobileNameEl.value  = val;
-      }
+      // Read name from row 1 input
+      const nameEl   = wrap.querySelector('.ing-row-1 input[type="text"]');
       const amountEl = wrap.querySelector('.amount-inp');
       const unitSel  = wrap.querySelector('.unit-sel');
       const unitMan  = wrap.querySelector('.unit-manual');
@@ -3650,50 +3683,43 @@ function addIngRow(btn, rowsEl, data) {
   const ov   = data?.scaleOverrides || {};
   const unit = data?.unit || '';
   const amt  = data?.amount;
-  const subs = data?.substitutes || (data?.substitute ? [data.substitute] : []); // migrate old single-sub
+  const subs = data?.substitutes || (data?.substitute ? [data.substitute] : []);
   const hasSub = subs.length > 0;
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
-
   const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
 
   wrap.innerHTML = `
-    <!-- Mobile name row (hidden on desktop via CSS) -->
-    <div class="ing-name-row" style="display:none;margin-top:4px;margin-bottom:2px">
-      <div style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px">Ingredient</div>
+    <!-- Row 1: Ingredient name (full width) -->
+    <div class="ing-row-1">
       <div class="ing-name-wrap" style="width:100%">
-        <input type="text" class="ing-name-mobile" placeholder="Ingredient name" value="${esc(data?.name||'')}"
-          oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
-        <div class="ing-name-sugs"></div>
-      </div>
-    </div>
-    <!-- Column labels (desktop) -->
-    <div class="ing-col-labels" style="font-size:0.6rem;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:0.05em;display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto auto;gap:0.35rem;padding:0 2px 2px;margin-top:4px">
-      <span class="ing-col-name-lbl">Ingredient</span><span>Amount</span><span>Unit</span><span>Prep (opt.)</span><span></span><span></span><span></span>
-    </div>
-    <!-- Main fields row -->
-    <div class="ing-fields-inner" style="display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.1fr) auto auto auto;gap:0.35rem;align-items:center">
-      <div class="ing-name-wrap">
         <input type="text" placeholder="Ingredient name" value="${esc(data?.name||'')}"
           oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
         <div class="ing-name-sugs"></div>
       </div>
-      <input type="number" placeholder="0" min="0" step="any" class="amount-inp" value="${amt != null ? amt : ''}" style="text-align:right;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%">
+    </div>
+    <!-- Row 2: Amount (1/3) + Unit (2/3) -->
+    <div class="ing-row-2">
+      <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp"
+        value="${amt != null ? amt : ''}" style="text-align:right">
       ${buildUnitSelect(unit)}
-      <input type="text" class="prep-inp" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+    </div>
+    <!-- Row 3: Prep + action buttons -->
+    <div class="ing-row-3">
+      <input type="text" class="prep-inp" placeholder="Prep (e.g. diced)" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
     </div>
+    <!-- Substitutes panel (inside card border) -->
     <div class="sub-panel${hasSub?' show':''}">
-      <div class="sub-panel-head">
-        <span>Substitutes</span>
-      </div>
+      <div class="sub-panel-head"><span>Substitutes</span></div>
       <div class="sub-entries">${subEntries}</div>
       <button class="add-sub-btn" onclick="addSubEntry(this)">
         <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
         Add substitute
       </button>
     </div>
+    <!-- Scale overrides panel (inside card border) -->
     <div class="noscale-note-row${ns?' show':''}">
       <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
       ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
@@ -3739,9 +3765,9 @@ function ingNameInput(input) {
   const sugsEl = input.closest('.ing-name-wrap')?.querySelector('.ing-name-sugs');
   if (!sugsEl) return;
 
-  // Gather all ingredient names from both mobile and desktop inputs (excluding this one)
+  // Gather all ingredient names from row-1 inputs (excluding this one)
   const allNames = new Set();
-  document.querySelectorAll('#ing-builder .ing-name-wrap input[type="text"], #ing-builder .ing-name-mobile').forEach(el => {
+  document.querySelectorAll('#ing-builder .ing-row-1 .ing-name-wrap input[type="text"]').forEach(el => {
     if (el !== input) {
       const v = el.value.trim();
       if (v) allNames.add(toTitleCase(v));
@@ -3767,16 +3793,8 @@ function ingNameInput(input) {
 
 function pickIngName(el, name) {
   const wrap  = el.closest('.ing-name-wrap');
-  const row   = el.closest('.ing-row-wrap');
-  // Set value on whichever input is in this wrap
   const input = wrap?.querySelector('input[type="text"]');
   if (input) { input.value = name; input.dispatchEvent(new Event('input')); }
-  // Also sync the mobile name input if it exists in the same row
-  const mobileInp = row?.querySelector('.ing-name-mobile');
-  if (mobileInp && mobileInp !== input) mobileInp.value = name;
-  // And sync the desktop name input if we picked from the mobile
-  const desktopInp = row?.querySelector('.ing-fields-inner .ing-name-wrap input[type="text"]');
-  if (desktopInp && desktopInp !== input) desktopInp.value = name;
   el.closest('.ing-name-sugs').classList.remove('show');
 }
 
