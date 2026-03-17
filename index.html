@@ -339,63 +339,82 @@ header{
 .ing-sec-head input::placeholder{color:var(--ink-faint)}
 .ing-rows{padding:0.45rem 0.5rem;display:flex;flex-direction:column;gap:0.55rem}
 
-/* ingredient card — borders all rows for one ingredient */
+/* shared card wrapper */
 .ing-row-wrap{
   border:1px solid var(--border-mid);border-radius:var(--radius);
   overflow:hidden;background:var(--card);
 }
-/* row labels */
-.ing-row-labels{
-  display:grid;grid-template-columns:1fr;gap:0;
-  font-size:0.6rem;color:var(--ink-faint);font-weight:500;
-  text-transform:uppercase;letter-spacing:0.05em;
-  padding:4px 8px 2px;background:var(--paper);
-  border-bottom:1px solid var(--border);
+
+/* ── DESKTOP: single row ── */
+.ing-desktop-row{
+  display:grid;
+  /* name 40%, amount 10%, unit 20%, prep 30%, then 3 fixed buttons */
+  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
+  gap:6px;align-items:center;padding:6px 8px;
 }
-/* row 1: full-width name */
-.ing-row-1{padding:5px 8px 5px;border-bottom:1px solid var(--border)}
-.ing-row-1 .ing-name-wrap{width:100%}
-.ing-row-1 input{
+.ing-desktop-row .ing-name-wrap{min-width:0}
+.ing-desktop-row input,
+.ing-desktop-row .unit-sel,
+.ing-desktop-row .unit-manual{
   width:100%;border:1px solid var(--border);border-radius:6px;
-  padding:5px 8px;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;
+  padding:5px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;
   color:var(--ink);background:var(--cream);outline:none;
-  transition:border-color .15s;
+  transition:border-color .15s;min-width:0;
 }
-.ing-row-1 input:focus{border-color:var(--accent)}
-.ing-row-1 input::placeholder{color:var(--ink-faint)}
-/* row 2: amount (1/3) + unit (2/3) */
-.ing-row-2{
-  display:grid;grid-template-columns:1fr 2fr;gap:6px;
-  padding:5px 8px;border-bottom:1px solid var(--border);align-items:center;
+.ing-desktop-row input:focus,
+.ing-desktop-row .unit-sel:focus,
+.ing-desktop-row .unit-manual:focus{border-color:var(--accent)}
+.ing-desktop-row input::placeholder{color:var(--ink-faint);font-size:0.76rem}
+.ing-desktop-row .unit-sel{color:var(--ink-muted);cursor:pointer}
+.ing-desktop-row .unit-sel.has-val{color:var(--ink)}
+.ing-desktop-row .amount-inp{text-align:right}
+/* hide mobile rows on desktop */
+.ing-mobile-rows{display:none}
+
+/* ── MOBILE: 3 rows, no dividers, with labels ── */
+@media(max-width:600px){
+  .search-wrap{display:none}
+  .search-icon-btn{display:flex;align-items:center}
+
+  .ing-desktop-row{display:none}
+  .ing-mobile-rows{display:flex;flex-direction:column;gap:8px;padding:8px}
+
+  .ing-field-group{display:flex;flex-direction:column;gap:3px}
+  .ing-field-group-row{display:flex;gap:8px}
+  .ing-field-group-row .ing-field-group{flex:1;min-width:0}
+  .ing-field-group-row .ing-field-group.amount{flex:0 0 33%}
+  .ing-field-group-row .ing-field-group.unit{flex:1}
+
+  .ing-field-lbl{
+    font-size:0.6rem;font-weight:500;color:var(--ink-faint);
+    text-transform:uppercase;letter-spacing:0.05em;
+  }
+  .ing-mobile-rows input,
+  .ing-mobile-rows .unit-sel,
+  .ing-mobile-rows .unit-manual{
+    width:100%;border:1px solid var(--border);border-radius:6px;
+    padding:6px 8px;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+    color:var(--ink);background:var(--cream);outline:none;
+    transition:border-color .15s;
+  }
+  .ing-mobile-rows input:focus,
+  .ing-mobile-rows .unit-sel:focus,
+  .ing-mobile-rows .unit-manual:focus{border-color:var(--accent)}
+  .ing-mobile-rows input::placeholder{color:var(--ink-faint)}
+  .ing-mobile-rows .unit-sel{color:var(--ink-muted);cursor:pointer}
+  .ing-mobile-rows .unit-sel.has-val{color:var(--ink)}
+  .ing-mobile-rows .amount-inp{text-align:right}
+
+  .ing-mobile-actions{display:flex;align-items:center;gap:6px}
+  .ing-mobile-actions .prep-inp{flex:1;min-width:0}
+
+  /* sub-panel and noscale inside card on mobile */
+  .ing-row-wrap .sub-panel{padding:8px;border-top:1px solid var(--border);background:var(--accent-light)}
+  .ing-row-wrap .noscale-note-row{padding:8px;border-top:1px solid var(--border);background:var(--warning-bg)}
+  .ing-row-wrap .noscale-note-row.show{display:flex;flex-direction:column;gap:3px}
 }
-.ing-row-2 input{
-  border:1px solid var(--border);border-radius:6px;padding:5px 8px;
-  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);
-  background:var(--cream);outline:none;width:100%;text-align:right;
-  transition:border-color .15s;
-}
-.ing-row-2 input:focus{border-color:var(--accent)}
-.ing-row-2 .unit-sel,.ing-row-2 .unit-manual{
-  border:1px solid var(--border);border-radius:6px;padding:5px 8px;
-  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;
-  color:var(--ink-muted);background:var(--cream);outline:none;width:100%;
-  cursor:pointer;transition:border-color .15s;
-}
-.ing-row-2 .unit-sel:focus,.ing-row-2 .unit-manual:focus{border-color:var(--accent)}
-.ing-row-2 .unit-sel.has-val{color:var(--ink)}
-/* row 3: prep + action buttons */
-.ing-row-3{
-  display:flex;align-items:center;gap:6px;
-  padding:5px 8px;
-}
-.ing-row-3 .prep-inp{
-  flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;
-  font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);
-  background:var(--cream);outline:none;min-width:0;transition:border-color .15s;
-}
-.ing-row-3 .prep-inp:focus{border-color:var(--accent)}
-.ing-row-3 .prep-inp::placeholder{color:var(--ink-faint)}
-/* sub-panel and noscale inside card */
+
+/* sub/noscale panels inside card on desktop */
 .ing-row-wrap .sub-panel{padding:6px 8px;border-top:1px solid var(--border);background:var(--accent-light)}
 .ing-row-wrap .noscale-note-row{padding:6px 8px;border-top:1px solid var(--border);background:var(--warning-bg)}
 .ing-row-wrap .noscale-note-row.show{display:flex;flex-direction:column;gap:3px}
@@ -3219,12 +3238,26 @@ async function saveRecipe() {
     const title = sec.querySelector('.ing-sec-title-inp')?.value.trim() || '';
     const items = [];
     sec.querySelectorAll('.ing-row-wrap').forEach(wrap => {
-      // Read name from row 1 input
-      const nameEl   = wrap.querySelector('.ing-row-1 input[type="text"]');
-      const amountEl = wrap.querySelector('.amount-inp');
+      // Read from desktop row (always present); mobile row syncs its value on save
+      const nameEl   = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
+                    || wrap.querySelector('.ing-name-mobile');
+      // Sync mobile → desktop if mobile is shown
+      const mobileNameEl = wrap.querySelector('.ing-name-mobile');
+      const desktopNameEl = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]');
+      if (mobileNameEl && desktopNameEl && mobileNameEl.value.trim())
+        desktopNameEl.value = mobileNameEl.value.trim();
+      const mobileAmtEl = wrap.querySelector('.mobile-amt');
+      const desktopAmtEl = wrap.querySelector('.ing-desktop-row .amount-inp');
+      if (mobileAmtEl && desktopAmtEl && mobileAmtEl.value.trim())
+        desktopAmtEl.value = mobileAmtEl.value.trim();
+      const mobilePrepEl = wrap.querySelector('.mobile-prep');
+      const desktopPrepEl = wrap.querySelector('.ing-desktop-row .prep-inp');
+      if (mobilePrepEl && desktopPrepEl && mobilePrepEl.value.trim())
+        desktopPrepEl.value = mobilePrepEl.value.trim();
+      const amountEl = desktopAmtEl || wrap.querySelector('.amount-inp');
       const unitSel  = wrap.querySelector('.unit-sel');
       const unitMan  = wrap.querySelector('.unit-manual');
-      const prepEl   = wrap.querySelector('.prep-inp');
+      const prepEl   = desktopPrepEl || wrap.querySelector('.prep-inp');
       const nsBtn    = wrap.querySelector('.noscale-toggle');
       const name     = toTitleCase(nameEl?.value.trim() || '');
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
@@ -3689,28 +3722,60 @@ function addIngRow(btn, rowsEl, data) {
   const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
 
   wrap.innerHTML = `
-    <!-- Row 1: Ingredient name (full width) -->
-    <div class="ing-row-1">
-      <div class="ing-name-wrap" style="width:100%">
+    <!-- DESKTOP: single row, ratios 40/10/20/30 + buttons -->
+    <div class="ing-desktop-row">
+      <div class="ing-name-wrap">
         <input type="text" placeholder="Ingredient name" value="${esc(data?.name||'')}"
           oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
         <div class="ing-name-sugs"></div>
       </div>
-    </div>
-    <!-- Row 2: Amount (1/3) + Unit (2/3) -->
-    <div class="ing-row-2">
       <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp"
-        value="${amt != null ? amt : ''}" style="text-align:right">
+        value="${amt != null ? amt : ''}">
       ${buildUnitSelect(unit)}
-    </div>
-    <!-- Row 3: Prep + action buttons -->
-    <div class="ing-row-3">
       <input type="text" class="prep-inp" placeholder="Prep (e.g. diced)" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
     </div>
-    <!-- Substitutes panel (inside card border) -->
+
+    <!-- MOBILE: 3 rows with labels, no dividers -->
+    <div class="ing-mobile-rows">
+      <!-- Row 1: Name -->
+      <div class="ing-field-group">
+        <div class="ing-field-lbl">Ingredient</div>
+        <div class="ing-name-wrap" style="width:100%">
+          <input type="text" class="ing-name-mobile" placeholder="Ingredient name" value="${esc(data?.name||'')}"
+            oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
+          <div class="ing-name-sugs"></div>
+        </div>
+      </div>
+      <!-- Row 2: Amount + Unit -->
+      <div class="ing-field-group-row">
+        <div class="ing-field-group amount">
+          <div class="ing-field-lbl">Amount</div>
+          <input type="number" placeholder="0" min="0" step="any" class="amount-inp mobile-amt"
+            value="${amt != null ? amt : ''}">
+        </div>
+        <div class="ing-field-group unit">
+          <div class="ing-field-lbl">Unit</div>
+          ${buildUnitSelect(unit)}
+        </div>
+      </div>
+      <!-- Row 3: Prep + buttons -->
+      <div class="ing-mobile-actions">
+        <div class="ing-field-group" style="flex:1;min-width:0">
+          <div class="ing-field-lbl">Prep (optional)</div>
+          <input type="text" class="prep-inp mobile-prep" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+        </div>
+        <div style="display:flex;gap:5px;align-items:flex-end;padding-bottom:1px;flex-shrink:0">
+          <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
+          <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
+          <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Substitutes panel (inside card, both views) -->
     <div class="sub-panel${hasSub?' show':''}">
       <div class="sub-panel-head"><span>Substitutes</span></div>
       <div class="sub-entries">${subEntries}</div>
@@ -3719,7 +3784,8 @@ function addIngRow(btn, rowsEl, data) {
         Add substitute
       </button>
     </div>
-    <!-- Scale overrides panel (inside card border) -->
+
+    <!-- Scale overrides panel (inside card, both views) -->
     <div class="noscale-note-row${ns?' show':''}">
       <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
       ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
@@ -3765,9 +3831,9 @@ function ingNameInput(input) {
   const sugsEl = input.closest('.ing-name-wrap')?.querySelector('.ing-name-sugs');
   if (!sugsEl) return;
 
-  // Gather all ingredient names from row-1 inputs (excluding this one)
+  // Gather all ingredient names from both desktop and mobile inputs (excluding this one)
   const allNames = new Set();
-  document.querySelectorAll('#ing-builder .ing-row-1 .ing-name-wrap input[type="text"]').forEach(el => {
+  document.querySelectorAll('#ing-builder .ing-desktop-row .ing-name-wrap input[type="text"], #ing-builder .ing-name-mobile').forEach(el => {
     if (el !== input) {
       const v = el.value.trim();
       if (v) allNames.add(toTitleCase(v));
