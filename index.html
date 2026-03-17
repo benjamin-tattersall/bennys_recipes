@@ -561,9 +561,10 @@ header{
 .sub-entry{
   border:1px solid var(--accent);border-radius:var(--radius);
   overflow:hidden;background:var(--accent-light);
+  position:relative; /* for corner delete on mobile */
 }
 .sub-entry-head{
-  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.4fr) auto auto auto;
+  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.4fr) auto auto;
   gap:0.35rem;align-items:center;padding:5px 6px;
 }
 .sub-entry-head input,.sub-entry-head select{
@@ -575,6 +576,58 @@ header{
 .sub-entry-head input::placeholder{color:var(--ink-faint);font-size:0.75rem}
 .sub-entry-head select{color:var(--ink-muted);cursor:pointer}
 .sub-entry-head select.has-val{color:var(--ink)}
+/* mobile sub entry */
+.sub-entry-mobile{display:none}
+.sub-entry-corner-del{display:none}
+
+@media(max-width:600px){
+  .sub-entry-head{display:none}
+  .sub-entry-corner-del{
+    display:flex;position:absolute;top:5px;right:5px;
+    background:none;border:none;cursor:pointer;
+    color:var(--accent-text);font-size:1.05rem;line-height:1;
+    padding:2px 4px;border-radius:4px;transition:color .1s;z-index:2;opacity:.7;
+  }
+  .sub-entry-corner-del:hover{opacity:1;color:var(--danger)}
+  .sub-entry-mobile{
+    display:flex;flex-direction:column;gap:8px;padding:8px;
+  }
+  .sub-mobile-field{display:flex;flex-direction:column;gap:3px}
+  .sub-mobile-lbl{
+    font-size:0.6rem;font-weight:500;color:var(--accent-text);
+    text-transform:uppercase;letter-spacing:0.05em;
+  }
+  .sub-mobile-row2{display:flex;gap:8px;align-items:stretch}
+  .sub-mobile-row2 .sub-mobile-field.amount{flex:0 0 33%}
+  .sub-mobile-row2 .sub-mobile-field.unit{flex:1}
+  .sub-mobile-row3{display:flex;gap:6px;align-items:stretch}
+  .sub-mobile-row3 .sub-mobile-field{flex:1;min-width:0}
+
+  .sub-entry-mobile input,
+  .sub-entry-mobile .unit-sel,
+  .sub-entry-mobile .unit-manual{
+    width:100%;border:1px solid var(--accent);border-radius:6px;
+    padding:8px 9px;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+    color:var(--ink);background:var(--cream);outline:none;
+    transition:border-color .15s;box-sizing:border-box;
+    height:38px;display:block;
+  }
+  .sub-entry-mobile input:focus,
+  .sub-entry-mobile .unit-sel:focus{border-color:var(--accent-text)}
+  .sub-entry-mobile input::placeholder{color:var(--ink-faint)}
+  .sub-entry-mobile .unit-sel{color:var(--ink-muted);cursor:pointer;appearance:auto}
+  .sub-entry-mobile .unit-sel.has-val{color:var(--ink)}
+  .sub-entry-mobile .amount-inp{text-align:right}
+
+  .sub-mobile-btn-group{display:flex;gap:6px;align-items:stretch;flex-shrink:0;padding-top:16px}
+  .sub-mobile-btn-group button{
+    height:38px;width:38px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.85rem;padding:0;flex-shrink:0;
+  }
+  /* row 1 padding for corner delete */
+  .sub-mobile-row1{padding-right:30px}
+}
 /* per-sub scale overrides */
 .sub-overrides{
   display:none;padding:4px 6px 5px;border-top:1px solid var(--accent);
@@ -3312,13 +3365,26 @@ async function saveRecipe() {
         // collect substitutes array
         const substitutes = [];
         wrap.querySelectorAll('.sub-entry').forEach(entry => {
-          const sName = entry.querySelector('.sub-name')?.value.trim();
+          // Sync mobile → desktop values before reading
+          const mobileSubName = entry.querySelector('.sub-name-mobile');
+          const desktopSubName = entry.querySelector('.sub-name');
+          if (mobileSubName?.value.trim()) desktopSubName && (desktopSubName.value = mobileSubName.value.trim());
+          const mobileSubAmt = entry.querySelector('.sub-amt-mobile');
+          const desktopSubAmt = entry.querySelector('.sub-amt');
+          if (mobileSubAmt?.value.trim()) desktopSubAmt && (desktopSubAmt.value = mobileSubAmt.value.trim());
+          const mobileSubNote = entry.querySelector('.sub-note-mobile');
+          const desktopSubNote = entry.querySelector('.sub-note-inp');
+          if (mobileSubNote?.value.trim()) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
+
+          const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
           if (!sName) return;
-          const sAmt    = entry.querySelector('.sub-amt')?.value.trim();
-          const sSel    = entry.querySelector('.unit-sel');
-          const sUnit   = sSel?.value || '';
-          const sNote   = entry.querySelector('.sub-note-inp')?.value.trim() || '';
-          const sNs     = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
+          const sAmt  = desktopSubAmt?.value.trim() || mobileSubAmt?.value.trim() || '';
+          // Unit select is shared — pick the one in the sub-entry-head first, else sub-entry-mobile
+          const sSel  = entry.querySelector('.sub-entry-head .unit-sel')
+                     || entry.querySelector('.sub-entry-mobile .unit-sel');
+          const sUnit = sSel?.value || '';
+          const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
+          const sNs   = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
           const readSubOv = (cls) => {
             const amtEl = entry.querySelector(`.${cls}-amt`);
             if (!amtEl) return null;
@@ -3700,6 +3766,10 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     triple: calcOverridePlaceholder(amt, unit, 3)
   };
   return `<div class="sub-entry">
+    <!-- Corner delete (mobile only) -->
+    <button class="sub-entry-corner-del" onclick="this.closest('.sub-entry').remove();updateSubToggle(this)" title="Remove substitute">×</button>
+
+    <!-- DESKTOP: single head row (name / amt / unit / note / ⊘ / ×) -->
     <div class="sub-entry-head">
       <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
       <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
@@ -3708,6 +3778,38 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="this.closest('.sub-entry').remove();updateSubToggle(this)" style="color:var(--accent-text)">×</button>
     </div>
+
+    <!-- MOBILE: 3 rows with labels, corner delete -->
+    <div class="sub-entry-mobile">
+      <!-- Row 1: Name -->
+      <div class="sub-mobile-field sub-mobile-row1">
+        <div class="sub-mobile-lbl">Substitute name</div>
+        <input type="text" class="sub-name-mobile" placeholder="Substitute name" value="${esc(sub?.name||'')}">
+      </div>
+      <!-- Row 2: Amount + Unit -->
+      <div class="sub-mobile-row2">
+        <div class="sub-mobile-field amount">
+          <div class="sub-mobile-lbl">Amount</div>
+          <input type="number" class="sub-amt-mobile" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}">
+        </div>
+        <div class="sub-mobile-field unit">
+          <div class="sub-mobile-lbl">Unit</div>
+          ${buildUnitSelect(unit)}
+        </div>
+      </div>
+      <!-- Row 3: Note + ⊘ button -->
+      <div class="sub-mobile-row3">
+        <div class="sub-mobile-field">
+          <div class="sub-mobile-lbl">Note (optional)</div>
+          <input type="text" class="sub-note-mobile" placeholder="e.g. use if dairy-free" value="${esc(sub?.note||'')}">
+        </div>
+        <div class="sub-mobile-btn-group">
+          <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleSubNoscale(this)">⊘</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scale overrides (both views) -->
     <div class="sub-overrides${ns?' show':''}">
       <div class="sub-ov-lbl">Scale overrides for this substitute</div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
