@@ -346,24 +346,34 @@ header{
   position:relative; /* for corner delete button */
 }
 
-/* ── DESKTOP: header row + input row ── */
-.ing-desktop-header{
+/* ── DESKTOP: shared header above ingredient list ── */
+.ing-list-header{
+  display:none; /* shown on desktop only */
+}
+/* The cards have 8px padding + 1px border each side = 10px total.
+   We add matching padding to the header row so columns align with card contents */
+.ing-list-header-inner{
   display:grid;
   grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
-  gap:6px;padding:4px 8px 2px;
-  background:var(--paper);border-bottom:1px solid var(--border);
+  gap:6px;
+  padding:0 9px; /* matches card padding (8px) + border (1px) */
+  margin-bottom:3px;
 }
-.ing-desktop-header span{
+.ing-list-header-inner span{
   font-size:0.6rem;font-weight:500;color:var(--ink-faint);
   text-transform:uppercase;letter-spacing:0.05em;
 }
-.ing-desktop-header .btn-spacer{width:22px;flex-shrink:0} /* matches button width */
+.ing-list-header-inner .btn-spacer{width:22px;flex-shrink:0}
+
+/* hide the per-card header divs (kept in HTML for structure, hidden via CSS) */
+.ing-desktop-header{display:none !important}
 .ing-desktop-row{
   display:grid;
   grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
   gap:6px;align-items:center;padding:6px 8px;
 }
-.ing-desktop-row .ing-name-wrap{min-width:0}
+.ing-desktop-row .ing-name-wrap{min-width:0;width:100%;overflow:visible;position:relative}
+.ing-desktop-row .ing-name-wrap input{min-width:0;width:100%}
 .ing-desktop-row input,
 .ing-desktop-row .unit-sel,
 .ing-desktop-row .unit-manual{
@@ -381,6 +391,7 @@ header{
 .ing-desktop-row .amount-inp{text-align:right}
 /* hide mobile rows on desktop */
 .ing-mobile-rows{display:none}
+.ing-list-header{display:block} /* show on desktop */
 /* corner delete — desktop (hidden, use inline button) */
 .ing-corner-del{display:none}
 
@@ -3598,6 +3609,17 @@ function addIngSection(data) {
     <div class="ing-sec-head">
       <input type="text" class="ing-sec-title-inp" placeholder="Section name (e.g. Marinade, Salad, Dressing…)" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="this.closest('.ing-sec-block').remove()" title="Remove section">×</button>
+    </div>
+    <div class="ing-list-header">
+      <div class="ing-list-header-inner">
+        <span>Ingredient</span>
+        <span>Amount</span>
+        <span>Unit</span>
+        <span>Prep (opt.)</span>
+        <span class="btn-spacer"></span>
+        <span class="btn-spacer"></span>
+        <span class="btn-spacer"></span>
+      </div>
     </div>
     <div class="ing-rows"></div>
     <div class="ing-sec-foot">
