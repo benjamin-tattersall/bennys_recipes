@@ -1530,6 +1530,7 @@ let redoStack   = [];
 const MAX_UNDO  = 20;
 let formUndoStack = []; // [{snapshot, description}] — in-form, scoped to edit session
 let formRedoStack = [];
+let formPopulating = false; // true during openEdit population — blocks captureFormSnapshot
 let groupBy     = null; // null | 'Meal' | 'Cuisine' | 'Type' | 'Cook Time' | 'Serves' | custom
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
@@ -1660,7 +1661,7 @@ function saveLocallySilent() {
 // before the user hits Save. Stack is cleared when the form opens or closes.
 
 function captureFormSnapshot(description) {
-  // Serialise current form state to a plain object
+  if (formPopulating) return; // never snapshot during initial population
   const snapshot = {
     name:    document.getElementById('f-name')?.value   || '',
     source:  document.getElementById('f-source')?.value || '',
@@ -3456,6 +3457,7 @@ function openEdit(r) {
   applyScalableUI(scalable);
 
   // ingredients — sectioned
+  formPopulating = true;
   const ib = document.getElementById('ing-builder');
   ib.innerHTML = '';
   if (r?.ingredients?.length) r.ingredients.forEach(sec => addIngSection(sec));
@@ -3466,6 +3468,7 @@ function openEdit(r) {
   mb.innerHTML = '';
   if (r?.method?.length) r.method.forEach(sec => addMethodSection(sec));
   else addMethodSection();
+  formPopulating = false;
 
   document.getElementById('emodal').classList.add('open');
   updateFormUndoButtons();
@@ -3490,7 +3493,14 @@ function applyScalableUI(scalable) {
   });
 }
 
-function closeEdit() {
+function closeEdit(force) {
+  if (!force && formUndoStack.length > 0) {
+    showConfirm('Discard changes?',
+      'You have unsaved changes. If you close now they will be lost.',
+      [{ label: 'Discard changes', danger: true, fn: () => closeEdit(true) }]
+    );
+    return;
+  }
   document.getElementById('emodal').classList.remove('open');
   formUndoStack = [];
   formRedoStack = [];
@@ -3657,7 +3667,7 @@ async function saveRecipe() {
 
   const saveDesc = editId ? `Edited "${name}"` : `Added "${name}"`;
   isOnline ? await saveToGist(saveDesc) : saveLocally(saveDesc);
-  closeEdit(); render();
+  closeEdit(true); render();
 }
 
 // ── TAGS INPUT ────────────────────────────────────────────────────────────
@@ -4289,8 +4299,21 @@ function toggleStepNoscale(btn) {
 }
 
 function removeIngRow(btn) {
-  captureFormSnapshot('Remove ingredient');
-  btn.closest('.ing-row-wrap').remove();
+  const wrap = btn.closest('.ing-row-wrap');
+  // Check if row has any content worth confirming
+  const name = wrap.querySelector('.ing-row-1 input, .ing-name-mobile')?.value.trim() || '';
+  if (!name) {
+    captureFormSnapshot('Remove ingredient');
+    wrap.remove();
+    return;
+  }
+  showConfirm('Remove this ingredient?',
+    `"${name}" will be removed from this section.`,
+    [{ label: 'Remove ingredient', danger: true, fn: () => {
+      captureFormSnapshot('Remove ingredient');
+      wrap.remove();
+    }}]
+  );
 }
 
 function confirmRemoveIngSection(btn) {
@@ -4309,7 +4332,7 @@ function confirmRemoveIngSection(btn) {
 
 function confirmRemoveMethodSection(btn) {
   const block = btn.closest('.method-sec-block');
-  const hasContent = [...block.querySelectorAll('.step-text')].some(t => t.value.trim());
+  const hasContent = [...block.querySelectorAll('.step-ta')].some(t => t.value.trim());
   if (!hasContent) { captureFormSnapshot('Remove method section'); block.remove(); return; }
   showConfirm('Remove method section?',
     'This section has steps in it. Removing it will delete all of them.',
@@ -4323,7 +4346,7 @@ function confirmRemoveMethodSection(btn) {
 function removeStep(btn) {
   const wrap    = btn.closest('.step-wrap');
   const stepsEl = btn.closest('.method-steps');
-  const text    = wrap.querySelector('.step-text')?.value.trim() || '';
+  const text    = wrap.querySelector('.step-ta')?.value.trim() || '';
   if (!text) {
     captureFormSnapshot('Remove step');
     wrap.remove();
