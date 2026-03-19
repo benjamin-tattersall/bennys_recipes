@@ -4301,7 +4301,8 @@ function toggleStepNoscale(btn) {
 function removeIngRow(btn) {
   const wrap = btn.closest('.ing-row-wrap');
   // Check if row has any content worth confirming
-  const name = wrap.querySelector('.ing-row-1 input, .ing-name-mobile')?.value.trim() || '';
+  const name = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
+             || wrap.querySelector('.ing-name-mobile'))?.value.trim() || '';
   if (!name) {
     captureFormSnapshot('Remove ingredient');
     wrap.remove();
@@ -4319,7 +4320,7 @@ function removeIngRow(btn) {
 function confirmRemoveIngSection(btn) {
   const block = btn.closest('.ing-sec-block');
   const hasContent = block.querySelectorAll('.ing-row-wrap').length > 0 &&
-    [...block.querySelectorAll('.ing-row-1 input, .ing-name-mobile')].some(i => i.value.trim());
+    [...block.querySelectorAll('.ing-desktop-row .ing-name-wrap input[type="text"], .ing-name-mobile')].some(i => i.value.trim());
   if (!hasContent) { captureFormSnapshot('Remove ingredient section'); block.remove(); return; }
   showConfirm('Remove ingredient section?',
     'This section has ingredients in it. Removing it will delete all of them.',
