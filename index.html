@@ -228,7 +228,7 @@ header{
 .view-sec{margin-bottom:1.3rem}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
-.ing-sec-title-view{font-size:0.78rem;font-weight:500;color:var(--ink-muted);font-style:italic;margin:12px 0 3px;padding-left:2px}
+.ing-sec-title-view{font-size:0.88rem;font-weight:600;color:var(--ink-mid);font-style:italic;margin:18px 0 4px;padding-left:2px}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
 .ing-table td{padding:5px 0.5rem;color:var(--ink-mid);vertical-align:top}
@@ -706,7 +706,22 @@ header{
 .undo-btn:disabled{opacity:.3;cursor:default}
 .undo-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* ── BIN ── */
+/* ── IN-FORM UNDO / REDO ── */
+.form-undo-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:0.5rem 1.3rem;border-bottom:1px solid var(--border);
+  background:var(--paper);
+}
+.form-undo-btn{
+  background:none;border:1px solid var(--border);color:var(--ink-muted);
+  width:30px;height:30px;border-radius:var(--radius);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;flex-shrink:0;
+}
+.form-undo-btn:hover:not(:disabled){border-color:var(--border-mid);color:var(--ink);background:var(--cream)}
+.form-undo-btn:disabled{opacity:.3;cursor:default}
+.form-undo-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.form-undo-label{font-size:0.72rem;color:var(--ink-faint);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bin-modal{max-width:600px}
 .bin-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.6rem;max-height:65vh;overflow-y:auto}
 .bin-empty{text-align:center;padding:2rem 0;color:var(--ink-faint);font-size:0.9rem}
@@ -1031,12 +1046,6 @@ header{
         <span class="toggle-pip"></span>
         Drafts
       </button>
-      <button class="undo-btn" id="undo-btn" onclick="undoAction()" title="Undo (⌘Z)" disabled>
-        <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
-      </button>
-      <button class="undo-btn" id="redo-btn" onclick="redoAction()" title="Redo (⌘⇧Z)" disabled>
-        <svg viewBox="0 0 16 16"><path d="M13 7 L9 3 L9 5.5 C5 5.5 3 7.5 3 11 C4.5 8.5 6.5 7.5 9 7.5 L9 10 Z"/></svg>
-      </button>
     </div>
   </div>
   <!-- Mobile expandable search row -->
@@ -1071,7 +1080,6 @@ header{
     <div class="vbody" id="vbody"></div>
     <div class="view-foot">
       <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
-      <button class="btn-sec" onclick="closeView()">Close</button>
       <button id="publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
       <button class="btn-pri" onclick="editCurrent()">Edit</button>
     </div>
@@ -1084,6 +1092,16 @@ header{
     <div class="modal-head">
       <h2 id="form-title">Add recipe</h2>
       <button class="xbtn" onclick="closeEdit()">✕</button>
+    </div>
+    <!-- In-form undo/redo bar -->
+    <div class="form-undo-bar">
+      <button class="form-undo-btn" id="form-undo-btn" onclick="formUndo()" title="Undo (⌘Z)" disabled>
+        <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
+      </button>
+      <button class="form-undo-btn" id="form-redo-btn" onclick="formRedo()" title="Redo (⌘⇧Z)" disabled>
+        <svg viewBox="0 0 16 16"><path d="M13 7 L9 3 L9 5.5 C5 5.5 3 7.5 3 11 C4.5 8.5 6.5 7.5 9 7.5 L9 10 Z"/></svg>
+      </button>
+      <span class="form-undo-label" id="form-undo-label">No changes yet</span>
     </div>
     <div class="fbody" id="fbody">
 
@@ -1256,18 +1274,24 @@ header{
 
       <div class="info-pane active" id="info-pane-start">
         <h3>Welcome to Benny's Recipes</h3>
-        <p>This is your personal digital recipe book. Your recipes are saved privately online using a free service called GitHub, so they're always backed up and available on any device you use.</p>
-        <h3>Connecting for the first time</h3>
-        <p>To save and load your recipes, you'll need to connect to a free GitHub account. Here's how:</p>
+        <p>This is your personal digital recipe book. Your recipes are stored online using a free GitHub service called a Gist, so they're always backed up and available on any device — phone, tablet, or computer.</p>
+
+        <h3>What you'll need</h3>
+        <p>A free GitHub account. That's it. No subscriptions, no app stores.</p>
+
+        <h3>First-time setup</h3>
         <ol>
-          <li>Create a free account at <strong>github.com</strong></li>
-          <li>Go to <strong>gist.github.com</strong> and create a new <em>secret</em> Gist — think of this as a private file in the cloud where your recipes will live</li>
-          <li>Name the file <code>recipes.json</code>, set the content to <code>[]</code>, and save it</li>
-          <li>Copy the long code from the URL — that's your Gist ID</li>
-          <li>Go to <strong>github.com/settings/tokens</strong>, generate a classic token, and tick only the <code>gist</code> permission</li>
-          <li>Tap the <strong>🔑 key icon</strong> in the top right of this page and paste both values in</li>
+          <li>Create a free account at <strong>github.com</strong> if you don't have one already.</li>
+          <li>Go to <strong>gist.github.com</strong> and click <strong>+</strong> to create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Make sure it's set to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
+          <li>Once created, copy the long string of letters and numbers from the URL — that's your <strong>Gist ID</strong>. It looks like: <code>a1b2c3d4e5f67890abcd</code></li>
+          <li>Go to <strong>github.com/settings/tokens</strong> and click <strong>Generate new token → Classic</strong>. Give it any name, set no expiry, and tick only the <strong>gist</strong> checkbox. Click <strong>Generate token</strong> and copy it — you'll only see it once.</li>
+          <li>Back in this app, tap the <strong>🔑 key icon</strong> in the top right corner and paste in your Gist ID and token. Tap <strong>Save &amp; connect</strong>.</li>
         </ol>
-        <div class="info-tip">Your login details are saved only on your own device and are never shared with anyone other than GitHub.</div>
+        <div class="info-tip">Your credentials are saved only on your device in the browser's local storage. They are never sent anywhere other than GitHub's own servers.</div>
+
+        <h3>Setting up on a new device</h3>
+        <p>Each new device or browser needs to be connected separately — credentials aren't shared between devices automatically. Just tap the <strong>🔑 key icon</strong> and enter your Gist ID and token again. Your recipes will load straight away from the same Gist.</p>
+        <div class="info-tip">Keep your Gist ID and token somewhere safe (like a password manager) so you can connect new devices easily.</div>
       </div>
 
       <div class="info-pane" id="info-pane-recipes">
@@ -1306,16 +1330,25 @@ header{
       </div>
 
       <div class="info-pane" id="info-pane-mobile">
-        <h3>Using on your iPhone</h3>
+        <h3>Adding to your iPhone home screen</h3>
         <ol>
-          <li>The easiest way is to host the app on <strong>GitHub Pages</strong> (free) — this gives it a web address you can open in Safari from anywhere</li>
-          <li>Once open in Safari, tap the <strong>Share button</strong> (the square with an arrow) and choose <strong>Add to Home Screen</strong></li>
-          <li>The app will appear on your home screen and open full-screen just like a native app</li>
-          <li>Your recipes are loaded from GitHub each time you open the app and saved locally on your device as a backup</li>
+          <li>Open the app in <strong>Safari</strong> (it must be Safari, not Chrome or another browser).</li>
+          <li>Tap the <strong>Share button</strong> — the square with an arrow pointing up — at the bottom of the screen.</li>
+          <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+          <li>Give it a name and tap <strong>Add</strong>. The app will appear on your home screen and open full-screen, just like a native app.</li>
         </ol>
+
+        <h3>Connecting on a new iPhone</h3>
+        <ol>
+          <li>Open the app and tap the <strong>🔑 key icon</strong> in the top right corner.</li>
+          <li>Enter your <strong>Gist ID</strong> and <strong>personal access token</strong>. These are the same values you used when setting up originally — if you've saved them in a password manager, now's the time to use them.</li>
+          <li>Tap <strong>Save &amp; connect</strong>. Your recipes will load straight away.</li>
+        </ol>
+        <div class="info-tip">Every new device needs to be connected separately. Your credentials aren't shared between devices automatically — this is what keeps your recipes secure.</div>
+
         <h3>Using without internet</h3>
-        <p>If you lose your connection, the app will keep working using the last version of your recipes that was loaded. You can still browse, search, and even add or edit recipes — any changes you make will be saved and automatically sent to GitHub the next time you're back online. A banner at the top of the page will let you know when you're offline.</p>
-        <div class="info-tip">If your recipes aren't loading, check that your credentials are set up correctly by tapping the 🔑 key icon in the top right.</div>
+        <p>If you lose your connection, the app will keep working using the last version of your recipes that was loaded. You can still browse, search, and even add or edit recipes — any changes will be saved automatically and sent to GitHub the next time you're back online. A banner at the top of the page will let you know when you're offline.</p>
+        <div class="info-tip">If your recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
       </div>
     </div>
     <div class="form-foot">
@@ -1487,32 +1520,25 @@ let currentId = null;
 let editId = null;
 let pendingSync = [];
 let formTags = [];
-// ── EMBEDDED CREDENTIALS (optional) ─────────────────────────────────────
-// Fill these in to give anyone instant access without needing to authenticate.
-// localStorage credentials always take priority if set.
-const EMBEDDED_GIST_ID = '8cadb80652180bc8f64c87c7c72a3c06';
-const EMBEDDED_TOKEN   = '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';
-
 let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
 let showDrafts  = false;
 let bin         = [];
-let undoStack   = []; // [{recipes, bin}, ...]
+let undoStack   = []; // [{recipes, bin}, ...] — global, post-save actions
 let redoStack   = [];
 const MAX_UNDO  = 20;
+let formUndoStack = []; // [{snapshot, description}] — in-form, scoped to edit session
+let formRedoStack = [];
 let groupBy     = null; // null | 'Meal' | 'Cuisine' | 'Type' | 'Cook Time' | 'Serves' | custom
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 function init() {
-  gistId   = localStorage.getItem('gist_id')  || EMBEDDED_GIST_ID;
-  ghToken  = localStorage.getItem('gh_token') || EMBEDDED_TOKEN;
+  gistId  = localStorage.getItem('gist_id')  || '';
+  ghToken = localStorage.getItem('gh_token') || '';
 
-  // Treat un-replaced placeholder values as missing
-  const credsMissing = !gistId || !ghToken
-    || gistId  === 'YOUR_GIST_ID_HERE'
-    || ghToken === 'YOUR_TOKEN_HERE';
+  const credsMissing = !gistId || !ghToken;
   pendingSync = JSON.parse(localStorage.getItem('pending_sync') || '[]');
 
   // Load bin from cache
@@ -1525,16 +1551,21 @@ function init() {
   window.addEventListener('online',  () => { isOnline=true;  updateOfflineBanner(); if(pendingSync.length) syncPending(); });
   window.addEventListener('offline', () => { isOnline=false; updateOfflineBanner(); });
   updateOfflineBanner();
-  updateUndoButtons();
 
   // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z = redo
   document.addEventListener('keydown', e => {
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
-    // Don't fire when typing in an input/textarea
     if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
-    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); }
-    if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redoAction(); }
+    const editOpen = document.getElementById('emodal')?.classList.contains('open');
+    if (e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      editOpen ? formUndo() : undoAction();
+    }
+    if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+      e.preventDefault();
+      editOpen ? formRedo() : redoAction();
+    }
   });
 
   if (credsMissing) {
@@ -1569,19 +1600,11 @@ function updateOfflineBanner() {
   s.classList.toggle('show', !isOnline && pendingSync.length > 0);
 }
 
-// ── UNDO / REDO ───────────────────────────────────────────────────────────
+// ── GLOBAL UNDO / REDO (post-save actions: publish, delete, bin, tag ops) ──
 function pushUndo(prevRecipes, prevBin, description) {
   undoStack.push({ recipes: JSON.parse(JSON.stringify(prevRecipes)), bin: JSON.parse(JSON.stringify(prevBin)), description: description || 'Change' });
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
-  updateUndoButtons();
-}
-
-function updateUndoButtons() {
-  const u = document.getElementById('undo-btn');
-  const r = document.getElementById('redo-btn');
-  if (u) { u.disabled = undoStack.length === 0; u.title = undoStack.length ? `Undo: ${undoStack[undoStack.length-1].description} (⌘Z)` : 'Nothing to undo'; }
-  if (r) { r.disabled = redoStack.length === 0; r.title = redoStack.length ? `Redo: ${redoStack[redoStack.length-1].description} (⌘⇧Z)` : 'Nothing to redo'; }
 }
 
 async function undoAction() {
@@ -1592,7 +1615,7 @@ async function undoAction() {
   bin     = prev.bin;
   normaliseRecipes(recipes);
   isOnline ? await saveToGistSilent() : saveLocallySilent();
-  render(); updateBinBtn(); updateUndoButtons();
+  render(); updateBinBtn();
   toast(`Undone: ${prev.description} ↩`);
 }
 
@@ -1604,7 +1627,7 @@ async function redoAction() {
   bin     = next.bin;
   normaliseRecipes(recipes);
   isOnline ? await saveToGistSilent() : saveLocallySilent();
-  render(); updateBinBtn(); updateUndoButtons();
+  render(); updateBinBtn();
   toast(`Redone: ${next.description} ↪`);
 }
 
@@ -1630,6 +1653,129 @@ async function saveToGistSilent() {
 function saveLocallySilent() {
   localStorage.setItem('recipes_cache', JSON.stringify(recipes));
   localStorage.setItem('bin_cache', JSON.stringify(bin));
+}
+
+// ── IN-FORM UNDO / REDO ───────────────────────────────────────────────────
+// Snapshots serialise the entire edit form state so any change can be undone
+// before the user hits Save. Stack is cleared when the form opens or closes.
+
+function captureFormSnapshot(description) {
+  // Serialise current form state to a plain object
+  const snapshot = {
+    name:    document.getElementById('f-name')?.value   || '',
+    source:  document.getElementById('f-source')?.value || '',
+    youtube: document.getElementById('f-youtube')?.value|| '',
+    notes:   document.getElementById('f-notes')?.value  || '',
+    tags:    [...formTags],
+    hrs:     getWheelVal('wh-hrs'),
+    mins:    getWheelVal('wh-min'),
+    servesMode,
+    srv:     servesMode === 'range'
+             ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
+             : getWheelVal('wh-srv'),
+    scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
+    ingHtml:  document.getElementById('ing-builder')?.innerHTML   || '',
+    methHtml: document.getElementById('method-builder')?.innerHTML|| '',
+  };
+  formUndoStack.push({ snapshot, description: description || 'Change' });
+  if (formUndoStack.length > MAX_UNDO) formUndoStack.shift();
+  formRedoStack = [];
+  updateFormUndoButtons();
+}
+
+function updateFormUndoButtons() {
+  const u = document.getElementById('form-undo-btn');
+  const r = document.getElementById('form-redo-btn');
+  const lbl = document.getElementById('form-undo-label');
+  if (!u || !r) return;
+  u.disabled = formUndoStack.length === 0;
+  r.disabled = formRedoStack.length === 0;
+  if (lbl) {
+    if (formUndoStack.length > 0) {
+      lbl.textContent = `Undo: ${formUndoStack[formUndoStack.length-1].description}`;
+    } else {
+      lbl.textContent = 'No changes yet';
+    }
+  }
+}
+
+function applyFormSnapshot(snapshot) {
+  document.getElementById('f-name').value    = snapshot.name;
+  document.getElementById('f-source').value  = snapshot.source;
+  document.getElementById('f-youtube').value = snapshot.youtube;
+  document.getElementById('f-notes').value   = snapshot.notes;
+  formTags = [...snapshot.tags];
+  renderFormTags();
+  setWheel('wh-hrs', snapshot.hrs);
+  setWheel('wh-min', snapshot.mins);
+  servesMode = snapshot.servesMode;
+  setServesMode(servesMode);
+  if (servesMode === 'range') {
+    setWheel('wh-srv-min', snapshot.srv.min);
+    setWheel('wh-srv-max', snapshot.srv.max);
+  } else {
+    setWheel('wh-srv', snapshot.srv);
+  }
+  const row = document.getElementById('scalable-row');
+  row.classList.toggle('off', !snapshot.scalable);
+  applyScalableUI(snapshot.scalable);
+  document.getElementById('ing-builder').innerHTML    = snapshot.ingHtml;
+  document.getElementById('method-builder').innerHTML = snapshot.methHtml;
+}
+
+function formUndo() {
+  if (!formUndoStack.length) return;
+  const prev = formUndoStack.pop();
+  // Capture current state into redo before restoring
+  formRedoStack.push({
+    snapshot: {
+      name:     document.getElementById('f-name').value,
+      source:   document.getElementById('f-source').value,
+      youtube:  document.getElementById('f-youtube').value,
+      notes:    document.getElementById('f-notes').value,
+      tags:     [...formTags],
+      hrs:      getWheelVal('wh-hrs'),
+      mins:     getWheelVal('wh-min'),
+      servesMode,
+      srv:      servesMode === 'range'
+                ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
+                : getWheelVal('wh-srv'),
+      scalable: !document.getElementById('scalable-row').classList.contains('off'),
+      ingHtml:  document.getElementById('ing-builder').innerHTML,
+      methHtml: document.getElementById('method-builder').innerHTML,
+    },
+    description: prev.description
+  });
+  applyFormSnapshot(prev.snapshot);
+  updateFormUndoButtons();
+  toast(`Undone: ${prev.description} ↩`);
+}
+
+function formRedo() {
+  if (!formRedoStack.length) return;
+  const next = formRedoStack.pop();
+  formUndoStack.push({
+    snapshot: {
+      name:     document.getElementById('f-name').value,
+      source:   document.getElementById('f-source').value,
+      youtube:  document.getElementById('f-youtube').value,
+      notes:    document.getElementById('f-notes').value,
+      tags:     [...formTags],
+      hrs:      getWheelVal('wh-hrs'),
+      mins:     getWheelVal('wh-min'),
+      servesMode,
+      srv:      servesMode === 'range'
+                ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
+                : getWheelVal('wh-srv'),
+      scalable: !document.getElementById('scalable-row').classList.contains('off'),
+      ingHtml:  document.getElementById('ing-builder').innerHTML,
+      methHtml: document.getElementById('method-builder').innerHTML,
+    },
+    description: next.description
+  });
+  applyFormSnapshot(next.snapshot);
+  updateFormUndoButtons();
+  toast(`Redone: ${next.description} ↪`);
 }
 
 // ── GIST ──────────────────────────────────────────────────────────────────
@@ -2221,8 +2367,8 @@ function switchInfoTab(name, btn) {
 }
 
 function openAuth() {
-  document.getElementById('auth-gist').value  = localStorage.getItem('gist_id')  || EMBEDDED_GIST_ID;
-  document.getElementById('auth-token').value = localStorage.getItem('gh_token') || EMBEDDED_TOKEN;
+  document.getElementById('auth-gist').value  = localStorage.getItem('gist_id')  || '';
+  document.getElementById('auth-token').value = localStorage.getItem('gh_token') || '';
   document.getElementById('auth-modal').classList.add('open');
 }
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
@@ -2935,7 +3081,7 @@ function renderViewBody(r) {
   function buildIngRows(items, showSectionTitle, title) {
     let out = '';
     if (showSectionTitle && title)
-      out += `<tr><td colspan="4" style="padding:8px 0.5rem 2px;font-size:0.76rem;font-weight:500;color:var(--ink-muted);font-style:italic">${esc(title)}</td></tr>`;
+      out += `<tr><td colspan="4" style="padding:18px 0.5rem 4px;font-size:0.88rem;font-weight:600;color:var(--ink-mid);font-style:italic">${esc(title)}</td></tr>`;
     items.forEach((item, idx) => {
       // Normalise: support both old `substitute` and new `substitutes`
       const subs = item.substitutes?.length ? item.substitutes
@@ -3278,6 +3424,9 @@ function openAdd() { openEdit(null); }
 
 function openEdit(r) {
   editId = r ? r.id : null;
+  // Clear in-form undo/redo stacks for fresh session
+  formUndoStack = [];
+  formRedoStack = [];
   document.getElementById('form-title').textContent = r ? 'Edit recipe' : 'Add recipe';
   document.getElementById('f-name').value   = r?.name   || '';
   document.getElementById('f-source').value = r?.source || '';
@@ -3319,6 +3468,7 @@ function openEdit(r) {
   else addMethodSection();
 
   document.getElementById('emodal').classList.add('open');
+  updateFormUndoButtons();
 }
 
 function toggleScalable() {
@@ -3340,7 +3490,11 @@ function applyScalableUI(scalable) {
   });
 }
 
-function closeEdit() { document.getElementById('emodal').classList.remove('open'); }
+function closeEdit() {
+  document.getElementById('emodal').classList.remove('open');
+  formUndoStack = [];
+  formRedoStack = [];
+}
 
 async function saveRecipe() {
   const name = document.getElementById('f-name').value.trim();
@@ -3625,12 +3779,13 @@ document.addEventListener('click', e => { if (!e.target.closest('.tags-wrap')) h
 
 // ── INGREDIENT SECTION BUILDER ────────────────────────────────────────────
 function addIngSection(data) {
+  if (!data) captureFormSnapshot('Add ingredient section');
   const block = document.createElement('div');
   block.className = 'ing-sec-block';
   block.innerHTML = `
     <div class="ing-sec-head">
       <input type="text" class="ing-sec-title-inp" placeholder="Section name (e.g. Marinade, Salad, Dressing…)" value="${esc(data?.title||'')}">
-      <button class="del-btn" onclick="this.closest('.ing-sec-block').remove()" title="Remove section">×</button>
+      <button class="del-btn" onclick="confirmRemoveIngSection(this)" title="Remove section">×</button>
     </div>
     <div class="ing-header-card">
       <div class="ing-header-card-inner">
@@ -3811,7 +3966,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
   };
   return `<div class="sub-entry">
     <!-- Corner delete (mobile only) -->
-    <button class="sub-entry-corner-del" onclick="this.closest('.sub-entry').remove();updateSubToggle(this)" title="Remove substitute">×</button>
+    <button class="sub-entry-corner-del" onclick="removeSubEntry(this)" title="Remove substitute">×</button>
 
     <!-- DESKTOP: single head row (name / amt / unit / note / ⊘ / ×) -->
     <div class="sub-entry-head">
@@ -3820,7 +3975,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       ${buildUnitSelect(unit)}
       <input type="text" class="sub-note-inp" placeholder="Note (e.g. use if dairy-free)" value="${esc(sub?.note||'')}">
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
-      <button class="del-btn" onclick="this.closest('.sub-entry').remove();updateSubToggle(this)" style="color:var(--accent-text)">×</button>
+      <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
     </div>
 
     <!-- MOBILE: 3 rows with labels, corner delete -->
@@ -3880,6 +4035,12 @@ function toggleSubNoscale(btn) {
   btn.closest('.sub-entry').querySelector('.sub-overrides').classList.toggle('show', btn.classList.contains('on'));
 }
 
+function removeSubEntry(btn) {
+  captureFormSnapshot('Remove substitute');
+  btn.closest('.sub-entry').remove();
+  updateSubToggle(btn);
+}
+
 function updateSubToggle(el) {
   const wrap   = el.closest('.ing-row-wrap');
   const panel  = wrap?.querySelector('.sub-panel');
@@ -3891,6 +4052,7 @@ function updateSubToggle(el) {
 }
 
 function addIngRow(btn, rowsEl, data) {
+  if (!data) captureFormSnapshot('Add ingredient');
   if (!rowsEl) rowsEl = btn.closest('.ing-sec-block').querySelector('.ing-rows');
   const wrap = document.createElement('div');
   wrap.className = 'ing-row-wrap';
@@ -3905,7 +4067,7 @@ function addIngRow(btn, rowsEl, data) {
 
   wrap.innerHTML = `
     <!-- Corner delete (mobile only, shown via CSS) -->
-    <button class="ing-corner-del" onclick="this.closest('.ing-row-wrap').remove()" title="Remove ingredient">×</button>
+    <button class="ing-corner-del" onclick="removeIngRow(this)" title="Remove ingredient">×</button>
 
     <!-- DESKTOP: header labels + input row -->
     <div class="ing-desktop-header">
@@ -3929,7 +4091,7 @@ function addIngRow(btn, rowsEl, data) {
       <input type="text" class="prep-inp" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
-      <button class="del-btn" onclick="this.closest('.ing-row-wrap').remove()">×</button>
+      <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
 
     <!-- MOBILE: 3 rows with labels, corner delete, no inline × -->
@@ -4002,6 +4164,7 @@ function toggleSubPanel(btn) {
 }
 
 function addSubEntry(btn) {
+  captureFormSnapshot('Add substitute');
   const entries = btn.closest('.sub-panel').querySelector('.sub-entries');
   const div = document.createElement('div');
   div.innerHTML = buildSubEntry(null, null, '');
@@ -4066,12 +4229,13 @@ document.addEventListener('click', e => {
 
 // ── METHOD BUILDER ────────────────────────────────────────────────────────
 function addMethodSection(data) {
+  if (!data) captureFormSnapshot('Add method section');
   const block = document.createElement('div');
   block.className = 'method-sec-block';
   block.innerHTML = `
     <div class="method-sec-head">
       <input type="text" class="msec-title-inp" placeholder="Section name (e.g. Prep, Marinade, Cooking…)" value="${esc(data?.title||'')}">
-      <button class="del-btn" onclick="this.closest('.method-sec-block').remove()">×</button>
+      <button class="del-btn" onclick="confirmRemoveMethodSection(this)">×</button>
     </div>
     <div class="method-steps"></div>
     <div class="method-sec-foot">
@@ -4087,6 +4251,7 @@ function addMethodSection(data) {
 }
 
 function addStep(btn, stepsEl, stepData) {
+  if (!stepData && btn) captureFormSnapshot('Add step');
   if (!stepsEl) stepsEl = btn.closest('.method-sec-block').querySelector('.method-steps');
   const wrap = document.createElement('div');
   wrap.className = 'step-wrap';
@@ -4123,10 +4288,55 @@ function toggleStepNoscale(btn) {
   }
 }
 
+function removeIngRow(btn) {
+  captureFormSnapshot('Remove ingredient');
+  btn.closest('.ing-row-wrap').remove();
+}
+
+function confirmRemoveIngSection(btn) {
+  const block = btn.closest('.ing-sec-block');
+  const hasContent = block.querySelectorAll('.ing-row-wrap').length > 0 &&
+    [...block.querySelectorAll('.ing-row-1 input, .ing-name-mobile')].some(i => i.value.trim());
+  if (!hasContent) { captureFormSnapshot('Remove ingredient section'); block.remove(); return; }
+  showConfirm('Remove ingredient section?',
+    'This section has ingredients in it. Removing it will delete all of them.',
+    [{ label: 'Remove section', danger: true, fn: () => {
+      captureFormSnapshot('Remove ingredient section');
+      block.remove();
+    }}]
+  );
+}
+
+function confirmRemoveMethodSection(btn) {
+  const block = btn.closest('.method-sec-block');
+  const hasContent = [...block.querySelectorAll('.step-text')].some(t => t.value.trim());
+  if (!hasContent) { captureFormSnapshot('Remove method section'); block.remove(); return; }
+  showConfirm('Remove method section?',
+    'This section has steps in it. Removing it will delete all of them.',
+    [{ label: 'Remove section', danger: true, fn: () => {
+      captureFormSnapshot('Remove method section');
+      block.remove();
+    }}]
+  );
+}
+
 function removeStep(btn) {
+  const wrap    = btn.closest('.step-wrap');
   const stepsEl = btn.closest('.method-steps');
-  btn.closest('.step-wrap').remove();
-  stepsEl.querySelectorAll('.step-num-s').forEach((n,i)=>n.textContent=i+1);
+  const text    = wrap.querySelector('.step-text')?.value.trim() || '';
+  if (!text) {
+    captureFormSnapshot('Remove step');
+    wrap.remove();
+    stepsEl.querySelectorAll('.step-num-s').forEach((n,i)=>n.textContent=i+1);
+    return;
+  }
+  showConfirm('Remove this step?', `"${text.length > 60 ? text.slice(0,60)+'…' : text}"`,
+    [{ label: 'Remove step', danger: true, fn: () => {
+      captureFormSnapshot('Remove step');
+      wrap.remove();
+      stepsEl.querySelectorAll('.step-num-s').forEach((n,i)=>n.textContent=i+1);
+    }}]
+  );
 }
 
 // ── WHEELS ────────────────────────────────────────────────────────────────
