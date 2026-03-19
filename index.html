@@ -707,21 +707,26 @@ header{
 .undo-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── IN-FORM UNDO / REDO ── */
-.form-undo-bar{
-  display:flex;align-items:center;gap:6px;
-  padding:0.5rem 1.3rem;border-bottom:1px solid var(--border);
-  background:var(--paper);
+.form-undo-card{
+  display:flex;align-items:center;gap:4px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:3px 6px;background:var(--paper);margin-left:auto;
 }
 .form-undo-btn{
-  background:none;border:1px solid var(--border);color:var(--ink-muted);
-  width:30px;height:30px;border-radius:var(--radius);cursor:pointer;
+  background:none;border:none;color:var(--ink-muted);
+  width:26px;height:26px;border-radius:4px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  transition:all .12s;flex-shrink:0;
+  transition:all .12s;flex-shrink:0;padding:0;
 }
-.form-undo-btn:hover:not(:disabled){border-color:var(--border-mid);color:var(--ink);background:var(--cream)}
+.form-undo-btn:hover:not(:disabled){color:var(--ink);background:var(--cream)}
 .form-undo-btn:disabled{opacity:.3;cursor:default}
 .form-undo-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.form-undo-label{font-size:0.72rem;color:var(--ink-faint);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.form-undo-label{
+  font-size:0.68rem;color:var(--ink-faint);
+  max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 2px;
+}
+@media(max-width:600px){.form-undo-label{display:none}}
 .bin-modal{max-width:600px}
 .bin-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:0.6rem;max-height:65vh;overflow-y:auto}
 .bin-empty{text-align:center;padding:2rem 0;color:var(--ink-faint);font-size:0.9rem}
@@ -1091,23 +1096,22 @@ header{
   <div class="modal">
     <div class="modal-head">
       <h2 id="form-title">Add recipe</h2>
+      <div class="form-undo-card">
+        <button class="form-undo-btn" id="form-undo-btn" onclick="formUndo()" title="Undo (⌘Z)" disabled>
+          <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
+        </button>
+        <span class="form-undo-label" id="form-undo-label"></span>
+        <button class="form-undo-btn" id="form-redo-btn" onclick="formRedo()" title="Redo (⌘⇧Z)" disabled>
+          <svg viewBox="0 0 16 16"><path d="M13 7 L9 3 L9 5.5 C5 5.5 3 7.5 3 11 C4.5 8.5 6.5 7.5 9 7.5 L9 10 Z"/></svg>
+        </button>
+      </div>
       <button class="xbtn" onclick="closeEdit()">✕</button>
-    </div>
-    <!-- In-form undo/redo bar -->
-    <div class="form-undo-bar">
-      <button class="form-undo-btn" id="form-undo-btn" onclick="formUndo()" title="Undo (⌘Z)" disabled>
-        <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
-      </button>
-      <button class="form-undo-btn" id="form-redo-btn" onclick="formRedo()" title="Redo (⌘⇧Z)" disabled>
-        <svg viewBox="0 0 16 16"><path d="M13 7 L9 3 L9 5.5 C5 5.5 3 7.5 3 11 C4.5 8.5 6.5 7.5 9 7.5 L9 10 Z"/></svg>
-      </button>
-      <span class="form-undo-label" id="form-undo-label">No changes yet</span>
     </div>
     <div class="fbody" id="fbody">
 
       <div class="fg">
         <label>Recipe name</label>
-        <input type="text" id="f-name">
+        <input type="text" id="f-name" onblur="captureFormSnapshot('Edit recipe name')">
       </div>
 
       <div class="fg">
@@ -1176,12 +1180,12 @@ header{
 
       <div class="fg">
         <label>Source / URL</label>
-        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe">
+        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe" onblur="captureFormSnapshot('Edit source link')">
       </div>
 
       <div class="fg">
         <label>YouTube reference video <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(optional)</span></label>
-        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…">
+        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
       <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
@@ -1212,7 +1216,7 @@ header{
 
       <div class="fg">
         <label>Notes</label>
-        <textarea id="f-notes" rows="2"></textarea>
+        <textarea id="f-notes" rows="2" onblur="captureFormSnapshot('Edit notes')"></textarea>
       </div>
 
     </div>
@@ -1692,11 +1696,9 @@ function updateFormUndoButtons() {
   u.disabled = formUndoStack.length === 0;
   r.disabled = formRedoStack.length === 0;
   if (lbl) {
-    if (formUndoStack.length > 0) {
-      lbl.textContent = `Undo: ${formUndoStack[formUndoStack.length-1].description}`;
-    } else {
-      lbl.textContent = 'No changes yet';
-    }
+    lbl.textContent = formUndoStack.length > 0
+      ? formUndoStack[formUndoStack.length-1].description
+      : '';
   }
 }
 
@@ -3475,6 +3477,7 @@ function openEdit(r) {
 }
 
 function toggleScalable() {
+  captureFormSnapshot('Toggle scaling');
   const row = document.getElementById('scalable-row');
   const nowOff = !row.classList.contains('off');
   row.classList.toggle('off', nowOff);
@@ -3699,6 +3702,7 @@ function renderFormTags() {
 function addFormTag(raw) {
   const tag = toTitleCase(raw.replace(/,/g,''));
   if (!tag || formTags.map(t=>t.toLowerCase()).includes(tag.toLowerCase())) return;
+  captureFormSnapshot(`Add tag "${tag}"`);
   formTags.push(tag);
   renderFormTags();
   document.getElementById('tag-input').value = '';
@@ -3717,6 +3721,7 @@ function addFormTag(raw) {
 }
 
 function removeFormTag(tag) {
+  captureFormSnapshot(`Remove tag "${tag}"`);
   formTags = formTags.filter(t => t !== tag);
   renderFormTags();
 }
@@ -4423,7 +4428,9 @@ function wheelStart(e, id) {
     if (!wheelDrag[id]?.active) return;
     wheelDrag[id].active = false;
     inner.style.transition = '';
+    const prevVal = getWheelVal(id);
     setWheel(id, items[wheelDrag[id].live].val);
+    if (getWheelVal(id) !== prevVal) captureFormSnapshot('Edit ' + id.replace('wh-','').replace('-',' '));
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onEnd);
     document.removeEventListener('touchmove', onMove);
