@@ -1665,6 +1665,7 @@ function saveLocallySilent() {
 // before the user hits Save. Stack is cleared when the form opens or closes.
 
 let _pendingSnapshot = null; // state captured BEFORE a field edit begins
+let _formApplying = false;  // true during formUndo/formRedo/applyFormSnapshot — suppresses delegation
 
 function _serializeForm() {
   return {
@@ -1686,13 +1687,12 @@ function _serializeForm() {
 }
 
 function preCaptureSnapshot() {
-  // Call on focus/mousedown — stores state BEFORE the user changes it
-  if (formPopulating) return;
+  if (formPopulating || _formApplying) return;
   _pendingSnapshot = _serializeForm();
 }
 
 function captureFormSnapshot(description) {
-  if (formPopulating) return;
+  if (formPopulating || _formApplying) return;
   // Use the pre-captured before-state if available, otherwise capture now
   const snapshot = _pendingSnapshot || _serializeForm();
   _pendingSnapshot = null;
@@ -1717,6 +1717,8 @@ function updateFormUndoButtons() {
 }
 
 function applyFormSnapshot(snapshot) {
+  _formApplying = true;
+  _pendingSnapshot = null;
   document.getElementById('f-name').value    = snapshot.name;
   document.getElementById('f-source').value  = snapshot.source;
   document.getElementById('f-youtube').value = snapshot.youtube;
@@ -1738,59 +1740,29 @@ function applyFormSnapshot(snapshot) {
   applyScalableUI(snapshot.scalable);
   document.getElementById('ing-builder').innerHTML    = snapshot.ingHtml;
   document.getElementById('method-builder').innerHTML = snapshot.methHtml;
+  _formApplying = false;
 }
 
 function formUndo() {
   if (!formUndoStack.length) return;
+  _formApplying = true;
+  _pendingSnapshot = null;
   const prev = formUndoStack.pop();
-  // Capture current state into redo before restoring
-  formRedoStack.push({
-    snapshot: {
-      name:     document.getElementById('f-name').value,
-      source:   document.getElementById('f-source').value,
-      youtube:  document.getElementById('f-youtube').value,
-      notes:    document.getElementById('f-notes').value,
-      tags:     [...formTags],
-      hrs:      getWheelVal('wh-hrs'),
-      mins:     getWheelVal('wh-min'),
-      servesMode,
-      srv:      servesMode === 'range'
-                ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
-                : getWheelVal('wh-srv'),
-      scalable: !document.getElementById('scalable-row').classList.contains('off'),
-      ingHtml:  document.getElementById('ing-builder').innerHTML,
-      methHtml: document.getElementById('method-builder').innerHTML,
-    },
-    description: prev.description
-  });
+  formRedoStack.push({ snapshot: _serializeForm(), description: prev.description });
   applyFormSnapshot(prev.snapshot);
+  _formApplying = false;
   updateFormUndoButtons();
   toast(`Undone: ${prev.description} ↩`);
 }
 
 function formRedo() {
   if (!formRedoStack.length) return;
+  _formApplying = true;
+  _pendingSnapshot = null;
   const next = formRedoStack.pop();
-  formUndoStack.push({
-    snapshot: {
-      name:     document.getElementById('f-name').value,
-      source:   document.getElementById('f-source').value,
-      youtube:  document.getElementById('f-youtube').value,
-      notes:    document.getElementById('f-notes').value,
-      tags:     [...formTags],
-      hrs:      getWheelVal('wh-hrs'),
-      mins:     getWheelVal('wh-min'),
-      servesMode,
-      srv:      servesMode === 'range'
-                ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
-                : getWheelVal('wh-srv'),
-      scalable: !document.getElementById('scalable-row').classList.contains('off'),
-      ingHtml:  document.getElementById('ing-builder').innerHTML,
-      methHtml: document.getElementById('method-builder').innerHTML,
-    },
-    description: next.description
-  });
+  formUndoStack.push({ snapshot: _serializeForm(), description: next.description });
   applyFormSnapshot(next.snapshot);
+  _formApplying = false;
   updateFormUndoButtons();
   toast(`Redone: ${next.description} ↪`);
 }
@@ -4228,9 +4200,7 @@ function toggleIngNoscale(btn) {
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
     const first = noteRow.querySelector('input');
-    // Use setTimeout so focus fires after current event cycle — prevents
-    // focusin delegation from setting a spurious _pendingSnapshot
-    if (first) setTimeout(() => { _pendingSnapshot = null; first.focus(); }, 0);
+    if (first) { _pendingSnapshot = null; first.focus(); }
   }
 }
 
@@ -4337,7 +4307,7 @@ function toggleStepNoscale(btn) {
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
     const first = noteRow.querySelector('input');
-    if (first) setTimeout(() => { _pendingSnapshot = null; first.focus(); }, 0);
+    if (first) { _pendingSnapshot = null; first.focus(); }
   }
 }
 
