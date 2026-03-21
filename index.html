@@ -231,8 +231,9 @@ header{
 .ing-sec-title-view{font-size:0.88rem;font-weight:600;color:var(--ink-mid);font-style:italic;margin:18px 0 4px;padding-left:2px}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
-.ing-table td{padding:5px 0.5rem;color:var(--ink-mid);vertical-align:top}
-.ing-table td:first-child{color:var(--ink)}
+.ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top}
+.ing-table td:first-child{color:var(--ink);font-weight:500}
+.ing-table tr:first-child td{padding-top:2px}
 /* no-scale in view — shown only when scaled (driven by data-scaled on vbody) */
 .noscale-note-view{font-size:0.73rem;color:var(--warning);padding:1px 0.5rem 5px;font-style:italic;display:none}
 .vbody[data-scaled="1"] .noscale-note-view{display:table-row}
@@ -2701,9 +2702,9 @@ function getServesMax(serves) {
 function fmtServes(serves) {
   if (serves == null) return '';
   if (typeof serves === 'object' && serves.min != null && serves.max != null && serves.min !== serves.max)
-    return `${serves.min}–${serves.max} serves`;
+    return `${serves.min}–${serves.max}`;
   const n = typeof serves === 'object' ? (serves.min ?? serves.max) : serves;
-  return n != null ? `${n} serves` : '';
+  return n != null ? `${n}` : '';
 }
 
 function setServesMode(mode) {
@@ -3218,7 +3219,7 @@ function renderViewBody(r) {
     ingHtml = `<div class="view-sec">
       <div class="vsec-lbl" style="display:flex;align-items:center">Ingredients${scaleNote}${toggleBtn}</div>
       <table class="ing-table" id="ing-view-table">
-        <thead><tr><th>Ingredient</th><th>Quantity</th><th>Prep</th><th style="text-align:center;width:28px" title="Substitutes">⇄</th></tr></thead>
+        <thead style="display:none"></thead>
         <tbody id="ing-view-body" data-sectioned="${esc(JSON.stringify(sectionedRows))}" data-full="${esc(JSON.stringify(buildFullList()))}">${sectionedRows}</tbody>
       </table>
     </div>`;
@@ -3505,7 +3506,10 @@ function closeEdit(force) {
   if (!force && formUndoStack.length > 0) {
     showConfirm('Discard changes?',
       'You have unsaved changes. If you close now they will be lost.',
-      [{ label: 'Discard changes', danger: true, fn: () => closeEdit(true) }]
+      [
+        { label: 'Save recipe', danger: false, fn: async () => { await saveRecipe(); } },
+        { label: 'Discard changes', danger: true, fn: () => closeEdit(true) }
+      ]
     );
     return;
   }
