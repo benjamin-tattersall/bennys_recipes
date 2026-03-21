@@ -3136,7 +3136,7 @@ function renderViewBody(r) {
         : `${esc(item.name||'')}`;
 
       // Sub column — ⇄ button only if substitutes exist
-      const subsJson = esc(JSON.stringify(subs.map(s => ({ name: s.name || '' }))));
+      const subsJson = esc(JSON.stringify(subs.map(s => ({ name: s.name || '', note: s.note || '' }))));
       const subCol = subs.length
         ? `<td style="text-align:center;padding:5px 2px">
             <button class="sub-col-btn${showSub?' active':''}"
