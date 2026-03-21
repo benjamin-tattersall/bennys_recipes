@@ -255,7 +255,7 @@ header{
 /* ── FORM ── */
 .fbody{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem;max-height:76vh;overflow-y:auto}
 .fg{display:flex;flex-direction:column;gap:0.3rem}
-.fg label{font-size:0.73rem;font-weight:500;color:var(--ink-muted)}
+.fg label{font-size:0.82rem;font-weight:600;color:var(--ink-mid)}
 .fg input,.fg textarea,.fg select{
   border:1px solid var(--border);border-radius:var(--radius);
   padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;
@@ -4228,7 +4228,9 @@ function toggleIngNoscale(btn) {
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
     const first = noteRow.querySelector('input');
-    if (first) first.focus();
+    // Use setTimeout so focus fires after current event cycle — prevents
+    // focusin delegation from setting a spurious _pendingSnapshot
+    if (first) setTimeout(() => { _pendingSnapshot = null; first.focus(); }, 0);
   }
 }
 
@@ -4335,7 +4337,7 @@ function toggleStepNoscale(btn) {
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
     const first = noteRow.querySelector('input');
-    if (first) first.focus();
+    if (first) setTimeout(() => { _pendingSnapshot = null; first.focus(); }, 0);
   }
 }
 
