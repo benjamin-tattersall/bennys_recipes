@@ -558,7 +558,20 @@ header{
 .scalable-toggle-row.off .stoggle-pip::after{transform:none}
 .scalable-toggle-row:not(.off) .stoggle-pip::after{transform:translateX(14px)}
 
-/* ── SUBSTITUTE INGREDIENTS ── */
+/* ── MANUAL UNIT ENTRY ── */
+.unit-manual-wrap{display:flex;align-items:center;gap:3px;min-width:0;width:100%}
+.unit-manual-wrap .unit-manual{
+  flex:1;min-width:0;border:1px solid var(--accent);border-radius:6px;
+  padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;
+  color:var(--ink);background:var(--cream);outline:none;
+}
+.unit-back-btn{
+  flex-shrink:0;background:none;border:1px solid var(--border);
+  border-radius:5px;cursor:pointer;color:var(--ink-faint);
+  font-size:0.8rem;padding:2px 6px;line-height:1.4;
+  font-family:'Instrument Sans',sans-serif;transition:all .12s;
+}
+.unit-back-btn:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
 .sub-toggle{
   display:flex;align-items:center;justify-content:center;
   background:none;border:1px solid var(--border);border-radius:5px;
@@ -688,13 +701,15 @@ header{
   min-width:180px;max-width:260px;
 }
 .sub-chooser-item{
-  display:flex;align-items:center;gap:6px;padding:6px 10px;
+  display:flex;align-items:flex-start;gap:6px;padding:6px 10px;
   border-radius:var(--radius);font-family:'Instrument Sans',sans-serif;
   font-size:0.82rem;color:var(--ink-mid);cursor:pointer;transition:background .1s;
 }
 .sub-chooser-item:hover{background:var(--paper);color:var(--ink)}
 .sub-chooser-item.active{background:var(--accent-light);color:var(--accent-text);font-weight:500}
-.sub-chooser-item .sub-chooser-icon{font-size:0.75rem;opacity:.6}
+.sub-chooser-item .sub-chooser-icon{font-size:0.75rem;opacity:.6;margin-top:2px;flex-shrink:0}
+.sub-chooser-item-body{display:flex;flex-direction:column;gap:1px}
+.sub-chooser-item-note{font-size:0.72rem;color:var(--ink-faint);font-weight:400}
 
 /* ── UNDO / REDO ── */
 .undo-btn{
@@ -2976,13 +2991,17 @@ function openSubChooser(btn, itemKey, subs) {
   const currentIdx = subToggledMap[itemKey];
 
   chooser.innerHTML = [
-    { label: 'Original recipe', idx: undefined },
-    ...subs.map((s, i) => ({ label: s.name || `Substitute ${i+1}`, idx: i }))
-  ].map(({ label, idx }) => {
+    { label: 'Original recipe', note: '', idx: undefined },
+    ...subs.map((s, i) => ({ label: s.name || `Substitute ${i+1}`, note: s.note || '', idx: i }))
+  ].map(({ label, note, idx }) => {
     const isActive = currentIdx === idx;
+    const noteHtml = note ? `<span class="sub-chooser-item-note">${esc(note)}</span>` : '';
     return `<div class="sub-chooser-item${isActive?' active':''}" onclick="selectSubFromChooser('${itemKey}',${idx === undefined ? 'undefined' : idx})">
       <span class="sub-chooser-icon">${isActive ? '✓' : (idx === undefined ? '○' : '⇄')}</span>
-      ${esc(label)}
+      <div class="sub-chooser-item-body">
+        <span>${esc(label)}</span>
+        ${noteHtml}
+      </div>
     </div>`;
   }).join('');
 
@@ -3860,32 +3879,34 @@ function buildUnitSelect(selected) {
 
 function handleUnitChange(sel) {
   sel.classList.toggle('has-val', !!sel.value && sel.value !== '__manual__');
-  if (sel.value === '__manual__') {
-    const wrap = sel.closest('.ing-fields');
-    // replace select with text input
-    const manualInput = document.createElement('input');
-    manualInput.type = 'text';
-    manualInput.className = 'unit-manual';
-    manualInput.placeholder = 'unit';
-    manualInput.style.cssText = 'border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0';
-    const backBtn = document.createElement('button');
-    backBtn.textContent = '×';
-    backBtn.title = 'Back to dropdown';
-    backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
-    backBtn.onclick = () => switchUnitToDropdown(backBtn);
-    sel.replaceWith(manualInput);
-    wrap.insertBefore(backBtn, manualInput.nextSibling);
-    manualInput.focus();
-  }
+  if (sel.value !== '__manual__') return;
+  // Replace select with: [text input] [× back button] inline
+  const manualInput = document.createElement('input');
+  manualInput.type = 'text';
+  manualInput.className = 'unit-manual';
+  manualInput.placeholder = 'type unit…';
+  // Inherit the select's computed style context by matching its width
+  manualInput.style.cssText = 'min-width:0;width:100%;box-sizing:border-box;';
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.innerHTML = '&larr;';
+  backBtn.title = 'Back to unit list';
+  backBtn.className = 'unit-back-btn';
+  backBtn.onclick = () => switchUnitToDropdown(backBtn);
+  // Wrap both in a flex container that takes the select's place
+  const wrap = document.createElement('div');
+  wrap.className = 'unit-manual-wrap';
+  wrap.appendChild(manualInput);
+  wrap.appendChild(backBtn);
+  sel.replaceWith(wrap);
+  manualInput.focus();
 }
 
 function switchUnitToDropdown(btn) {
-  const wrap = btn.closest('.ing-fields');
-  const manualInput = wrap.querySelector('.unit-manual');
+  const wrap = btn.closest('.unit-manual-wrap');
   const newSel = document.createElement('select');
   newSel.className = 'unit-sel';
   newSel.onchange = function(){ handleUnitChange(this); };
-  const activeUnits = getActiveUnits();
   newSel.innerHTML = `<option value="">— none —</option>` +
     Object.entries(UNIT_GROUPS).map(([grp, units]) => {
       const active = units.filter(u => !RETIRED_UNITS.includes(u));
@@ -3893,8 +3914,7 @@ function switchUnitToDropdown(btn) {
       return `<optgroup label="${grp}">${active.map(u => `<option value="${u}">${u}</option>`).join('')}</optgroup>`;
     }).join('') +
     `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
-  manualInput.replaceWith(newSel);
-  btn.remove();
+  wrap.replaceWith(newSel);
 }
 
 function calcOverridePlaceholder(amount, unit, factor) {
@@ -3941,27 +3961,28 @@ function buildOverrideUnitSelect(selected, origUnit) {
 
 function handleOvUnitChange(sel) {
   sel.style.color = sel.value && sel.value !== '__manual__' ? 'var(--ink)' : 'var(--ink-faint)';
-  if (sel.value === '__manual__') {
-    const row = sel.closest('.scale-override-row');
-    const manualInput = document.createElement('input');
-    manualInput.type = 'text';
-    manualInput.className = 'unit-manual ov-unit-manual';
-    manualInput.placeholder = 'unit';
-    manualInput.style.cssText = 'border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;min-width:0';
-    const backBtn = document.createElement('button');
-    backBtn.textContent = '×';
-    backBtn.title = 'Back to dropdown';
-    backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
-    backBtn.onclick = () => switchOvUnitToDropdown(backBtn);
-    sel.replaceWith(manualInput);
-    row.appendChild(backBtn);
-    manualInput.focus();
-  }
+  if (sel.value !== '__manual__') return;
+  const manualInput = document.createElement('input');
+  manualInput.type = 'text';
+  manualInput.className = 'unit-manual ov-unit-manual';
+  manualInput.placeholder = 'type unit…';
+  manualInput.style.cssText = 'min-width:0;width:100%;box-sizing:border-box;';
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.innerHTML = '&larr;';
+  backBtn.title = 'Back to unit list';
+  backBtn.className = 'unit-back-btn';
+  backBtn.onclick = () => switchOvUnitToDropdown(backBtn);
+  const wrap = document.createElement('div');
+  wrap.className = 'unit-manual-wrap';
+  wrap.appendChild(manualInput);
+  wrap.appendChild(backBtn);
+  sel.replaceWith(wrap);
+  manualInput.focus();
 }
 
 function switchOvUnitToDropdown(btn) {
-  const row = btn.closest('.scale-override-row');
-  const manualInput = row.querySelector('.ov-unit-manual');
+  const wrap = btn.closest('.unit-manual-wrap');
   const newSel = document.createElement('select');
   newSel.className = 'ov-unit-sel';
   newSel.style.cssText = 'border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink-faint);background:var(--warning-bg);outline:none;width:100%;cursor:pointer';
@@ -3974,8 +3995,7 @@ function switchOvUnitToDropdown(btn) {
   }).join('');
   opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
   newSel.innerHTML = opts;
-  manualInput.replaceWith(newSel);
-  btn.remove();
+  wrap.replaceWith(newSel);
 }
 
 function buildSubEntry(sub, parentAmt, parentUnit) {
@@ -3997,7 +4017,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
       <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
       ${buildUnitSelect(unit)}
-      <input type="text" class="sub-note-inp" placeholder="Note (e.g. use if dairy-free)" value="${esc(sub?.note||'')}">
+      <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free alternative)" value="${esc(sub?.note||'')}">
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
     </div>
@@ -4023,8 +4043,8 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <!-- Row 3: Note + ⊘ button -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field">
-          <div class="sub-mobile-lbl">Note (optional)</div>
-          <input type="text" class="sub-note-mobile" placeholder="e.g. use if dairy-free" value="${esc(sub?.note||'')}">
+          <div class="sub-mobile-lbl">Reason (optional)</div>
+          <input type="text" class="sub-note-mobile" placeholder="Reason (e.g. dairy-free alternative)" value="${esc(sub?.note||'')}">
         </div>
         <div class="sub-mobile-btn-group">
           <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleSubNoscale(this)">⊘</button>
