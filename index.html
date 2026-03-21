@@ -594,7 +594,7 @@ header{
   position:relative; /* for corner delete on mobile */
 }
 .sub-entry-head{
-  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1.4fr) auto auto;
+  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto auto;
   gap:0.35rem;align-items:center;padding:5px 6px;
 }
 .sub-entry-head input,.sub-entry-head select{
@@ -3005,12 +3005,12 @@ function openSubChooser(btn, itemKey, subs) {
     </div>`;
   }).join('');
 
-  // Position near the button
+  // Position near the button (position:fixed so use viewport coords only)
   const rect = btn.getBoundingClientRect();
   chooser.style.display = 'block';
   const ch = chooser.offsetHeight;
   const spaceBelow = window.innerHeight - rect.bottom;
-  chooser.style.top  = spaceBelow > ch + 8 ? `${rect.bottom + window.scrollY + 4}px` : `${rect.top + window.scrollY - ch - 4}px`;
+  chooser.style.top  = spaceBelow > ch + 8 ? `${rect.bottom + 4}px` : `${rect.top - ch - 4}px`;
   chooser.style.left = `${Math.min(rect.left, window.innerWidth - 270)}px`;
 }
 
@@ -3156,11 +3156,7 @@ function renderViewBody(r) {
         : '';
 
       // Sub note
-      const subNoteRow = activeSub?.note
-        ? `<tr><td colspan="4" class="sub-note-view">${esc(activeSub.note)}</td></tr>`
-        : '';
-
-      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? '' : (item.prep||''))}</td>${subCol}</tr>${noteRow}${subNoteRow}`;
+      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${subCol}</tr>${noteRow}`;
     });
     return out;
   }
@@ -3603,15 +3599,18 @@ async function saveRecipe() {
           const mobileSubNote = entry.querySelector('.sub-note-mobile');
           const desktopSubNote = entry.querySelector('.sub-note-inp');
           if (mobileSubNote?.value.trim()) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
+          const mobileSubPrep = entry.querySelector('.sub-prep-mobile');
+          const desktopSubPrep = entry.querySelector('.sub-prep-inp');
+          if (mobileSubPrep?.value.trim()) desktopSubPrep && (desktopSubPrep.value = mobileSubPrep.value.trim());
 
           const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
           if (!sName) return;
           const sAmt  = desktopSubAmt?.value.trim() || mobileSubAmt?.value.trim() || '';
-          // Unit select is shared — pick the one in the sub-entry-head first, else sub-entry-mobile
           const sSel  = entry.querySelector('.sub-entry-head .unit-sel')
                      || entry.querySelector('.sub-entry-mobile .unit-sel');
           const sUnit = sSel?.value || '';
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
+          const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
           const sNs   = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
           const readSubOv = (cls) => {
             const amtEl = entry.querySelector(`.${cls}-amt`);
@@ -3625,6 +3624,7 @@ async function saveRecipe() {
             name:   toTitleCase(sName),
             amount: sAmt ? parseFloat(sAmt) : null,
             unit:   sUnit,
+            prep:   sPrep,
             note:   sNote,
             noscale: sNs,
             scaleOverrides: sNs ? {
@@ -4012,17 +4012,18 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     <!-- Corner delete (mobile only) -->
     <button class="sub-entry-corner-del" onclick="removeSubEntry(this)" title="Remove substitute">×</button>
 
-    <!-- DESKTOP: single head row (name / amt / unit / note / ⊘ / ×) -->
+    <!-- DESKTOP: single head row (name / amt / unit / prep / reason / ⊘ / ×) -->
     <div class="sub-entry-head">
       <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
       <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
       ${buildUnitSelect(unit)}
-      <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free alternative)" value="${esc(sub?.note||'')}">
+      <input type="text" class="sub-prep-inp" placeholder="Prep (e.g. diced)" value="${esc(sub?.prep||'')}">
+      <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free)" value="${esc(sub?.note||'')}">
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
     </div>
 
-    <!-- MOBILE: 3 rows with labels, corner delete -->
+    <!-- MOBILE: rows with labels, corner delete -->
     <div class="sub-entry-mobile">
       <!-- Row 1: Name -->
       <div class="sub-mobile-field sub-mobile-row1">
@@ -4040,15 +4041,20 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
           ${buildUnitSelect(unit)}
         </div>
       </div>
-      <!-- Row 3: Note + ⊘ button -->
+      <!-- Row 3: Prep + ⊘ button -->
       <div class="sub-mobile-row3">
-        <div class="sub-mobile-field">
-          <div class="sub-mobile-lbl">Reason (optional)</div>
-          <input type="text" class="sub-note-mobile" placeholder="Reason (e.g. dairy-free alternative)" value="${esc(sub?.note||'')}">
+        <div class="sub-mobile-field" style="flex:1;min-width:0">
+          <div class="sub-mobile-lbl">Prep (optional)</div>
+          <input type="text" class="sub-prep-mobile" placeholder="e.g. diced" value="${esc(sub?.prep||'')}">
         </div>
         <div class="sub-mobile-btn-group">
           <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleSubNoscale(this)">⊘</button>
         </div>
+      </div>
+      <!-- Row 4: Reason (full width, no buttons) -->
+      <div class="sub-mobile-field">
+        <div class="sub-mobile-lbl">Reason (optional)</div>
+        <input type="text" class="sub-note-mobile" placeholder="e.g. dairy-free alternative" value="${esc(sub?.note||'')}">
       </div>
     </div>
 
