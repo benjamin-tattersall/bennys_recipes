@@ -335,8 +335,8 @@ header{
 .ing-builder{display:flex;flex-direction:column;gap:1rem}
 .ing-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .ing-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
-.ing-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;color:var(--ink-mid)}
-.ing-sec-head input::placeholder{color:var(--ink-faint)}
+.ing-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.92rem;font-weight:600;color:var(--ink-mid)}
+.ing-sec-head input::placeholder{color:var(--ink-faint);font-weight:400}
 .ing-rows{padding:0.45rem 0.5rem;display:flex;flex-direction:column;gap:0.55rem}
 
 /* shared card wrapper */
@@ -488,8 +488,8 @@ header{
 .method-builder{display:flex;flex-direction:column;gap:1rem}
 .method-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .method-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
-.method-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:500;color:var(--ink-mid)}
-.method-sec-head input::placeholder{color:var(--ink-faint)}
+.method-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.92rem;font-weight:600;color:var(--ink-mid)}
+.method-sec-head input::placeholder{color:var(--ink-faint);font-weight:400}
 .method-steps{padding:0.4rem 0.5rem;display:flex;flex-direction:column;gap:0.35rem}
 .step-row{display:flex;align-items:flex-start;gap:0.45rem}
 .step-num-s{min-width:19px;height:19px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.63rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:5px}
@@ -1111,7 +1111,7 @@ header{
 
       <div class="fg">
         <label>Recipe name</label>
-        <input type="text" id="f-name" onblur="captureFormSnapshot('Edit recipe name')">
+        <input type="text" id="f-name" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit recipe name')">
       </div>
 
       <div class="fg">
@@ -1180,12 +1180,12 @@ header{
 
       <div class="fg">
         <label>Source / URL</label>
-        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe" onblur="captureFormSnapshot('Edit source link')">
+        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit source link')">
       </div>
 
       <div class="fg">
         <label>YouTube reference video <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(optional)</span></label>
-        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onblur="captureFormSnapshot('Edit YouTube link')">
+        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
       <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
@@ -1216,7 +1216,7 @@ header{
 
       <div class="fg">
         <label>Notes</label>
-        <textarea id="f-notes" rows="2" onblur="captureFormSnapshot('Edit notes')"></textarea>
+        <textarea id="f-notes" rows="2" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit notes')"></textarea>
       </div>
 
     </div>
@@ -1664,24 +1664,38 @@ function saveLocallySilent() {
 // Snapshots serialise the entire edit form state so any change can be undone
 // before the user hits Save. Stack is cleared when the form opens or closes.
 
-function captureFormSnapshot(description) {
-  if (formPopulating) return; // never snapshot during initial population
-  const snapshot = {
-    name:    document.getElementById('f-name')?.value   || '',
-    source:  document.getElementById('f-source')?.value || '',
-    youtube: document.getElementById('f-youtube')?.value|| '',
-    notes:   document.getElementById('f-notes')?.value  || '',
-    tags:    [...formTags],
-    hrs:     getWheelVal('wh-hrs'),
-    mins:    getWheelVal('wh-min'),
+let _pendingSnapshot = null; // state captured BEFORE a field edit begins
+
+function _serializeForm() {
+  return {
+    name:     document.getElementById('f-name')?.value    || '',
+    source:   document.getElementById('f-source')?.value  || '',
+    youtube:  document.getElementById('f-youtube')?.value || '',
+    notes:    document.getElementById('f-notes')?.value   || '',
+    tags:     [...formTags],
+    hrs:      getWheelVal('wh-hrs'),
+    mins:     getWheelVal('wh-min'),
     servesMode,
-    srv:     servesMode === 'range'
-             ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
-             : getWheelVal('wh-srv'),
+    srv:      servesMode === 'range'
+              ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
+              : getWheelVal('wh-srv'),
     scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
-    ingHtml:  document.getElementById('ing-builder')?.innerHTML   || '',
-    methHtml: document.getElementById('method-builder')?.innerHTML|| '',
+    ingHtml:  document.getElementById('ing-builder')?.innerHTML    || '',
+    methHtml: document.getElementById('method-builder')?.innerHTML || '',
   };
+}
+
+function preCaptureSnapshot() {
+  // Call on focus/mousedown — stores state BEFORE the user changes it
+  if (formPopulating) return;
+  _pendingSnapshot = _serializeForm();
+}
+
+function captureFormSnapshot(description) {
+  if (formPopulating) return;
+  // Use the pre-captured before-state if available, otherwise capture now
+  const snapshot = _pendingSnapshot || _serializeForm();
+  _pendingSnapshot = null;
   formUndoStack.push({ snapshot, description: description || 'Change' });
   if (formUndoStack.length > MAX_UNDO) formUndoStack.shift();
   formRedoStack = [];
@@ -3472,6 +3486,25 @@ function openEdit(r) {
   else addMethodSection();
   formPopulating = false;
 
+  document.getElementById('ing-builder').addEventListener('focusin', e => {
+    const inp = e.target.closest('input, textarea, select');
+    if (inp && !inp.closest('.ing-name-sugs')) preCaptureSnapshot();
+  });
+  document.getElementById('ing-builder').addEventListener('focusout', e => {
+    const inp = e.target.closest('input, textarea, select');
+    if (inp && !inp.closest('.ing-name-sugs') && _pendingSnapshot) {
+      captureFormSnapshot('Edit ingredient');
+    }
+  });
+  document.getElementById('method-builder').addEventListener('focusin', e => {
+    if (e.target.closest('input, textarea, select')) preCaptureSnapshot();
+  });
+  document.getElementById('method-builder').addEventListener('focusout', e => {
+    if (e.target.closest('input, textarea, select') && _pendingSnapshot) {
+      captureFormSnapshot('Edit method step');
+    }
+  });
+
   document.getElementById('emodal').classList.add('open');
   updateFormUndoButtons();
 }
@@ -4046,6 +4079,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
 }
 
 function toggleSubNoscale(btn) {
+  captureFormSnapshot(btn.classList.contains('on') ? 'Remove substitute scale override' : 'Add substitute scale override');
   btn.classList.toggle('on');
   btn.closest('.sub-entry').querySelector('.sub-overrides').classList.toggle('show', btn.classList.contains('on'));
 }
@@ -4166,20 +4200,20 @@ function addIngRow(btn, rowsEl, data) {
 }
 
 function toggleSubPanel(btn) {
+  captureFormSnapshot(btn.classList.contains('on') ? 'Remove substitutes' : 'Add substitutes');
   btn.classList.toggle('on');
   const panel = btn.closest('.ing-row-wrap').querySelector('.sub-panel');
   panel.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
     const entries = panel.querySelector('.sub-entries');
     if (!entries.querySelector('.sub-entry')) {
-      // Auto-add first entry
-      addSubEntry(panel.querySelector('.add-sub-btn'));
+      addSubEntry(panel.querySelector('.add-sub-btn'), true);
     }
   }
 }
 
-function addSubEntry(btn) {
-  captureFormSnapshot('Add substitute');
+function addSubEntry(btn, skipSnapshot) {
+  if (!skipSnapshot) captureFormSnapshot('Add substitute');
   const entries = btn.closest('.sub-panel').querySelector('.sub-entries');
   const div = document.createElement('div');
   div.innerHTML = buildSubEntry(null, null, '');
@@ -4188,6 +4222,7 @@ function addSubEntry(btn) {
 }
 
 function toggleIngNoscale(btn) {
+  captureFormSnapshot(btn.classList.contains('on') ? 'Remove scale override' : 'Add scale override');
   btn.classList.toggle('on');
   const noteRow = btn.closest('.ing-row-wrap').querySelector('.noscale-note-row');
   noteRow.classList.toggle('show', btn.classList.contains('on'));
@@ -4294,6 +4329,7 @@ function addStep(btn, stepsEl, stepData) {
 }
 
 function toggleStepNoscale(btn) {
+  captureFormSnapshot(btn.classList.contains('on') ? 'Remove step scale override' : 'Add step scale override');
   btn.classList.toggle('on');
   const noteRow = btn.closest('.step-wrap').querySelector('.noscale-note-row');
   noteRow.classList.toggle('show', btn.classList.contains('on'));
@@ -4401,6 +4437,7 @@ function getWheelVal(id) { return parseInt(document.getElementById(id).dataset.v
 
 function wheelStart(e, id) {
   e.preventDefault();
+  preCaptureSnapshot(); // capture state BEFORE wheel changes
   const outer = document.getElementById(id);
   const suffix = id.slice(3); // 'wh-srv-min' → 'srv-min'
   const inner = document.getElementById('wi-'+suffix);
@@ -4428,9 +4465,12 @@ function wheelStart(e, id) {
     if (!wheelDrag[id]?.active) return;
     wheelDrag[id].active = false;
     inner.style.transition = '';
-    const prevVal = getWheelVal(id);
-    setWheel(id, items[wheelDrag[id].live].val);
-    if (getWheelVal(id) !== prevVal) captureFormSnapshot('Edit ' + id.replace('wh-','').replace('-',' '));
+    const newVal = items[wheelDrag[id].live].val;
+    const oldVal = _pendingSnapshot ? _pendingSnapshot.hrs ?? _pendingSnapshot.mins ?? _pendingSnapshot.srv : null;
+    setWheel(id, newVal);
+    // Commit snapshot with descriptive label — _pendingSnapshot set by wheelStart
+    const labelMap = { 'wh-hrs':'Cook time (hours)', 'wh-min':'Cook time (minutes)', 'wh-srv':'Serves', 'wh-srv-min':'Serves (min)', 'wh-srv-max':'Serves (max)' };
+    captureFormSnapshot(labelMap[id] || 'Edit wheel');
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onEnd);
     document.removeEventListener('touchmove', onMove);
