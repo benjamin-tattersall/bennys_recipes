@@ -1640,22 +1640,214 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.54';
+const APP_VERSION = '0.56';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
   {
-    version: '0.54',
-    title: 'Export, backups & more',
+    version: '0.56',
+    title: 'Changelog history & duplicate cancel fix',
     items: [
-      'Download your recipes as a readable text file, markdown, CSV spreadsheet, or full Gist backup',
-      'Auto-backup files (backup.txt and backup.csv) now written to your Gist on every save',
-      'Warning shown when saving a recipe with a filled ingredient row missing its name',
-      'New version number shown in the header — and this What\'s New panel',
-      'Substitutes: chooser now shows the reason/note for each option',
-      'Substitute ingredients now support their own Prep field',
-      'Info tab overhauled: new Substitutes tab, promotional language removed, export guide added',
-      'Undo/redo card moved into the edit modal header',
+      'Full version history added to the What\'s New tab — scroll down to see all previous updates',
+      'Duplicate "Cancel" button removed from the unnamed ingredient save warning',
+    ]
+  },
+  {
+    version: '0.55',
+    title: 'What\'s New tab & polish',
+    items: [
+      'Version info and changelog moved from header to a dedicated "What\'s New" tab in the info modal',
+      'On first load of a new version, the info modal opens automatically on the What\'s New tab',
+      'What\'s New tab appears bold when you haven\'t viewed it yet',
+      'Save warning for unnamed ingredients now shows "Save anyway" and "Cancel" (no duplicate button)',
+    ]
+  },
+  {
+    version: '0.54',
+    title: 'Export, backups & versioning',
+    items: [
+      'Download your recipes as text, markdown, CSV spreadsheet, or full Gist backup',
+      'Auto-backup files (backup.txt and backup.csv) written to your Gist on every save',
+      'Full Gist backup export — restores recipes, bin and settings to a new Gist',
+      'Save warning when an ingredient row has data but no name',
+      'App version number and What\'s New system introduced',
+    ]
+  },
+  {
+    version: '0.53',
+    title: 'Substitute polish & info tab overhaul',
+    items: [
+      'Substitute chooser popup now shows the reason/note beneath each option',
+      'Substitute ingredients now have their own Prep field (separate from reason)',
+      'Chooser positioning fixed on iPhone — popup now appears correctly next to the ⇄ button',
+      'Info modal overhauled: new Substitutes tab, Export tab, promotional language removed throughout',
+      'Ingredient ghost card headers cleaned up — "Prep (opt.)" renamed to "Prep"',
+    ]
+  },
+  {
+    version: '0.52',
+    title: 'Form improvements & backup foundation',
+    items: [
+      'Manual unit entry fixed — selecting "Type manually…" shows a text input with a ← back button to restore the dropdown',
+      'Same fix applied to scale override unit fields',
+      'Substitute note field relabelled "Reason (optional)" throughout',
+      '"Save Changes" option added to the Discard Changes prompt',
+      'Backup file infrastructure added to Gist saves',
+    ]
+  },
+  {
+    version: '0.51',
+    title: 'Info tab, mobile polish & quick wins',
+    items: [
+      'Ingredient column headers hidden on mobile (each card has its own inline labels)',
+      'Wheel padding added on mobile — easier to scroll the form without accidentally moving the cook time or serves wheels',
+      'Gist auto-backup on every save (backup.txt and backup.csv)',
+      'Info tab rewritten: Substitutes tab added, tone cleaned up, no more promotional language',
+      '"(optional)" labels removed from form fields',
+    ]
+  },
+  {
+    version: '0.50',
+    title: 'Substitute prep field & chooser fixes',
+    items: [
+      'Substitutes now support a Prep field alongside the Reason field',
+      'Substitute chooser note was not appearing due to data-subs only storing name — fixed to include note',
+      'Italic reason annotation removed from recipe view (name change is sufficient indicator)',
+    ]
+  },
+  {
+    version: '0.49',
+    title: 'Substitute chooser improvements',
+    items: [
+      'Substitute reason now shown in the chooser popup beneath each substitute name',
+      'Note field in edit form relabelled "Reason (optional)"',
+    ]
+  },
+  {
+    version: '0.48',
+    title: 'Manual unit entry & substitute reason',
+    items: [
+      'Manual unit entry UX fixed — can now revert back to the unit dropdown after typing manually',
+      'Substitute note/reason field added to chooser popup',
+    ]
+  },
+  {
+    version: '0.47',
+    title: 'Quick wins: serves, ingredient headers, discard',
+    items: [
+      '"serves" suffix removed from serves display — the header already makes it clear',
+      'Ingredient table column headers removed from recipe view — values are self-evident',
+      '"Save recipe" option added to the Discard Changes prompt alongside "Discard"',
+    ]
+  },
+  {
+    version: '0.46',
+    title: 'In-form undo/redo fixes',
+    items: [
+      'Fixed root cause of undo/redo stack corruption — _formApplying flag added to block focusout delegation during undo/redo operations',
+      'formUndo and formRedo simplified to use shared _serializeForm() helper',
+    ]
+  },
+  {
+    version: '0.45',
+    title: 'Undo/redo snapshot timing',
+    items: [
+      'Fixed undo snapshot timing — snapshots now capture state before a field edit begins, not after',
+      'All ingredient fields now tracked by undo/redo via event delegation on the ingredient builder',
+      'Noscale, sub panel, and step noscale toggles all capture before-state correctly',
+    ]
+  },
+  {
+    version: '0.44',
+    title: 'In-form undo/redo wired to all fields',
+    items: [
+      'Undo/redo now tracks edits to recipe name, source, YouTube, notes, tags, serves, cook time wheels',
+      'Undo/redo card moved into the edit modal header (right-aligned, beside ✕)',
+      'Pre-capture pattern introduced for correct before-state snapshots',
+    ]
+  },
+  {
+    version: '0.43',
+    title: 'Undo/redo card in modal header',
+    items: [
+      'Undo/redo buttons moved from a separate bar into the edit modal header row',
+      'Label shows last action description between the two buttons',
+      'Label hidden on mobile to save space',
+    ]
+  },
+  {
+    version: '0.42',
+    title: 'In-form undo/redo — ingredient name selector fix',
+    items: [
+      'Fixed ingredient name selector in removeIngRow and confirmRemoveIngSection',
+      'Confirmation prompts for removing sections/steps now correctly detect whether content exists',
+    ]
+  },
+  {
+    version: '0.41',
+    title: 'In-form undo/redo confirmation prompts',
+    items: [
+      'formPopulating flag added to prevent spurious snapshots during form population',
+      'Confirmation prompts added for removing ingredient rows, sections, method steps, and method sections that contain content',
+      'Closing the edit form with unsaved changes now prompts to confirm before discarding',
+    ]
+  },
+  {
+    version: '0.40',
+    title: 'In-form undo/redo system',
+    items: [
+      'Full in-form undo/redo system built — tracks structural changes (add/remove ingredient, section, step, substitute)',
+      'Undo/redo bar shown below the modal header with action description',
+      'Keyboard shortcuts ⌘Z / ⌘⇧Z route to in-form undo/redo when the edit modal is open',
+    ]
+  },
+  {
+    version: '0.38–0.39',
+    title: 'Undo/redo toolbar cleanup & form labels',
+    items: [
+      'Undo/redo buttons removed from toolbar on all screen sizes — keyboard shortcuts still work',
+      'Ingredient section labels in recipe view made larger and bolder',
+      '"Close" button removed from recipe view footer — the ✕ in the header serves this purpose',
+    ]
+  },
+  {
+    version: '0.37',
+    title: 'Auth & info guide rewrite',
+    items: [
+      'GitHub credentials moved to localStorage only — no embedded tokens',
+      'Info guide fully rewritten with clearer setup instructions',
+    ]
+  },
+  {
+    version: '0.27–0.36',
+    title: 'Substitute ingredients & form redesign',
+    items: [
+      'Substitute ingredients — multiple per ingredient, each with own scale overrides and a chooser popup',
+      'Ingredient form redesigned: desktop single-row grid with ghost header, mobile 3-row card layout with corner delete button',
+      'Wider modals on desktop, square header buttons, mobile Add Recipe shows icon only',
+    ]
+  },
+  {
+    version: '0.24–0.26',
+    title: 'Bin & undo/redo',
+    items: [
+      'Deleted recipes now move to a bin — restore or permanently delete from the bin modal',
+      'Bin icon turns red when it contains recipes',
+      'Global undo/redo stack (20 steps) with descriptive toasts — ⌘Z / ⌘⇧Z',
+    ]
+  },
+  {
+    version: '0.1–0.23',
+    title: 'Initial build',
+    items: [
+      'Core recipe CRUD — add, edit, delete, view',
+      'Ingredient scaling (½×, 1×, 2×, 3×) with per-ingredient scale overrides',
+      'Tags, filter by tag/cook time/serves, group by category',
+      'Cook time and serves wheels in edit form',
+      'YouTube video embed in recipe view',
+      'Offline support — localStorage cache + pending sync queue',
+      'GitHub Gist backend with auth modal',
+      'Settings — custom tag groups, custom and retired units',
     ]
   }
 ];
@@ -4004,8 +4196,7 @@ async function saveRecipe() {
       showConfirm(
         'Unnamed ingredients will be skipped',
         `${unnamedIngs.length} ingredient row${unnamedIngs.length > 1 ? 's have' : ' has'} data but no name and will not be saved. Add a name or remove the row.`,
-        [{ label: 'Save anyway', danger: false, fn: () => res(true) },
-         { label: 'Cancel', danger: false, fn: () => res(false) }]
+        [{ label: 'Save anyway', danger: false, fn: () => res(true) }]
       );
     });
     if (!proceed) return;
