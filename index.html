@@ -1022,6 +1022,11 @@ header{
   <button class="hbtn" onclick="openInfo()" title="How to use">
     <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
   </button>
+  <button class="hbtn" onclick="openDownload()" title="Export / Download recipes">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 2v8M5 7l3 3 3-3"/><path d="M3 12h10"/>
+    </svg>
+  </button>
   <button class="hbtn" onclick="openAuth()" title="GitHub credentials">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="7" width="10" height="7" rx="1.5"/>
@@ -1328,6 +1333,8 @@ header{
         <p>Set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum — useful for recipes that comfortably feed different numbers depending on appetite.</p>
         <h3>Deleting a recipe</h3>
         <p>Deleted recipes move to the <strong>bin</strong>, accessible via the 🗑️ icon in the header. From there you can restore a recipe or permanently delete it. The bin icon turns red when it contains recipes.</p>
+        <h3>Exporting and backing up</h3>
+        <p>Tap the <strong>↓ download icon</strong> in the header to export your recipes. You can choose which recipes to include (all, published only, or drafts only) and the format — a readable text file, a CSV spreadsheet that opens in Excel or Google Sheets, or a raw JSON file. Your Gist is also automatically updated with <code>backup.txt</code> and <code>backup.csv</code> files every time you save a recipe, so you always have an up-to-date copy there too.</p>
         <h3>Undoing changes</h3>
         <p>While editing a recipe, the <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session — adding or removing ingredients, editing fields, toggling scaling flags, and more. Changes are not undoable once you've saved and closed the form.</p>
       </div>
@@ -1389,6 +1396,56 @@ header{
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeInfo()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD MODAL -->
+<div class="backdrop" id="download-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h2>Export recipes</h2>
+      <button class="xbtn" onclick="closeDownload()">✕</button>
+    </div>
+    <div class="auth-body" style="gap:1rem">
+      <p style="font-size:0.84rem;color:var(--ink-mid)">Choose which recipes to export and the format you'd like. Your Gist is also updated with these files on every save.</p>
+
+      <div class="fg">
+        <label>Include recipes</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="radio" name="dl-scope" value="all" checked> All published recipes
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="radio" name="dl-scope" value="published"> Published only
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="radio" name="dl-scope" value="drafts"> Drafts only
+          </label>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Format</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="checkbox" id="dl-txt" checked> Text file (.txt) — human-readable, easy to read if all else fails
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="checkbox" id="dl-csv"> Spreadsheet (.csv) — one row per recipe, opens in Excel or Google Sheets
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="checkbox" id="dl-json"> Raw data (.json) — for technical use or re-importing
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-foot">
+      <button class="btn-sec" onclick="closeDownload()">Cancel</button>
+      <button class="btn-pri" onclick="triggerDownload()">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;margin-right:4px"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5"/><path d="M2 11h10"/></svg>
+        Download
+      </button>
     </div>
   </div>
 </div>
@@ -1674,7 +1731,7 @@ async function saveToGistSilent() {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
-      'backup.json':   { content: buildReadableBackup() },
+      'backup.txt':    { content: buildReadableBackup() },
       'backup.csv':    { content: buildRecipesCsv() },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
@@ -1846,7 +1903,7 @@ async function saveToGist(description) {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
-      'backup.json':   { content: buildReadableBackup() },
+      'backup.txt':    { content: buildReadableBackup() },
       'backup.csv':    { content: buildRecipesCsv() },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
@@ -1959,25 +2016,39 @@ function buildReadableBackup() {
 
 function buildRecipesCsv() {
   function csvEsc(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
-  const header = ['Name','Status','Tags','Hours','Minutes','Serves','Source','YouTube','Notes','Ingredients','Method'];
+  const header = ['Name','Status','Tags','Cook Time','Serves','Source','YouTube','Notes','Ingredients','Method'];
   const rows = [header.join(',')];
   recipes.forEach(r => {
+    // Cook time as friendly string
+    const hrs = r.hours || 0, mins = r.minutes || 0;
+    let cookTime = '';
+    if (hrs && mins) cookTime = hrs + (hrs === 1 ? ' hr' : ' hrs') + ' & ' + mins + ' mins';
+    else if (hrs) cookTime = hrs + (hrs === 1 ? ' hr' : ' hrs');
+    else if (mins) cookTime = mins + ' mins';
+
     const srv = r.serves;
     const srvStr = srv == null ? '' : (typeof srv === 'object' ? srv.min + '-' + srv.max : String(srv));
+
+    // Ingredients: each section on its own line within the cell
     const ingSummary = (r.ingredients || []).map(sec => {
-      const items = (sec.items || []).map(item => {
+      const sectionLabel = sec.title ? '=== ' + sec.title + ' ===' : '';
+      const items = (sec.items || []).map((item, i) => {
         const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-        return (item.name || '') + (qty ? ' (' + qty + ')' : '') + (item.prep ? ', ' + item.prep : '');
-      }).join('; ');
-      return sec.title ? '[' + sec.title + '] ' + items : items;
-    }).join(' | ');
+        return (i + 1) + '. ' + (item.name || '?') + (qty ? ' — ' + qty : '') + (item.prep ? ', ' + item.prep : '');
+      }).join('\n');
+      return sectionLabel ? sectionLabel + '\n' + items : items;
+    }).join('\n\n');
+
+    // Method: numbered steps, clear section headers
     const methSummary = (r.method || []).map(sec => {
-      const steps = (sec.steps || []).map((s, i) => (i + 1) + '. ' + (s.text || '')).join(' ');
-      return sec.title ? '[' + sec.title + '] ' + steps : steps;
-    }).join(' | ');
+      const sectionLabel = sec.title ? '=== ' + sec.title + ' ===' : '';
+      const steps = (sec.steps || []).map((s, i) => (i + 1) + '. ' + (s.text || '')).join('\n');
+      return sectionLabel ? sectionLabel + '\n' + steps : steps;
+    }).join('\n\n');
+
     rows.push([
       csvEsc(r.name || ''), csvEsc(r.status || ''), csvEsc((r.tags || []).join(', ')),
-      csvEsc(r.hours ?? ''), csvEsc(r.minutes ?? ''), csvEsc(srvStr),
+      csvEsc(cookTime), csvEsc(srvStr),
       csvEsc(r.source || ''), csvEsc(r.youtube || ''), csvEsc(r.notes || ''),
       csvEsc(ingSummary), csvEsc(methSummary)
     ].join(','));
@@ -2460,6 +2531,60 @@ function saveSetup() {
   gistId=g; ghToken=t;
   localStorage.setItem('gist_id',g); localStorage.setItem('gh_token',t);
   closeSetup(); loadFromGist();
+}
+
+// ── DOWNLOAD / EXPORT ─────────────────────────────────────────────────────
+function openDownload() {
+  document.getElementById('download-modal').classList.add('open');
+}
+function closeDownload() {
+  document.getElementById('download-modal').classList.remove('open');
+}
+function triggerDownload() {
+  const scope = document.querySelector('input[name="dl-scope"]:checked')?.value || 'all';
+  const wantTxt  = document.getElementById('dl-txt')?.checked;
+  const wantCsv  = document.getElementById('dl-csv')?.checked;
+  const wantJson = document.getElementById('dl-json')?.checked;
+
+  if (!wantTxt && !wantCsv && !wantJson) {
+    toast('Please select at least one format');
+    return;
+  }
+
+  // Filter recipes by scope
+  const all = recipes.filter(r => r.status !== 'deleted');
+  let subset;
+  if (scope === 'published') subset = all.filter(r => r.status === 'published');
+  else if (scope === 'drafts') subset = all.filter(r => r.status === 'draft');
+  else subset = all;
+
+  if (!subset.length) { toast('No recipes match that selection'); return; }
+
+  // Temporarily swap global recipes for scoped export
+  const origRecipes = recipes;
+  recipes = subset;
+
+  try {
+    if (wantTxt)  downloadFile('recipes-backup.txt',  buildReadableBackup(), 'text/plain');
+    if (wantCsv)  downloadFile('recipes-backup.csv',  buildRecipesCsv(),     'text/csv');
+    if (wantJson) downloadFile('recipes-backup.json', JSON.stringify(subset, null, 2), 'application/json');
+  } finally {
+    recipes = origRecipes;
+  }
+
+  closeDownload();
+  toast('Downloaded ✓');
+}
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function openInfo() {
@@ -3649,7 +3774,8 @@ async function saveRecipe() {
     if (nameVal) return false;
     const amt  = (wrap.querySelector('.amount-inp')?.value || '').trim();
     const prep = (wrap.querySelector('.prep-inp')?.value || '').trim();
-    return amt || prep; // has data but no name
+    const unit = (wrap.querySelector('.unit-sel')?.value || wrap.querySelector('.unit-manual')?.value || '').trim();
+    return amt || prep || unit; // has any data but no name
   });
   const unnamedSteps = [...document.querySelectorAll('.step-wrap')].filter(wrap => {
     return !(wrap.querySelector('.step-ta')?.value || '').trim();
@@ -3976,7 +4102,7 @@ function addIngSection(data) {
     </div>
     <div class="ing-header-card">
       <div class="ing-header-card-inner">
-        <span>Ingredient <span style="color:var(--accent-text);font-size:0.65rem">*</span></span>
+        <span>Ingredient</span>
         <span>Amount</span>
         <span>Unit</span>
         <span>Prep</span>
