@@ -1674,7 +1674,8 @@ async function saveToGistSilent() {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
-      'backup.json':   { content: JSON.stringify(recipes, null, 2) },
+      'backup.json':   { content: buildReadableBackup() },
+      'backup.csv':    { content: buildRecipesCsv() },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
     };
@@ -1845,7 +1846,8 @@ async function saveToGist(description) {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
-      'backup.json':   { content: JSON.stringify(recipes, null, 2) },
+      'backup.json':   { content: buildReadableBackup() },
+      'backup.csv':    { content: buildRecipesCsv() },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
     };
@@ -1896,6 +1898,91 @@ async function syncPending() {
     updateOfflineBanner();
     toast('Synced to GitHub ✓');
   } catch(e) { toast('Sync failed — will retry later'); }
+}
+
+// ── BACKUP HELPERS ─────────────────────────────────────────────────────────
+function buildReadableBackup() {
+  const lines = [];
+  lines.push("BENNY'S RECIPES — BACKUP");
+  lines.push('Generated: ' + new Date().toLocaleString());
+  lines.push('Total recipes: ' + recipes.length);
+  lines.push('='.repeat(60));
+  recipes.forEach((r, i) => {
+    lines.push('');
+    lines.push('RECIPE ' + (i + 1) + ': ' + (r.name || 'Untitled'));
+    lines.push('-'.repeat(60));
+    lines.push('Status:  ' + (r.status || 'published'));
+    lines.push('Tags:    ' + ((r.tags || []).join(', ') || '—'));
+    const hrs = r.hours || 0, mins = r.minutes || 0;
+    if (hrs || mins) lines.push('Time:    ' + (hrs ? hrs + 'h ' : '') + (mins ? mins + 'min' : ''));
+    const srv = r.serves;
+    if (srv != null) lines.push('Serves:  ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
+    if (r.source) lines.push('Source:  ' + r.source);
+    if (r.youtube) lines.push('YouTube: ' + r.youtube);
+    if (r.notes) { lines.push(''); lines.push('Notes: ' + r.notes); }
+    if (r.ingredients && r.ingredients.length) {
+      lines.push('');
+      lines.push('INGREDIENTS');
+      r.ingredients.forEach(sec => {
+        if (sec.title) lines.push('  [ ' + sec.title + ' ]');
+        (sec.items || []).forEach(item => {
+          const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
+          const prep = item.prep ? ' — ' + item.prep : '';
+          lines.push('  • ' + (item.name || '?') + (qty ? ':  ' + qty : '') + prep);
+          if (item.substitutes && item.substitutes.length) {
+            item.substitutes.forEach(s => {
+              const sqty = [s.amount != null ? s.amount : '', s.unit || ''].filter(Boolean).join(' ');
+              const sprep = s.prep ? ', ' + s.prep : '';
+              const snote = s.note ? ' [' + s.note + ']' : '';
+              lines.push('    ↳ Sub: ' + (s.name || '?') + (sqty ? ' ' + sqty : '') + sprep + snote);
+            });
+          }
+        });
+      });
+    }
+    if (r.method && r.method.length) {
+      lines.push('');
+      lines.push('METHOD');
+      r.method.forEach(sec => {
+        if (sec.title) lines.push('  [ ' + sec.title + ' ]');
+        (sec.steps || []).forEach((step, si) => {
+          lines.push('  ' + (si + 1) + '. ' + (step.text || ''));
+        });
+      });
+    }
+  });
+  lines.push('');
+  lines.push('='.repeat(60));
+  lines.push('END OF BACKUP');
+  return lines.join('\n');
+}
+
+function buildRecipesCsv() {
+  function csvEsc(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+  const header = ['Name','Status','Tags','Hours','Minutes','Serves','Source','YouTube','Notes','Ingredients','Method'];
+  const rows = [header.join(',')];
+  recipes.forEach(r => {
+    const srv = r.serves;
+    const srvStr = srv == null ? '' : (typeof srv === 'object' ? srv.min + '-' + srv.max : String(srv));
+    const ingSummary = (r.ingredients || []).map(sec => {
+      const items = (sec.items || []).map(item => {
+        const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
+        return (item.name || '') + (qty ? ' (' + qty + ')' : '') + (item.prep ? ', ' + item.prep : '');
+      }).join('; ');
+      return sec.title ? '[' + sec.title + '] ' + items : items;
+    }).join(' | ');
+    const methSummary = (r.method || []).map(sec => {
+      const steps = (sec.steps || []).map((s, i) => (i + 1) + '. ' + (s.text || '')).join(' ');
+      return sec.title ? '[' + sec.title + '] ' + steps : steps;
+    }).join(' | ');
+    rows.push([
+      csvEsc(r.name || ''), csvEsc(r.status || ''), csvEsc((r.tags || []).join(', ')),
+      csvEsc(r.hours ?? ''), csvEsc(r.minutes ?? ''), csvEsc(srvStr),
+      csvEsc(r.source || ''), csvEsc(r.youtube || ''), csvEsc(r.notes || ''),
+      csvEsc(ingSummary), csvEsc(methSummary)
+    ].join(','));
+  });
+  return rows.join('\n');
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────
@@ -3555,6 +3642,45 @@ async function saveRecipe() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { toast('Please enter a recipe name'); return; }
 
+  // Warn if any ingredient row has data but no name
+  const unnamedIngs = [...document.querySelectorAll('.ing-row-wrap')].filter(wrap => {
+    const nameVal = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')?.value
+                 || wrap.querySelector('.ing-name-mobile')?.value || '').trim();
+    if (nameVal) return false;
+    const amt  = (wrap.querySelector('.amount-inp')?.value || '').trim();
+    const prep = (wrap.querySelector('.prep-inp')?.value || '').trim();
+    return amt || prep; // has data but no name
+  });
+  const unnamedSteps = [...document.querySelectorAll('.step-wrap')].filter(wrap => {
+    return !(wrap.querySelector('.step-ta')?.value || '').trim();
+  }).filter(wrap => {
+    // Only warn on steps that are not completely empty (they have a noscale note or override)
+    const note = wrap.querySelector('.noscale-note-row input')?.value?.trim();
+    return note;
+  });
+
+  if (unnamedIngs.length > 0) {
+    // Highlight the nameless rows
+    unnamedIngs.forEach(wrap => {
+      const inp = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
+               || wrap.querySelector('.ing-name-mobile');
+      if (inp) {
+        inp.style.borderColor = 'var(--accent)';
+        inp.style.transition = 'border-color .3s';
+        setTimeout(() => inp.style.borderColor = '', 2000);
+      }
+    });
+    const proceed = await new Promise(res => {
+      showConfirm(
+        'Unnamed ingredients will be skipped',
+        `${unnamedIngs.length} ingredient row${unnamedIngs.length > 1 ? 's have' : ' has'} data but no name and will not be saved. Add a name or remove the row.`,
+        [{ label: 'Save anyway', danger: false, fn: () => res(true) },
+         { label: 'Go back', danger: false, fn: () => res(false) }]
+      );
+    });
+    if (!proceed) return;
+  }
+
   const hrs  = getWheelVal('wh-hrs');
   const mins = getWheelVal('wh-min');
   const srv = servesMode === 'range'
@@ -3850,10 +3976,10 @@ function addIngSection(data) {
     </div>
     <div class="ing-header-card">
       <div class="ing-header-card-inner">
-        <span>Ingredient</span>
+        <span>Ingredient <span style="color:var(--accent-text);font-size:0.65rem">*</span></span>
         <span>Amount</span>
         <span>Unit</span>
-        <span>Prep (opt.)</span>
+        <span>Prep</span>
         <span class="btn-spacer"></span>
         <span class="btn-spacer"></span>
         <span class="btn-spacer"></span>
@@ -4143,7 +4269,7 @@ function addIngRow(btn, rowsEl, data) {
       <span>Ingredient</span>
       <span>Amount</span>
       <span>Unit</span>
-      <span>Prep (opt.)</span>
+      <span>Prep</span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
