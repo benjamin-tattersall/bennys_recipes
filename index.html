@@ -1018,7 +1018,7 @@ header{
 </div>
 
 <header>
-  <div class="logo">Benny's <em>Recipes</em></div>
+  <div class="logo">Benny's <em>Recipes</em> <span style="font-size:0.6rem;font-weight:400;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif;vertical-align:middle">v0.54</span></div>
   <button class="hbtn" onclick="openInfo()" title="How to use">
     <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
   </button>
@@ -1297,6 +1297,7 @@ header{
         <button class="info-tab" onclick="switchInfoTab('scaling',this)">Scaling</button>
         <button class="info-tab" onclick="switchInfoTab('substitutes',this)">Substitutes</button>
         <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
+        <button class="info-tab" onclick="switchInfoTab('export',this)">Export</button>
         <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
       </div>
 
@@ -1333,8 +1334,6 @@ header{
         <p>Set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum — useful for recipes that comfortably feed different numbers depending on appetite.</p>
         <h3>Deleting a recipe</h3>
         <p>Deleted recipes move to the <strong>bin</strong>, accessible via the 🗑️ icon in the header. From there you can restore a recipe or permanently delete it. The bin icon turns red when it contains recipes.</p>
-        <h3>Exporting and backing up</h3>
-        <p>Tap the <strong>↓ download icon</strong> in the header to export your recipes. You can choose which recipes to include (all, published only, or drafts only) and the format — a readable text file, a CSV spreadsheet that opens in Excel or Google Sheets, or a raw JSON file. Your Gist is also automatically updated with <code>backup.txt</code> and <code>backup.csv</code> files every time you save a recipe, so you always have an up-to-date copy there too.</p>
         <h3>Undoing changes</h3>
         <p>While editing a recipe, the <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session — adding or removing ingredients, editing fields, toggling scaling flags, and more. Changes are not undoable once you've saved and closed the form.</p>
       </div>
@@ -1372,6 +1371,20 @@ header{
         <p>Tap <strong>Group</strong> in the toolbar to organise your recipes into labelled sections on the main page. A recipe tagged with both "Dinner" and "Lunch" will appear under both headings.</p>
       </div>
 
+      <div class="info-pane" id="info-pane-export">
+        <h3>Downloading your recipes</h3>
+        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. Choose which recipes to include — all recipes, published only, or drafts only — then select one or more formats to download.</p>
+        <h3>Available formats</h3>
+        <p><strong>Text file (.txt)</strong> — a plain, human-readable file listing every recipe with ingredients, substitutes, and method steps. Easy to open anywhere, including your phone's Notes app.</p>
+        <p><strong>Markdown (.md)</strong> — the same content formatted with headings and bold text. Opens nicely in any markdown viewer, Notion, GitHub, or Obsidian.</p>
+        <p><strong>Spreadsheet (.csv)</strong> — one row per recipe with columns for name, tags, cook time, serves, source, notes, ingredients, and method. Opens in Excel or Google Sheets.</p>
+        <p><strong>Full Gist backup (.json)</strong> — a complete snapshot of your Gist files (recipes, bin, and settings). Use this to migrate to a new Gist or restore everything from scratch using the same version of the app.</p>
+        <h3>Automatic backups in your Gist</h3>
+        <p>Every time you save a recipe, the app also writes <code>backup.txt</code> and <code>backup.csv</code> files directly to your Gist. These update automatically so you always have a recent, human-readable copy available — no manual download needed.</p>
+        <h3>Restoring from a Gist backup</h3>
+        <p>If you ever need to start fresh, create a new Gist and create three files: <code>recipes.json</code>, <code>bin.json</code>, and <code>settings.json</code>. Paste in the contents from the corresponding entries inside your downloaded <code>gist-backup.json</code> file. Then connect the app to the new Gist using the 🔑 key icon.</p>
+      </div>
+
       <div class="info-pane" id="info-pane-mobile">
         <h3>Adding to your iPhone home screen</h3>
         <ol>
@@ -1396,6 +1409,20 @@ header{
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeInfo()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT'S NEW MODAL -->
+<div class="backdrop" id="whatsnew-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h2>What's new <span style="font-size:0.75rem;font-weight:400;color:var(--ink-faint)" id="whatsnew-version"></span></h2>
+      <button class="xbtn" onclick="closeWhatsNew()">✕</button>
+    </div>
+    <div class="auth-body" id="whatsnew-body" style="gap:0.75rem;max-height:65vh;overflow-y:auto"></div>
+    <div class="form-foot">
+      <button class="btn-pri" onclick="closeWhatsNew()">Got it</button>
     </div>
   </div>
 </div>
@@ -1429,13 +1456,16 @@ header{
         <label>Format</label>
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-txt" checked> Text file (.txt) — human-readable, easy to read if all else fails
+            <input type="checkbox" id="dl-txt" checked> Text file (.txt) — plain readable backup
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-csv"> Spreadsheet (.csv) — one row per recipe, opens in Excel or Google Sheets
+            <input type="checkbox" id="dl-md"> Markdown (.md) — formatted with headers and bold text
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-json"> Raw data (.json) — for technical use or re-importing
+            <input type="checkbox" id="dl-csv"> Spreadsheet (.csv) — opens in Excel or Google Sheets
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+            <input type="checkbox" id="dl-gist"> Full Gist backup (.json) — restores everything to a new Gist
           </label>
         </div>
       </div>
@@ -1604,6 +1634,28 @@ const WHEEL_ITEMS = {
   'wh-srv-max': Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)}))
 };
 
+// ── VERSION ───────────────────────────────────────────────────────────────
+const APP_VERSION = '0.54';
+
+// Changelog: add a new entry at the top for each version
+const CHANGELOG = [
+  {
+    version: '0.54',
+    title: 'Export, backups & more',
+    items: [
+      'Download your recipes as a readable text file, markdown, CSV spreadsheet, or full Gist backup',
+      'Auto-backup files (backup.txt and backup.csv) now written to your Gist on every save',
+      'Warning shown when saving a recipe with a filled ingredient row missing its name',
+      'New version number shown in the header — and this What\'s New panel',
+      'Substitutes: chooser now shows the reason/note for each option',
+      'Substitute ingredients now support their own Prep field',
+      'Info tab overhauled: new Substitutes tab, promotional language removed, export guide added',
+      'Undo/redo card moved into the edit modal header',
+    ]
+  }
+];
+
+
 // ── STATE ─────────────────────────────────────────────────────────────────
 let recipes = [];
 let activeTags   = new Set();
@@ -1684,6 +1736,8 @@ function init() {
     loadFromGist();
   }
   updateBinBtn();
+  // Show What's New if this is a new version
+  setTimeout(checkWhatsNew, 800);
 }
 
 // ── OFFLINE ───────────────────────────────────────────────────────────────
@@ -2054,6 +2108,85 @@ function buildRecipesCsv() {
     ].join(','));
   });
   return rows.join('\n');
+}
+
+function buildRecipesMd() {
+  const lines = [];
+  lines.push("# Benny's Recipes — Export");
+  lines.push('');
+  lines.push(`*Generated: ${new Date().toLocaleString()} — ${recipes.length} recipe${recipes.length !== 1 ? 's' : ''}*`);
+  lines.push('');
+  lines.push('---');
+
+  recipes.forEach(r => {
+    lines.push('');
+    lines.push('## ' + (r.name || 'Untitled'));
+    lines.push('');
+
+    const meta = [];
+    if (r.tags?.length) meta.push('**Tags:** ' + r.tags.join(', '));
+    const hrs = r.hours || 0, mins = r.minutes || 0;
+    if (hrs || mins) {
+      const t = (hrs ? hrs + (hrs === 1 ? ' hr' : ' hrs') + ' ' : '') + (mins ? mins + ' mins' : '');
+      meta.push('**Cook time:** ' + t.trim());
+    }
+    const srv = r.serves;
+    if (srv != null) meta.push('**Serves:** ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
+    if (r.source) meta.push('**Source:** ' + r.source);
+    if (meta.length) { meta.forEach(m => lines.push(m)); lines.push(''); }
+    if (r.notes) { lines.push('> ' + r.notes.replace(/\n/g, '\n> ')); lines.push(''); }
+
+    if (r.ingredients?.length) {
+      lines.push('### Ingredients');
+      lines.push('');
+      r.ingredients.forEach(sec => {
+        if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
+        (sec.items || []).forEach(item => {
+          const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
+          const prep = item.prep ? ' *('+item.prep+')*' : '';
+          lines.push('- **' + (item.name || '?') + '**' + (qty ? ' — ' + qty : '') + prep);
+          if (item.substitutes?.length) {
+            item.substitutes.forEach(s => {
+              const sqty = [s.amount != null ? s.amount : '', s.unit || ''].filter(Boolean).join(' ');
+              const snote = s.note ? ' — *' + s.note + '*' : '';
+              lines.push('  - *Sub:* ' + (s.name || '?') + (sqty ? ' — ' + sqty : '') + (s.prep ? ', ' + s.prep : '') + snote);
+            });
+          }
+        });
+        lines.push('');
+      });
+    }
+
+    if (r.method?.length) {
+      lines.push('### Method');
+      lines.push('');
+      r.method.forEach(sec => {
+        if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
+        (sec.steps || []).forEach((step, i) => {
+          lines.push((i + 1) + '. ' + (step.text || ''));
+        });
+        lines.push('');
+      });
+    }
+
+    lines.push('---');
+  });
+
+  return lines.join('\n');
+}
+
+function buildGistBackup() {
+  // A complete backup of all Gist files needed to restore from scratch
+  return JSON.stringify({
+    _info: 'Benny\'s Recipes — Full Gist Backup. To restore: create a new Gist, paste each file\'s content into a file with the corresponding name.',
+    _generated: new Date().toISOString(),
+    _appVersion: APP_VERSION,
+    files: {
+      'recipes.json': JSON.stringify(recipes, null, 2),
+      'bin.json': JSON.stringify(bin, null, 2),
+      'settings.json': JSON.stringify(buildSettingsObj(), null, 2)
+    }
+  }, null, 2);
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────────────
@@ -2533,6 +2666,29 @@ function saveSetup() {
   closeSetup(); loadFromGist();
 }
 
+// ── WHAT'S NEW ────────────────────────────────────────────────────────────
+function checkWhatsNew() {
+  const seen = localStorage.getItem('seen_version');
+  if (seen === APP_VERSION) return;
+  const entry = CHANGELOG.find(c => c.version === APP_VERSION);
+  if (!entry) return;
+  const body = document.getElementById('whatsnew-body');
+  const ver  = document.getElementById('whatsnew-version');
+  if (ver) ver.textContent = 'v' + entry.version;
+  if (body) {
+    body.innerHTML = `
+      <p style="font-size:0.84rem;color:var(--ink-mid)">${entry.title}</p>
+      <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:6px">
+        ${entry.items.map(i => `<li style="font-size:0.84rem;color:var(--ink-mid)">${i}</li>`).join('')}
+      </ul>`;
+  }
+  document.getElementById('whatsnew-modal').classList.add('open');
+}
+function closeWhatsNew() {
+  localStorage.setItem('seen_version', APP_VERSION);
+  document.getElementById('whatsnew-modal').classList.remove('open');
+}
+
 // ── DOWNLOAD / EXPORT ─────────────────────────────────────────────────────
 function openDownload() {
   document.getElementById('download-modal').classList.add('open');
@@ -2543,10 +2699,11 @@ function closeDownload() {
 function triggerDownload() {
   const scope = document.querySelector('input[name="dl-scope"]:checked')?.value || 'all';
   const wantTxt  = document.getElementById('dl-txt')?.checked;
+  const wantMd   = document.getElementById('dl-md')?.checked;
   const wantCsv  = document.getElementById('dl-csv')?.checked;
-  const wantJson = document.getElementById('dl-json')?.checked;
+  const wantGist = document.getElementById('dl-gist')?.checked;
 
-  if (!wantTxt && !wantCsv && !wantJson) {
+  if (!wantTxt && !wantMd && !wantCsv && !wantGist) {
     toast('Please select at least one format');
     return;
   }
@@ -2565,12 +2722,15 @@ function triggerDownload() {
   recipes = subset;
 
   try {
-    if (wantTxt)  downloadFile('recipes-backup.txt',  buildReadableBackup(), 'text/plain');
-    if (wantCsv)  downloadFile('recipes-backup.csv',  buildRecipesCsv(),     'text/csv');
-    if (wantJson) downloadFile('recipes-backup.json', JSON.stringify(subset, null, 2), 'application/json');
+    if (wantTxt)  downloadFile('recipes-backup.txt', buildReadableBackup(), 'text/plain');
+    if (wantMd)   downloadFile('recipes-backup.md',  buildRecipesMd(),      'text/markdown');
+    if (wantCsv)  downloadFile('recipes-backup.csv', buildRecipesCsv(),     'text/csv');
   } finally {
     recipes = origRecipes;
   }
+
+  // Gist backup always uses full data regardless of scope
+  if (wantGist) downloadFile('gist-backup.json', buildGistBackup(), 'application/json');
 
   closeDownload();
   toast('Downloaded ✓');
@@ -3769,13 +3929,20 @@ async function saveRecipe() {
 
   // Warn if any ingredient row has data but no name
   const unnamedIngs = [...document.querySelectorAll('.ing-row-wrap')].filter(wrap => {
-    const nameVal = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')?.value
-                 || wrap.querySelector('.ing-name-mobile')?.value || '').trim();
+    // Only look at the main ingredient fields — not sub-entries inside the wrap
+    const desktopRow = wrap.querySelector('.ing-desktop-row');
+    const mobileRow  = wrap.querySelector('.ing-mobile-rows');
+    const nameVal = (desktopRow?.querySelector('.ing-name-wrap input[type="text"]')?.value
+                 || mobileRow?.querySelector('.ing-name-mobile')?.value || '').trim();
     if (nameVal) return false;
-    const amt  = (wrap.querySelector('.amount-inp')?.value || '').trim();
-    const prep = (wrap.querySelector('.prep-inp')?.value || '').trim();
-    const unit = (wrap.querySelector('.unit-sel')?.value || wrap.querySelector('.unit-manual')?.value || '').trim();
-    return amt || prep || unit; // has any data but no name
+    const amt  = (desktopRow?.querySelector('.amount-inp')?.value
+               || mobileRow?.querySelector('.amount-inp')?.value || '').trim();
+    const prep = (desktopRow?.querySelector('.prep-inp')?.value
+               || mobileRow?.querySelector('.prep-inp')?.value || '').trim();
+    const unit = (desktopRow?.querySelector('.unit-sel')?.value
+               || desktopRow?.querySelector('.unit-manual')?.value
+               || mobileRow?.querySelector('.unit-sel')?.value || '').trim();
+    return !!(amt || prep || unit); // has any data but no name
   });
   const unnamedSteps = [...document.querySelectorAll('.step-wrap')].filter(wrap => {
     return !(wrap.querySelector('.step-ta')?.value || '').trim();
