@@ -1018,7 +1018,7 @@ header{
 </div>
 
 <header>
-  <div class="logo">Benny's <em>Recipes</em> <span style="font-size:0.6rem;font-weight:400;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif;vertical-align:middle">v0.54</span></div>
+  <div class="logo">Benny's <em>Recipes</em></div>
   <button class="hbtn" onclick="openInfo()" title="How to use">
     <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="6"/><line x1="7" y1="6.5" x2="7" y2="10"/><circle cx="7" cy="4.5" r="0.6" fill="currentColor" stroke="none"/></svg>
   </button>
@@ -1299,6 +1299,7 @@ header{
         <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
         <button class="info-tab" onclick="switchInfoTab('export',this)">Export</button>
         <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
+        <button class="info-tab" id="whatsnew-tab" onclick="switchInfoTab('whatsnew',this)">What's new</button>
       </div>
 
       <div class="info-pane active" id="info-pane-start">
@@ -1405,6 +1406,10 @@ header{
         <h3>Using without internet</h3>
         <p>If you lose your connection, the app continues working from the last loaded version of your recipes. You can still browse, search, and edit — changes are saved locally and synced to GitHub automatically when you're back online. A banner at the top indicates when you're offline.</p>
         <div class="info-tip">If recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
+      </div>
+
+      <div class="info-pane" id="info-pane-whatsnew">
+        <div id="info-whatsnew-content"></div>
       </div>
     </div>
     <div class="form-foot">
@@ -2670,19 +2675,25 @@ function saveSetup() {
 function checkWhatsNew() {
   const seen = localStorage.getItem('seen_version');
   if (seen === APP_VERSION) return;
-  const entry = CHANGELOG.find(c => c.version === APP_VERSION);
-  if (!entry) return;
-  const body = document.getElementById('whatsnew-body');
-  const ver  = document.getElementById('whatsnew-version');
-  if (ver) ver.textContent = 'v' + entry.version;
-  if (body) {
-    body.innerHTML = `
-      <p style="font-size:0.84rem;color:var(--ink-mid)">${entry.title}</p>
-      <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:6px">
-        ${entry.items.map(i => `<li style="font-size:0.84rem;color:var(--ink-mid)">${i}</li>`).join('')}
-      </ul>`;
+  // Open the info modal directly on the What's New tab
+  const container = document.getElementById('info-whatsnew-content');
+  if (container && CHANGELOG.length) {
+    container.innerHTML = CHANGELOG.map((entry, i) => `
+      <div style="margin-bottom:${i < CHANGELOG.length-1 ? '1.5rem' : '0'}">
+        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.4rem">
+          <h3 style="margin:0">v${entry.version}</h3>
+          <span style="font-size:0.75rem;color:var(--ink-faint);font-weight:400">${entry.title}</span>
+        </div>
+        <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">
+          ${entry.items.map(item => `<li style="font-size:0.84rem;color:var(--ink-mid)">${item}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">');
   }
-  document.getElementById('whatsnew-modal').classList.add('open');
+  const tab = document.getElementById('whatsnew-tab');
+  switchInfoTab('whatsnew', tab);
+  document.getElementById('imodal').classList.add('open');
+  localStorage.setItem('seen_version', APP_VERSION);
 }
 function closeWhatsNew() {
   localStorage.setItem('seen_version', APP_VERSION);
@@ -2748,6 +2759,26 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function openInfo() {
+  // Populate What's New pane from CHANGELOG
+  const container = document.getElementById('info-whatsnew-content');
+  if (container && CHANGELOG.length) {
+    container.innerHTML = CHANGELOG.map((entry, i) => `
+      <div style="margin-bottom:${i < CHANGELOG.length-1 ? '1.5rem' : '0'}">
+        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.4rem">
+          <h3 style="margin:0">v${entry.version}</h3>
+          <span style="font-size:0.75rem;color:var(--ink-faint);font-weight:400">${entry.title}</span>
+        </div>
+        <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">
+          ${entry.items.map(item => `<li style="font-size:0.84rem;color:var(--ink-mid)">${item}</li>`).join('')}
+        </ul>
+      </div>
+    `).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">');
+  }
+  // Show badge on tab if user hasn't seen latest version
+  const seen = localStorage.getItem('seen_version');
+  const tab = document.getElementById('whatsnew-tab');
+  if (tab) tab.style.fontWeight = seen !== APP_VERSION ? '600' : '';
+
   switchInfoTab('start', document.querySelector('.info-tab'));
   document.getElementById('imodal').classList.add('open');
 }
@@ -2759,6 +2790,12 @@ function switchInfoTab(name, btn) {
   if (btn) btn.classList.add('active');
   const pane = document.getElementById('info-pane-' + name);
   if (pane) pane.classList.add('active');
+  // Mark version as seen when user views the What's New tab
+  if (name === 'whatsnew') {
+    localStorage.setItem('seen_version', APP_VERSION);
+    const tab = document.getElementById('whatsnew-tab');
+    if (tab) tab.style.fontWeight = '';
+  }
 }
 
 function openAuth() {
@@ -3968,7 +4005,7 @@ async function saveRecipe() {
         'Unnamed ingredients will be skipped',
         `${unnamedIngs.length} ingredient row${unnamedIngs.length > 1 ? 's have' : ' has'} data but no name and will not be saved. Add a name or remove the row.`,
         [{ label: 'Save anyway', danger: false, fn: () => res(true) },
-         { label: 'Go back', danger: false, fn: () => res(false) }]
+         { label: 'Cancel', danger: false, fn: () => res(false) }]
       );
     });
     if (!proceed) return;
