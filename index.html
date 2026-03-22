@@ -406,6 +406,7 @@ header{
   .search-wrap{display:none}
   .search-icon-btn{display:flex;align-items:center}
 
+  .ing-header-card{display:none} /* redundant on mobile — each card has its own inline labels */
   .ing-desktop-header{display:none}
   .ing-desktop-row{display:none}
   .ing-mobile-rows{display:flex;flex-direction:column;gap:8px;padding:8px 8px 8px 8px}
@@ -1003,6 +1004,7 @@ header{
   .f2{grid-template-columns:1fr}
   .ing-row{grid-template-columns:1fr 1fr auto;grid-template-rows:auto auto}
   .ing-row .prep-inp{grid-column:1/3}
+  .wheel-panel{padding-left:1.5rem;padding-right:1.5rem} /* grab-safe zone on mobile scroll */
   .wheel-row{gap:0.5rem}
 }
 </style>
@@ -1200,7 +1202,7 @@ header{
       </div>
 
       <div class="fg">
-        <label>YouTube reference video <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(optional)</span></label>
+        <label>YouTube reference video</label>
         <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
@@ -1288,87 +1290,101 @@ header{
         <button class="info-tab active" onclick="switchInfoTab('start',this)">Getting started</button>
         <button class="info-tab" onclick="switchInfoTab('recipes',this)">Recipes</button>
         <button class="info-tab" onclick="switchInfoTab('scaling',this)">Scaling</button>
+        <button class="info-tab" onclick="switchInfoTab('substitutes',this)">Substitutes</button>
         <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
         <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
       </div>
 
       <div class="info-pane active" id="info-pane-start">
         <h3>Welcome to Benny's Recipes</h3>
-        <p>This is your personal digital recipe book. Your recipes are stored online using a free GitHub service called a Gist, so they're always backed up and available on any device — phone, tablet, or computer.</p>
+        <p>This is a personal digital recipe book. Recipes are stored in a GitHub Gist — a free file hosting service — so they're backed up and accessible on any device.</p>
 
         <h3>What you'll need</h3>
-        <p>A free GitHub account. That's it. No subscriptions, no app stores.</p>
+        <p>A free GitHub account and a personal access token with Gist permissions.</p>
 
         <h3>First-time setup</h3>
         <ol>
           <li>Create a free account at <strong>github.com</strong> if you don't have one already.</li>
-          <li>Go to <strong>gist.github.com</strong> and click <strong>+</strong> to create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Make sure it's set to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
-          <li>Once created, copy the long string of letters and numbers from the URL — that's your <strong>Gist ID</strong>. It looks like: <code>a1b2c3d4e5f67890abcd</code></li>
-          <li>Go to <strong>github.com/settings/tokens</strong> and click <strong>Generate new token → Classic</strong>. Give it any name, set no expiry, and tick only the <strong>gist</strong> checkbox. Click <strong>Generate token</strong> and copy it — you'll only see it once.</li>
-          <li>Back in this app, tap the <strong>🔑 key icon</strong> in the top right corner and paste in your Gist ID and token. Tap <strong>Save &amp; connect</strong>.</li>
+          <li>Go to <strong>gist.github.com</strong> and click <strong>+</strong> to create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Set it to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
+          <li>Copy the long ID from the URL — it looks like: <code>a1b2c3d4e5f67890abcd</code>. That's your <strong>Gist ID</strong>.</li>
+          <li>Go to <strong>github.com/settings/tokens</strong>, click <strong>Generate new token → Classic</strong>. Give it a name, set no expiry, and tick only the <strong>gist</strong> checkbox. Click <strong>Generate token</strong> and copy it — you'll only see it once.</li>
+          <li>In this app, tap the <strong>🔑 key icon</strong> in the header, paste your Gist ID and token, then tap <strong>Save &amp; connect</strong>.</li>
         </ol>
-        <div class="info-tip">Your credentials are saved only on your device in the browser's local storage. They are never sent anywhere other than GitHub's own servers.</div>
+        <div class="info-tip">Your credentials are saved only on this device in the browser's local storage. They are never sent anywhere other than GitHub's servers.</div>
 
         <h3>Setting up on a new device</h3>
-        <p>Each new device or browser needs to be connected separately — credentials aren't shared between devices automatically. Just tap the <strong>🔑 key icon</strong> and enter your Gist ID and token again. Your recipes will load straight away from the same Gist.</p>
-        <div class="info-tip">Keep your Gist ID and token somewhere safe (like a password manager) so you can connect new devices easily.</div>
+        <p>Each device needs to be connected separately. Tap the <strong>🔑 key icon</strong> and enter the same Gist ID and token. Your recipes will load straight away.</p>
+        <div class="info-tip">Keep your Gist ID and token in a password manager so you can reconnect on new devices easily.</div>
       </div>
 
       <div class="info-pane" id="info-pane-recipes">
-        <h3>Deleting a recipe</h3>
-        <p>When you delete a recipe it moves to the <strong>bin</strong>, accessible via the 🗑️ bin icon in the header. From there you can restore it to your main page, or permanently delete it. Use <strong>Empty bin</strong> to clear everything at once. The bin icon turns red when it contains recipes.</p>
         <h3>Adding a recipe</h3>
-        <p>Tap <strong>Add recipe</strong> in the top right corner. You can fill in the name, tags, how long it takes to cook, and how many people it serves. You can also add a YouTube link and it will appear as a playable video inside the recipe.</p>
+        <p>Tap <strong>Add recipe</strong> in the header. Fill in the name, tags, cook time, and serves. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the recipe.</p>
         <h3>Drafts and publishing</h3>
-        <p>Every new recipe starts as a <strong>Draft</strong>, which means it's saved but hidden from your main page while you're still working on it. When it's ready, open the recipe and tap <strong>Publish</strong> at the bottom. You can always unpublish it again if you want to make changes. To see your drafts, toggle the <strong>Drafts</strong> switch in the toolbar.</p>
+        <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. Open the recipe and tap <strong>Publish</strong> to make it visible. You can unpublish it again at any time. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
         <h3>Organising with tags</h3>
-        <p>Tags help you categorise your recipes — things like "Dinner", "Italian", or "Bake". You can type any tag you like when editing a recipe. New tags you create will appear under an <strong>Other</strong> category, and you can move them into the right category later through <strong>Settings → Tags</strong>.</p>
+        <p>Tags categorise your recipes — things like "Dinner", "Italian", or "Bake". Type any tag when editing a recipe. Custom tags you create appear under <strong>Other</strong> in Settings → Tags, where you can move them into the appropriate category.</p>
         <h3>Serves</h3>
-        <p>You can set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum (for example, 2–4 people). This is useful when a recipe can comfortably feed different numbers depending on appetite.</p>
+        <p>Set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum — useful for recipes that comfortably feed different numbers depending on appetite.</p>
+        <h3>Deleting a recipe</h3>
+        <p>Deleted recipes move to the <strong>bin</strong>, accessible via the 🗑️ icon in the header. From there you can restore a recipe or permanently delete it. The bin icon turns red when it contains recipes.</p>
+        <h3>Undoing changes</h3>
+        <p>While editing a recipe, the <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session — adding or removing ingredients, editing fields, toggling scaling flags, and more. Changes are not undoable once you've saved and closed the form.</p>
       </div>
 
       <div class="info-pane" id="info-pane-scaling">
         <h3>Scaling a recipe up or down</h3>
-        <p>When viewing a recipe, use the <strong>1× / ½× / 2× / 3×</strong> buttons at the top to change the serving size. All ingredient quantities will update automatically — and the units will adjust sensibly too, for example 3 teaspoons becoming 1 tablespoon.</p>
+        <p>When viewing a recipe, use the <strong>1× / ½× / 2× / 3×</strong> buttons at the top to change the serving size. Ingredient quantities update automatically, with units adjusting sensibly — for example, 3 teaspoons becomes 1 tablespoon.</p>
         <h3>Ingredients that don't scale well</h3>
-        <p>Some ingredients don't simply double or halve — like salt, spices, or baking powder. You can flag these by tapping the <strong>⊘ button</strong> next to any ingredient when editing. This lets you set a specific amount for each scale size separately. If you leave a scale size blank, the recipe will show a small note that this ingredient doesn't scale at that size.</p>
+        <p>Some ingredients — like salt, spices, or baking powder — don't simply double or halve. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set a specific amount for each scale size individually. Leaving a scale size blank will show a note that this ingredient doesn't scale at that size.</p>
         <h3>Method steps that change with scale</h3>
-        <p>The same flag works for method steps too — useful for things like cooking times or temperatures that need a different instruction at different batch sizes.</p>
+        <p>The same ⊘ flag works for method steps — useful when cooking times or temperatures need different instructions at different batch sizes.</p>
         <h3>Turning off scaling for a recipe</h3>
-        <p>Some recipes just don't make sense to scale at all. When editing, you'll find a <strong>Recipe can be scaled</strong> toggle — switch it off and the scale controls won't appear when viewing that recipe.</p>
+        <p>When editing, the <strong>Recipe can be scaled</strong> toggle lets you disable scaling entirely for recipes where it doesn't apply. The scale controls won't appear when viewing that recipe.</p>
+      </div>
+
+      <div class="info-pane" id="info-pane-substitutes">
+        <h3>Adding substitutes</h3>
+        <p>Any ingredient can have one or more substitutes. When editing an ingredient, tap the <strong>⇄ button</strong> to open the substitutes panel. Each substitute has its own name, amount, unit, prep note, and an optional <strong>Reason</strong> field — use this to explain why the substitution might be made (e.g. "dairy-free alternative" or "if unavailable").</p>
+        <h3>Choosing a substitute when viewing a recipe</h3>
+        <p>Ingredients that have substitutes show a <strong>⇄ button</strong> in the recipe view. Tapping it opens a small chooser listing the original ingredient and all available substitutes. If a substitute has a reason, it appears in smaller text beneath the name to help you decide. Selecting a substitute swaps that ingredient's name, quantity, and prep note in the table. Tap the button again and choose <strong>Original recipe</strong> to revert.</p>
+        <h3>Scaling substitutes</h3>
+        <p>Substitutes support the same scale overrides as regular ingredients. Use the <strong>⊘ button</strong> within the substitute panel to set specific amounts for ½×, 2×, or 3× scale if the substitute doesn't scale proportionally.</p>
+        <h3>Multiple substitutes</h3>
+        <p>An ingredient can have more than one substitute — for example, a recipe calling for cream might offer both a coconut cream substitute and an oat cream substitute. Only one substitute can be active at a time per ingredient.</p>
       </div>
 
       <div class="info-pane" id="info-pane-filter">
         <h3>Searching for a recipe</h3>
         <p>Use the search bar at the top to find recipes by name or tag. On a phone, tap the magnifying glass icon to bring up the search field.</p>
         <h3>Filtering your recipes</h3>
-        <p>Tap <strong>Filter</strong> in the toolbar to narrow down which recipes are shown. You can select as many options as you like. Within the same category (for example, choosing both "Breakfast" and "Dinner") the app will show recipes that match either one. Across different categories (for example, "Korean" and "Dinner") the app will only show recipes that match both. Each active filter appears as a removable tag below the toolbar so you can see exactly what's applied and remove individual ones easily.</p>
+        <p>Tap <strong>Filter</strong> in the toolbar to narrow down which recipes are shown. You can select multiple options. Within the same category (e.g. "Breakfast" and "Dinner") the app shows recipes matching either. Across different categories (e.g. "Korean" and "Dinner") only recipes matching both are shown. Active filters appear as removable tags below the toolbar.</p>
         <h3>Filtering by cook time or serves</h3>
-        <p>The filter panel also includes cook time and serves ranges. These work the same way — select one or more time ranges or serving sizes to narrow down your results. Only ranges that match at least one of your recipes will be shown.</p>
+        <p>The filter panel includes cook time and serves ranges. Select one or more ranges to narrow results. Only ranges that match at least one of your recipes are shown.</p>
         <h3>Grouping recipes</h3>
-        <p>Tap <strong>Group</strong> in the toolbar to organise your recipes into sections on the main page. Choose a category like Meal or Cuisine and your recipes will be arranged under labelled headings. A recipe that fits into more than one group — for example tagged both "Dinner" and "Lunch" — will appear under both headings.</p>
+        <p>Tap <strong>Group</strong> in the toolbar to organise your recipes into labelled sections on the main page. A recipe tagged with both "Dinner" and "Lunch" will appear under both headings.</p>
       </div>
 
       <div class="info-pane" id="info-pane-mobile">
         <h3>Adding to your iPhone home screen</h3>
         <ol>
-          <li>Open the app in <strong>Safari</strong> (it must be Safari, not Chrome or another browser).</li>
+          <li>Open the app in <strong>Safari</strong> (must be Safari, not Chrome or another browser).</li>
           <li>Tap the <strong>Share button</strong> — the square with an arrow pointing up — at the bottom of the screen.</li>
           <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-          <li>Give it a name and tap <strong>Add</strong>. The app will appear on your home screen and open full-screen, just like a native app.</li>
+          <li>Give it a name and tap <strong>Add</strong>. The app will appear on your home screen and open full-screen.</li>
         </ol>
 
         <h3>Connecting on a new iPhone</h3>
         <ol>
-          <li>Open the app and tap the <strong>🔑 key icon</strong> in the top right corner.</li>
-          <li>Enter your <strong>Gist ID</strong> and <strong>personal access token</strong>. These are the same values you used when setting up originally — if you've saved them in a password manager, now's the time to use them.</li>
+          <li>Open the app and tap the <strong>🔑 key icon</strong> in the header.</li>
+          <li>Enter your <strong>Gist ID</strong> and <strong>personal access token</strong> — the same values used during setup.</li>
           <li>Tap <strong>Save &amp; connect</strong>. Your recipes will load straight away.</li>
         </ol>
-        <div class="info-tip">Every new device needs to be connected separately. Your credentials aren't shared between devices automatically — this is what keeps your recipes secure.</div>
+        <div class="info-tip">Every device needs to be connected separately. Credentials are not shared between devices automatically.</div>
 
         <h3>Using without internet</h3>
-        <p>If you lose your connection, the app will keep working using the last version of your recipes that was loaded. You can still browse, search, and even add or edit recipes — any changes will be saved automatically and sent to GitHub the next time you're back online. A banner at the top of the page will let you know when you're offline.</p>
-        <div class="info-tip">If your recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
+        <p>If you lose your connection, the app continues working from the last loaded version of your recipes. You can still browse, search, and edit — changes are saved locally and synced to GitHub automatically when you're back online. A banner at the top indicates when you're offline.</p>
+        <div class="info-tip">If recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
       </div>
     </div>
     <div class="form-foot">
@@ -1658,6 +1674,7 @@ async function saveToGistSilent() {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
+      'backup.json':   { content: JSON.stringify(recipes, null, 2) },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
     };
@@ -1828,6 +1845,7 @@ async function saveToGist(description) {
   try {
     const files = {
       'recipes.json':  { content: JSON.stringify(recipes, null, 2) },
+      'backup.json':   { content: JSON.stringify(recipes, null, 2) },
       'bin.json':      { content: JSON.stringify(bin, null, 2) },
       'settings.json': { content: JSON.stringify(buildSettingsObj(), null, 2) }
     };
@@ -4171,7 +4189,7 @@ function addIngRow(btn, rowsEl, data) {
       <!-- Row 3: Prep label+input + ⇄ ⊘ buttons same height, no × -->
       <div class="ing-mobile-actions">
         <div class="ing-field-group" style="flex:1;min-width:0">
-          <div class="ing-field-lbl">Prep (optional)</div>
+          <div class="ing-field-lbl">Prep</div>
           <input type="text" class="prep-inp mobile-prep" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
