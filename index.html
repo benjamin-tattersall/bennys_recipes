@@ -44,12 +44,24 @@ html,body{height:100%;background:var(--cream);color:var(--ink);font-family:'Inst
 
 /* ── OFFLINE BANNER ── */
 #offline-banner{
-  display:none;position:fixed;top:0;left:0;right:0;z-index:1000;
+  display:none;position:relative;z-index:10;
   background:var(--offline-bg);border-bottom:1.5px solid var(--offline-border);
   padding:7px 1.2rem;font-size:0.78rem;color:var(--warning);align-items:center;gap:8px;
 }
 #offline-banner.show{display:flex}
+#offline-banner.minimised{padding:3px 1.2rem}
 #offline-banner .dot{width:6px;height:6px;border-radius:50%;background:var(--offline-border);flex-shrink:0}
+#offline-banner-text{flex:1}
+#offline-banner-minimised-label{display:none;font-size:0.7rem;color:var(--warning);opacity:0.8}
+#offline-banner.minimised #offline-banner-text{display:none}
+#offline-banner.minimised #offline-banner-minimised-label{display:inline}
+#offline-banner.minimised .dot{display:none}
+#offline-banner-close{
+  background:none;border:none;cursor:pointer;color:var(--warning);
+  font-size:1rem;padding:0 2px;line-height:1;opacity:0.7;flex-shrink:0;
+  font-family:'Instrument Sans',sans-serif;
+}
+#offline-banner-close:hover{opacity:1}
 #sync-btn{
   margin-left:auto;background:var(--warning);color:#fff;border:none;
   padding:3px 10px;border-radius:4px;font-size:0.73rem;cursor:pointer;
@@ -637,6 +649,8 @@ header{
   font-size:0.67rem;font-weight:500;color:var(--accent-text);
   text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px;
 }
+/* Gap between multiple substitute entry cards */
+.sub-entries{display:flex;flex-direction:column;gap:6px}
 .sub-entry{
   border:1px solid var(--accent);border-radius:var(--radius);
   overflow:hidden;background:var(--accent-light);
@@ -1063,8 +1077,10 @@ header{
 
 <div id="offline-banner">
   <span class="dot"></span>
-  <span>Offline — showing cached recipes. Changes will sync when back online.</span>
+  <span id="offline-banner-text">Offline — showing cached recipes. Changes will sync when back online.</span>
+  <span id="offline-banner-minimised-label">Offline mode</span>
   <button id="sync-btn" onclick="syncPending()">Sync now</button>
+  <button id="offline-banner-close" onclick="toggleOfflineBanner()" title="Minimise">✕</button>
 </div>
 
 <header>
@@ -1719,10 +1735,23 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.74';
+const APP_VERSION = '0.75';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.75',
+    title: 'Offline banner & substitute entry fix',
+    userNotes: [
+      'The offline banner no longer blocks the header buttons — it now sits above the header and pushes the page down instead of overlapping it',
+      'Tap ✕ on the offline banner to collapse it to a slim "Offline mode" indicator',
+      'Multiple substitutes for an ingredient now have a small gap between them',
+    ],
+    items: [
+      'T68: #offline-banner changed from position:fixed to position:relative. Added minimised state (.minimised class). toggleOfflineBanner() toggles _bannerMinimised flag. updateOfflineBanner() resets on reconnect.',
+      'T69: .sub-entries gets display:flex flex-direction:column gap:6px.',
+    ]
+  },
   {
     version: '0.74',
     title: 'Recipe card polish & UI fixes',
@@ -2158,11 +2187,27 @@ function init() {
 }
 
 // ── OFFLINE ───────────────────────────────────────────────────────────────
+let _bannerMinimised = false;
+
 function updateOfflineBanner() {
   const b = document.getElementById('offline-banner');
   const s = document.getElementById('sync-btn');
-  b.classList.toggle('show', !isOnline);
+  if (isOnline) {
+    b.classList.remove('show');
+    _bannerMinimised = false; // reset for next offline session
+  } else {
+    b.classList.add('show');
+    b.classList.toggle('minimised', _bannerMinimised);
+  }
   s.classList.toggle('show', !isOnline && pendingSync.length > 0);
+}
+
+function toggleOfflineBanner() {
+  _bannerMinimised = !_bannerMinimised;
+  const b = document.getElementById('offline-banner');
+  b.classList.toggle('minimised', _bannerMinimised);
+  // Update close button tooltip
+  document.getElementById('offline-banner-close').title = _bannerMinimised ? 'Expand' : 'Minimise';
 }
 
 // ── GLOBAL UNDO / REDO (post-save actions: publish, delete, bin, tag ops) ──
