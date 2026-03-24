@@ -1343,7 +1343,6 @@ header{
         <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
         <button class="info-tab" onclick="switchInfoTab('export',this)">Export</button>
         <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
-        <button class="info-tab" id="whatsnew-tab" onclick="switchInfoTab('whatsnew',this)">What's new</button>
       </div>
 
       <div class="info-pane active" id="info-pane-start">
@@ -1454,9 +1453,6 @@ header{
         <div class="info-tip">If recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
       </div>
 
-      <div class="info-pane" id="info-pane-whatsnew">
-        <div id="info-whatsnew-content"></div>
-      </div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeInfo()">Close</button>
@@ -1465,15 +1461,18 @@ header{
 </div>
 
 <!-- WHAT'S NEW MODAL -->
-<div class="backdrop" id="whatsnew-modal">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-head">
-      <h2>What's new <span style="font-size:0.75rem;font-weight:400;color:var(--ink-faint)" id="whatsnew-version"></span></h2>
-      <button class="xbtn" onclick="closeWhatsNew()">✕</button>
+<!-- UPDATE PROMPT MODAL (T61) -->
+<div class="backdrop" id="update-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head" style="border-bottom:none;padding-bottom:0.5rem">
+      <div>
+        <div style="font-size:0.7rem;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif;font-weight:400;margin-bottom:2px">Benny's Recipes has been updated</div>
+        <h2 style="font-size:1.1rem">Here's what's new</h2>
+      </div>
     </div>
-    <div class="auth-body" id="whatsnew-body" style="gap:0.75rem;max-height:65vh;overflow-y:auto"></div>
+    <div id="update-modal-body" style="padding:0 1.3rem 0.5rem;max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem"></div>
     <div class="form-foot">
-      <button class="btn-pri" onclick="closeWhatsNew()">Got it</button>
+      <button class="btn-pri" onclick="closeUpdateModal()">Got it</button>
     </div>
   </div>
 </div>
@@ -1713,10 +1712,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.70';
+const APP_VERSION = '0.71';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.71',
+    title: 'Update prompt & visual polish',
+    userNotes: [
+      'App updates now appear as a clean prompt — only the changes that affect how you use the app',
+      'Substitute ingredient scale override fields now match the styling of the main ingredient scale overrides',
+    ],
+    items: [
+      'T61: What\'s New tab removed from info modal. Replaced with standalone update prompt modal showing only userNotes — no developer changelog. checkWhatsNew() now reads latest.userNotes. CHANGELOG entries gain userNotes array alongside items.',
+      'T62: Sub override inputs changed from --cream/accent border to --warning-bg/offline-border matching buildOverrideRow. buildUnitSelect replaced with buildOverrideUnitSelect for sub override unit selects. Scale label spans updated from accent-light to warning-bg styling.',
+    ]
+  },
   {
     version: '0.66',
     title: 'Cook mode, note colours & form polish',
@@ -3117,29 +3128,25 @@ function saveSetup() {
 function checkWhatsNew() {
   const seen = localStorage.getItem('seen_version');
   if (seen === APP_VERSION) return;
-  // Open the info modal directly on the What's New tab
-  const container = document.getElementById('info-whatsnew-content');
-  if (container && CHANGELOG.length) {
-    container.innerHTML = CHANGELOG.map((entry, i) => `
-      <div style="margin-bottom:${i < CHANGELOG.length-1 ? '1.5rem' : '0'}">
-        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.4rem">
-          <h3 style="margin:0">v${entry.version}</h3>
-          <span style="font-size:0.75rem;color:var(--ink-faint);font-weight:400">${entry.title}</span>
-        </div>
-        <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">
-          ${entry.items.map(item => `<li style="font-size:0.84rem;color:var(--ink-mid)">${item}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">');
+  const latest = CHANGELOG.find(c => c.version === APP_VERSION);
+  if (!latest?.userNotes?.length) {
+    localStorage.setItem('seen_version', APP_VERSION);
+    return;
   }
-  const tab = document.getElementById('whatsnew-tab');
-  switchInfoTab('whatsnew', tab);
-  document.getElementById('imodal').classList.add('open');
-  localStorage.setItem('seen_version', APP_VERSION);
+  const body = document.getElementById('update-modal-body');
+  if (body) {
+    body.innerHTML = latest.userNotes.map(note =>
+      `<div style="display:flex;gap:0.6rem;align-items:flex-start">
+        <span style="color:var(--accent-text);font-size:0.9rem;flex-shrink:0;margin-top:1px">✦</span>
+        <span style="font-size:0.86rem;color:var(--ink-mid);line-height:1.5">${note}</span>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('update-modal').classList.add('open');
 }
-function closeWhatsNew() {
+function closeUpdateModal() {
   localStorage.setItem('seen_version', APP_VERSION);
-  document.getElementById('whatsnew-modal').classList.remove('open');
+  document.getElementById('update-modal').classList.remove('open');
 }
 
 // ── DOWNLOAD / EXPORT ─────────────────────────────────────────────────────
@@ -3254,26 +3261,6 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function openInfo() {
-  // Populate What's New pane from CHANGELOG
-  const container = document.getElementById('info-whatsnew-content');
-  if (container && CHANGELOG.length) {
-    container.innerHTML = CHANGELOG.map((entry, i) => `
-      <div style="margin-bottom:${i < CHANGELOG.length-1 ? '1.5rem' : '0'}">
-        <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.4rem">
-          <h3 style="margin:0">v${entry.version}</h3>
-          <span style="font-size:0.75rem;color:var(--ink-faint);font-weight:400">${entry.title}</span>
-        </div>
-        <ul style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">
-          ${entry.items.map(item => `<li style="font-size:0.84rem;color:var(--ink-mid)">${item}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0">');
-  }
-  // Show badge on tab if user hasn't seen latest version
-  const seen = localStorage.getItem('seen_version');
-  const tab = document.getElementById('whatsnew-tab');
-  if (tab) tab.style.fontWeight = seen !== APP_VERSION ? '600' : '';
-
   switchInfoTab('start', document.querySelector('.info-tab'));
   document.getElementById('imodal').classList.add('open');
 }
@@ -3285,12 +3272,6 @@ function switchInfoTab(name, btn) {
   if (btn) btn.classList.add('active');
   const pane = document.getElementById('info-pane-' + name);
   if (pane) pane.classList.add('active');
-  // Mark version as seen when user views the What's New tab
-  if (name === 'whatsnew') {
-    localStorage.setItem('seen_version', APP_VERSION);
-    const tab = document.getElementById('whatsnew-tab');
-    if (tab) tab.style.fontWeight = '';
-  }
 }
 
 function openAuth() {
@@ -5115,19 +5096,19 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     <div class="sub-overrides${ns?' show':''}">
       <div class="sub-ov-lbl">Scale overrides for this substitute</div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
-        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">½×</span>
-        <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
-        ${buildUnitSelect(ov.half?.unit||unit)}
+        <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">½×</span>
+        <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        ${buildOverrideUnitSelect(ov.half?.unit||unit, unit)}
       </div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
-        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">2×</span>
-        <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
-        ${buildUnitSelect(ov.double?.unit||unit)}
+        <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">2×</span>
+        <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        ${buildOverrideUnitSelect(ov.double?.unit||unit, unit)}
       </div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
-        <span class="scale-override-lbl" style="background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)">3×</span>
-        <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
-        ${buildUnitSelect(ov.triple?.unit||unit)}
+        <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">3×</span>
+        <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        ${buildOverrideUnitSelect(ov.triple?.unit||unit, unit)}
       </div>
     </div>
     <!-- Sub ingredient note (both views) -->
