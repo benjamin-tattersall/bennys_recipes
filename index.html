@@ -573,7 +573,7 @@ header{
 .scale-override-row input{
   border:1px solid var(--offline-border);border-radius:5px;padding:4px 7px;
   font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);
-  background:var(--warning-bg);outline:none;width:100%;
+  background:var(--cream);outline:none;width:100%;
   transition:border-color .15s;
 }
 .scale-override-row input:focus{border-color:var(--warning)}
@@ -1714,10 +1714,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.72';
+const APP_VERSION = '0.73';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.73',
+    title: 'Scale override input polish',
+    userNotes: [
+      'Scale override input fields now show a clean cream background — consistent across both main ingredients and substitutes',
+    ],
+    items: [
+      'T62 final fix: .scale-override-row input CSS changed from --warning-bg to --cream. buildOverrideRow inline style updated. buildOverrideUnitSelect select + manual input backgrounds updated. switchOvUnitToDropdown new select style updated. v0.72 CHANGELOG entry was missing (Python script silently failed on & char) causing checkWhatsNew to mark seen without showing prompt — fixed.',
+    ]
+  },
   {
     version: '0.71',
     title: 'Update prompt & visual polish',
@@ -4966,7 +4976,7 @@ function buildOverrideRow(label, cls, ovData, amount, unit, factor) {
     <span class="scale-override-lbl">${label}</span>
     <input type="number" min="0" step="any" class="${cls}-amt"
       placeholder="${placeholder ? placeholder.split('\u00a0')[0] : 'amt'}"
-      value="${savedAmt}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+      value="${savedAmt}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
     ${buildOverrideUnitSelect(savedUnit, unit)}
   </div>`;
 }
@@ -4976,7 +4986,7 @@ function buildOverrideUnitSelect(selected, origUnit) {
   if (isCustom) {
     // Show text input with back button — same as main ingredient row
     return `<input type="text" class="unit-manual ov-unit-manual" placeholder="unit" value="${esc(selected)}"
-      style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;min-width:0">
+      style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0">
       <button onclick="switchOvUnitToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
   }
   let opts = `<option value="">— none —</option>`;
@@ -4988,7 +4998,7 @@ function buildOverrideUnitSelect(selected, origUnit) {
     ).join('')}</optgroup>`;
   }).join('');
   opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
-  return `<select class="ov-unit-sel" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-faint)'};background:var(--warning-bg);outline:none;width:100%;cursor:pointer"
+  return `<select class="ov-unit-sel" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-faint)'};background:var(--cream);outline:none;width:100%;cursor:pointer"
     onchange="handleOvUnitChange(this)">${opts}</select>`;
 }
 
@@ -5018,7 +5028,7 @@ function switchOvUnitToDropdown(btn) {
   const wrap = btn.closest('.unit-manual-wrap');
   const newSel = document.createElement('select');
   newSel.className = 'ov-unit-sel';
-  newSel.style.cssText = 'border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink-faint);background:var(--warning-bg);outline:none;width:100%;cursor:pointer';
+  newSel.style.cssText = 'border:1px solid var(--offline-border);border-radius:5px;padding:4px 5px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink-faint);background:var(--cream);outline:none;width:100%;cursor:pointer';
   newSel.onchange = function() { handleOvUnitChange(this); };
   let opts = `<option value="">— none —</option>`;
   opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
