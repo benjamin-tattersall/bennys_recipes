@@ -1701,10 +1701,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.64';
+const APP_VERSION = '0.65';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.65',
+    title: 'Substitute note position & placeholder cleanup',
+    items: [
+      'Substitute note field now appears at the bottom of the substitute card — no longer floating at the top',
+      'Ingredient view: sub ⇄ and note 📝 buttons sit side by side with a gap — consistent row spacing',
+      'All form placeholder text simplified — fields now just say their name (e.g. "Ingredient", "Prep", "Reason")',
+      'Scale override placeholders shortened to "½× override", "2× override", "3× override"',
+    ]
+  },
   {
     version: '0.64',
     title: 'Note toggle fixes',
@@ -4059,7 +4069,7 @@ function renderViewBody(r) {
         ? `<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,'${noteKey}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>`
         : '';
       const actionCol = subs.length || displayNote
-        ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:column;align-items:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
+        ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
         : '<td></td>';
 
       out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
@@ -4815,7 +4825,7 @@ function addIngSection(data) {
   block.className = 'ing-sec-block';
   block.innerHTML = `
     <div class="ing-sec-head">
-      <input type="text" class="ing-sec-title-inp" placeholder="Section name (e.g. Marinade, Salad, Dressing…)" value="${esc(data?.title||'')}">
+      <input type="text" class="ing-sec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="confirmRemoveIngSection(this)" title="Remove section">×</button>
     </div>
     <div class="ing-header-card">
@@ -5005,19 +5015,14 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
 
     <!-- DESKTOP: single head row (name / amt / unit / prep / reason / 📝 / ⊘ / ×) -->
     <div class="sub-entry-head">
-      <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
+      <input type="text" class="sub-name" placeholder="Name" value="${esc(sub?.name||'')}">
       <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
       ${buildUnitSelect(unit)}
-      <input type="text" class="sub-prep-inp" placeholder="Prep (e.g. diced)" value="${esc(sub?.prep||'')}">
-      <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free)" value="${esc(sub?.note||'')}">
+      <input type="text" class="sub-prep-inp" placeholder="Prep" value="${esc(sub?.prep||'')}">
+      <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}">
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
-    </div>
-
-    <!-- Sub ingredient note row (both views) -->
-    <div class="sub-ing-note-row${subIngNote?' show':''}">
-      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
     </div>
 
     <!-- MOBILE: rows with labels, corner delete -->
@@ -5025,7 +5030,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <!-- Row 1: Name -->
       <div class="sub-mobile-field sub-mobile-row1">
         <div class="sub-mobile-lbl">Substitute name</div>
-        <input type="text" class="sub-name-mobile" placeholder="Substitute name" value="${esc(sub?.name||'')}">
+        <input type="text" class="sub-name-mobile" placeholder="Name" value="${esc(sub?.name||'')}">
       </div>
       <!-- Row 2: Amount + Unit -->
       <div class="sub-mobile-row2">
@@ -5041,8 +5046,8 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
-          <div class="sub-mobile-lbl">Prep (optional)</div>
-          <input type="text" class="sub-prep-mobile" placeholder="e.g. diced" value="${esc(sub?.prep||'')}">
+          <div class="sub-mobile-lbl">Prep</div>
+          <input type="text" class="sub-prep-mobile" placeholder="Prep" value="${esc(sub?.prep||'')}">
         </div>
         <div class="sub-mobile-btn-group">
           <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
@@ -5051,8 +5056,8 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       </div>
       <!-- Row 4: Reason (full width, no buttons) -->
       <div class="sub-mobile-field">
-        <div class="sub-mobile-lbl">Reason (optional)</div>
-        <input type="text" class="sub-note-mobile" placeholder="e.g. dairy-free alternative" value="${esc(sub?.note||'')}">
+        <div class="sub-mobile-lbl">Reason</div>
+        <input type="text" class="sub-note-mobile" placeholder="Reason" value="${esc(sub?.note||'')}">
       </div>
     </div>
 
@@ -5074,6 +5079,10 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
         <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildUnitSelect(ov.triple?.unit||unit)}
       </div>
+    </div>
+    <!-- Sub ingredient note (both views) -->
+    <div class="sub-ing-note-row${subIngNote?' show':''}">
+      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
     </div>
   </div>`;
 }
@@ -5131,14 +5140,14 @@ function addIngRow(btn, rowsEl, data) {
     </div>
     <div class="ing-desktop-row">
       <div class="ing-name-wrap">
-        <input type="text" placeholder="Ingredient name" value="${esc(data?.name||'')}"
+        <input type="text" placeholder="Ingredient" value="${esc(data?.name||'')}"
           oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
         <div class="ing-name-sugs"></div>
       </div>
       <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp"
         value="${amt != null ? amt : ''}">
       ${buildUnitSelect(unit)}
-      <input type="text" class="prep-inp" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
+      <input type="text" class="prep-inp" placeholder="Prep" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
@@ -5151,7 +5160,7 @@ function addIngRow(btn, rowsEl, data) {
       <div class="ing-field-group" style="padding-right:32px">
         <div class="ing-field-lbl">Ingredient</div>
         <div class="ing-name-wrap" style="width:100%">
-          <input type="text" class="ing-name-mobile" placeholder="Ingredient name" value="${esc(data?.name||'')}"
+          <input type="text" class="ing-name-mobile" placeholder="Ingredient" value="${esc(data?.name||'')}"
             oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
           <div class="ing-name-sugs"></div>
         </div>
@@ -5172,7 +5181,7 @@ function addIngRow(btn, rowsEl, data) {
       <div class="ing-mobile-actions">
         <div class="ing-field-group" style="flex:1;min-width:0">
           <div class="ing-field-lbl">Prep</div>
-          <input type="text" class="prep-inp mobile-prep" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
+          <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
@@ -5345,7 +5354,7 @@ function addMethodSection(data) {
   block.className = 'method-sec-block';
   block.innerHTML = `
     <div class="method-sec-head">
-      <input type="text" class="msec-title-inp" placeholder="Section name (e.g. Prep, Marinade, Cooking…)" value="${esc(data?.title||'')}">
+      <input type="text" class="msec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="confirmRemoveMethodSection(this)">×</button>
     </div>
     <div class="method-steps"></div>
@@ -5384,9 +5393,9 @@ function addStep(btn, stepsEl, stepData) {
       <input type="text" class="step-note-inp" placeholder="Note" value="${esc(stepNote)}">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
-      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="Override for ½× — blank = 'does not scale'" value="${esc(ov.half||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="Override for 2× — blank = 'does not scale'" value="${esc(ov.double||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="Override for 3× — blank = 'does not scale'" value="${esc(ov.triple||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="½× override" value="${esc(ov.half||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="2× override" value="${esc(ov.double||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="3× override" value="${esc(ov.triple||'')}"></div>
     </div>`;
   stepsEl.appendChild(wrap);
   const ta = wrap.querySelector('.step-ta');
