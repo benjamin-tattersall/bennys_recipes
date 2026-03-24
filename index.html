@@ -228,11 +228,11 @@ header{
 .view-sec{margin-bottom:1.3rem}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
-.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-top:18px}
+.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-top:1.4rem}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
 .ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top}
-.ing-table td:first-child{color:var(--ink);font-weight:500}
+.ing-table td:first-child{color:var(--ink)}
 .ing-table tr:first-child td{padding-top:2px}
 /* no-scale in view — shown only when scaled (driven by data-scaled on vbody) */
 .noscale-note-view{font-size:0.73rem;color:var(--warning);padding:1px 0.5rem 5px;font-style:italic;display:none}
@@ -1647,10 +1647,18 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.58';
+const APP_VERSION = '0.59';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.59',
+    title: 'Ingredient section spacing & weight',
+    items: [
+      'More breathing room above ingredient section headers in recipe view — spacing now matches method sections',
+      'Ingredient names no longer bold in recipe view — easier to distinguish from section headers',
+    ]
+  },
   {
     version: '0.58',
     title: 'Section header fix, merge fix & polish',
