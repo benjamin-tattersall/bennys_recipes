@@ -693,7 +693,7 @@ header{
   .sub-mobile-row2{display:flex;gap:8px;align-items:stretch}
   .sub-mobile-row2 .sub-mobile-field.amount{flex:0 0 33%}
   .sub-mobile-row2 .sub-mobile-field.unit{flex:1}
-  .sub-mobile-row3{display:flex;gap:6px;align-items:stretch}
+  .sub-mobile-row3{display:flex;gap:6px;align-items:center}
   .sub-mobile-row3 .sub-mobile-field{flex:1;min-width:0}
 
   .sub-entry-mobile input,
@@ -712,7 +712,7 @@ header{
   .sub-entry-mobile .unit-sel.has-val{color:var(--ink)}
   .sub-entry-mobile .amount-inp{text-align:right}
 
-  .sub-mobile-btn-group{display:flex;gap:6px;align-items:stretch;flex-shrink:0;padding-top:16px}
+  .sub-mobile-btn-group{display:flex;gap:6px;align-items:center;flex-shrink:0}
   .sub-mobile-btn-group button{
     height:38px;width:38px;border-radius:6px;
     display:flex;align-items:center;justify-content:center;
@@ -1560,8 +1560,9 @@ header{
         <div class="fg">
           <label>Format</label>
           <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="txt" checked> Text file (.txt) — clean, shareable</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="txt" checked> Text (.txt) — clean, shareable</label>
             <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="md"> Markdown (.md)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="html"> Interactive HTML — standalone page with all controls</label>
           </div>
         </div>
         <p style="font-size:0.78rem;color:var(--ink-faint)">Single recipe export produces a clean file — no bulk headers or metadata. PDF export coming soon.</p>
@@ -1735,10 +1736,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.75';
+const APP_VERSION = '0.76';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.76',
+    title: 'HTML recipe export & substitute fix',
+    userNotes: [
+      'Export a single recipe as a standalone HTML page — open it in any browser to view the full recipe with scale controls, substitute switching, notes, and step tick-off. No internet connection required.',
+      'Substitute ingredient buttons on iPhone are now properly aligned with their row',
+    ],
+    items: [
+      'T42: buildSingleRecipeHtml() generates a fully self-contained HTML file with inlined CSS/JS. All view controls work: scale bar, substitute chooser, note toggles, ingredient/step tick-off. Added HTML radio option to individual export tab.',
+      'T69 fix: sub-mobile-row3 and sub-mobile-btn-group changed from align-items:stretch to align-items:center. padding-top removed from sub-mobile-btn-group.',
+    ]
+  },
   {
     version: '0.75',
     title: 'Offline banner & substitute entry fix',
@@ -2548,9 +2561,251 @@ function buildSingleRecipeMd(r) {
   return lines.join('\n');
 }
 
+function buildSingleRecipeHtml(r) {
+  const rJson = JSON.stringify(r);
+  // Shared inline script — renders the recipe card using same logic as main app
+  const inlineScript = `
+const r = ${rJson};
+let scaleFactor = 1;
+let subToggledMap = {};
+
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtNum(n){if(n==null)return'';const f=+n;if(Number.isInteger(f))return String(f);const frac={0.125:'⅛',0.25:'¼',0.333:'⅓',0.375:'⅜',0.5:'½',0.625:'⅝',0.667:'⅔',0.75:'¾',0.875:'⅞'};const w=Math.floor(f);const d=+(f-w).toFixed(3);const fs=frac[d]||+(f).toFixed(2);return w?(w+' '+fs):String(fs);}
+function scaleAndFormat(amount,unit,factor){if(amount==null)return{display:'',unit:unit||''};const sc=amount*factor;return{display:fmtNum(sc),unit:unit||''};}
+function overrideKey(){return scaleFactor===0.5?'half':scaleFactor===2?'double':scaleFactor===3?'triple':null;}
+function extractYouTubeId(url){if(!url)return null;const m=url.match(/(?:v=|youtu\\.be\\/)([\\w-]{11})/);return m?m[1]:null;}
+
+function setScale(f){
+  scaleFactor=f;
+  document.querySelectorAll('.scale-seg').forEach(b=>b.classList.toggle('active',parseFloat(b.dataset.scale)===f));
+  const vb=document.getElementById('vbody');
+  if(vb)vb.setAttribute('data-scaled',f!==1?'1':'0');
+  render();
+}
+
+function toggleIngNoteView(btn,key){
+  const row=document.getElementById('ing-note-view-'+key);
+  if(!row)return;
+  const showing=row.style.display==='none';
+  row.style.display=showing?'table-row':'none';
+  btn.style.background=showing?'var(--accent-light)':'';
+  btn.style.borderColor=showing?'var(--accent)':'';
+  btn.style.color=showing?'var(--accent-text)':'';
+}
+function toggleStepNoteView(btn,id){
+  const row=document.getElementById(id);
+  if(!row)return;
+  const showing=row.style.display==='none';
+  row.style.display=showing?'':'none';
+  btn.style.background=showing?'var(--accent-light)':'';
+  btn.style.borderColor=showing?'var(--accent)':'';
+  btn.style.color=showing?'var(--accent-text)':'';
+}
+
+let _subChooserKey=null;
+function openSubChooser(btn,itemKey,subs){
+  _subChooserKey=itemKey;
+  const chooser=document.getElementById('sub-chooser');
+  const currentIdx=subToggledMap[itemKey];
+  chooser.innerHTML=[{label:'Original recipe',note:'',idx:undefined},...subs.map((s,i)=>({label:s.name||'Substitute '+(i+1),note:s.note||'',idx:i}))].map(({label,note,idx})=>{
+    const isActive=currentIdx===idx;
+    const noteHtml=note?'<span class="sub-chooser-item-note">'+esc(note)+'</span>':'';
+    return '<div class="sub-chooser-item'+(isActive?' active':'')+'" onclick="selectSub(\\''+itemKey+'\\','+(idx===undefined?'undefined':idx)+')">'+'<span class="sub-chooser-icon">'+(isActive?'✓':(idx===undefined?'○':'⇄'))+'</span><div class="sub-chooser-item-body"><span>'+esc(label)+'</span>'+noteHtml+'</div></div>';
+  }).join('');
+  const rect=btn.getBoundingClientRect();
+  chooser.style.display='block';
+  const ch=chooser.offsetHeight;
+  const spaceBelow=window.innerHeight-rect.bottom;
+  chooser.style.top=spaceBelow>ch+8?(rect.bottom+4)+'px':(rect.top-ch-4)+'px';
+  chooser.style.left=Math.min(rect.left,window.innerWidth-270)+'px';
+}
+function selectSub(key,idx){
+  document.getElementById('sub-chooser').style.display='none';
+  if(idx===undefined||idx==='undefined')delete subToggledMap[key];
+  else subToggledMap[key]=parseInt(idx);
+  render();
+}
+document.addEventListener('click',e=>{
+  const c=document.getElementById('sub-chooser');
+  if(c&&c.style.display!=='none'&&!c.contains(e.target)&&!e.target.closest('.sub-col-btn'))c.style.display='none';
+});
+
+function render(){
+  const scaled=scaleFactor!==1;
+  const key=overrideKey();
+  const vb=document.getElementById('vbody');
+
+  // Tags
+  const tags=r.tags?.length?'<div class="view-tags">'+r.tags.map(t=>'<span class="vtag">'+esc(t)+'</span>').join('')+'</div>':'';
+
+  // Meta
+  const meta=[];
+  const hrs=r.hours||0,mins=r.minutes||0;
+  if(hrs||mins){let t='';if(hrs)t+=hrs+(hrs===1?' hr':' hrs')+' ';if(mins)t+=mins+' min';meta.push('<div class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><path d="M7 4v3l2 1.5"/></svg>'+t+'</div>');}
+  const srv=r.serves;
+  if(srv!=null){const sd=typeof srv==='object'?srv.min+'–'+srv.max:srv;meta.push('<div class="vmeta"><svg viewBox="0 0 14 14"><path d="M5 11c0-2.2 1-3 2-3s2 .8 2 3"/><circle cx="7" cy="4.5" r="1.8"/><path d="M2 11c0-1.8.8-2.5 1.8-2.5"/><circle cx="3" cy="4.8" r="1.5"/><path d="M12 11c0-1.8-.8-2.5-1.8-2.5"/><circle cx="11" cy="4.8" r="1.5"/></svg>Serves '+sd+'</div>');}
+  if(r.source)meta.push('<div class="vmeta" style="font-style:italic">'+esc(r.source)+'</div>');
+  const metaHtml=meta.length?'<div class="view-meta">'+meta.join('')+'</div>':'';
+
+  // Ingredients
+  let ingHtml='';
+  if(r.ingredients?.length){
+    const scaleNote=scaled?' <span style="font-size:0.65rem;color:var(--accent-text);font-style:italic">('+scaleFactor+'×)</span>':'';
+    const rows=r.ingredients.map((sec,si)=>{
+      let out='';
+      if(sec.title){
+        if(si>0)out+='<tr><td colspan="4" style="padding:0;height:1.4rem"></td></tr>';
+        out+='<tr><td colspan="4" class="ing-sec-title-view">'+esc(sec.title)+'</td></tr>';
+      }
+      (sec.items||[]).forEach((item,idx)=>{
+        const subs=item.substitutes?.length?item.substitutes:(item.substitute?.name?[item.substitute]:[]);
+        const itemKey=(item.name||'').toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+idx;
+        const activeSubIdx=subToggledMap[itemKey];
+        const showSub=activeSubIdx!==undefined&&activeSubIdx<subs.length;
+        const activeSub=showSub?subs[activeSubIdx]:null;
+        const displayItem=activeSub||item;
+        let overrideData=null;
+        if(activeSub){if(activeSub.noscale&&scaled&&key)overrideData=activeSub.scaleOverrides?.[key]??null;}
+        else{if(item.noscale&&scaled&&key)overrideData=item.scaleOverrides?.[key]??null;}
+        let qtyDisplay='',unitDisplay='';
+        if(displayItem._combined){qtyDisplay=displayItem._combined;unitDisplay='';}
+        else if(overrideData!==null){qtyDisplay=fmtNum(overrideData.amount);unitDisplay=overrideData.unit||'';}
+        else if(!scaled){qtyDisplay=displayItem.amount!=null?fmtNum(displayItem.amount):'';unitDisplay=displayItem.unit||'';}
+        else{const res=scaleAndFormat(displayItem.amount,displayItem.unit,scaleFactor);qtyDisplay=res.display;unitDisplay=res.unit||'';}
+        const hasOverride=overrideData!==null&&overrideData?.amount!=null;
+        const qtyClass=(scaled&&!item.noscale&&!activeSub?.noscale)||hasOverride?' class="scaled-qty"':'';
+        const qtyFull=[qtyDisplay,unitDisplay].filter(Boolean).join('\\u00a0');
+        const nameCell=activeSub?'<span style="color:var(--accent-text);font-weight:600">'+esc(activeSub.name||'')+'*</span>':esc(item.name||'');
+        const subsJson=esc(JSON.stringify(subs.map(s=>({name:s.name||'',note:s.note||''}))));
+        const subColInner=subs.length?'<button class="sub-col-btn'+(showSub?' active':'')+'" onclick="openSubChooser(this,\\''+itemKey+'\\',JSON.parse(this.dataset.subs))" data-subs="'+subsJson+'" style="background:'+(showSub?'var(--accent-light)':'none')+';border:1px solid '+(showSub?'var(--accent)':'var(--border)')+';border-radius:5px;color:'+(showSub?'var(--accent-text)':'var(--ink-faint)')+';width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>':'';
+        const displayNote=activeSub?(activeSub.ingNote||''):(item.note||'');
+        const noteKey=itemKey+'_note';
+        const noteBtnHtml=displayNote?'<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,\\''+noteKey+'\\')" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>':'';
+        const actionCol=(subs.length||displayNote)?'<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">'+(subs.length?subColInner:'')+noteBtnHtml+'</div></td>':'<td></td>';
+        const noteRow=displayNote?'<tr class="ing-note-view-row" id="ing-note-view-'+noteKey+'" style="display:none"><td colspan="4" style="padding:0 0.5rem 6px;font-size:0.73rem;color:var(--ink-faint)">'+esc(displayNote)+'</td></tr>':'';
+        out+='<tr class="ing-view-row" onclick="if(!event.target.closest(\\'button\\'))this.classList.toggle(\\'done\\')" title="Tap to tick off"><td>'+nameCell+'</td><td'+qtyClass+'>'+esc(qtyFull)+'</td><td style="color:var(--ink-faint)">'+esc(activeSub?(activeSub.prep||''):(item.prep||''))+'</td>'+actionCol+'</tr>'+noteRow;
+      });
+      return out;
+    }).join('');
+    ingHtml='<div class="view-sec"><div class="vsec-lbl">Ingredients'+scaleNote+'</div><table class="ing-table"><thead style="display:none"></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  // Method
+  let methHtml='';
+  if(r.method?.length){
+    const secs=r.method.map(sec=>{
+      const steps=(sec.steps||[]).map((s,i)=>{
+        const text=typeof s==='string'?s:(s.text||'');
+        const ns=typeof s==='object'&&s.noscale;
+        const override=ns&&scaled&&key?(s.scaleOverrides?.[key]??null):null;
+        let displayText=text;
+        let noteHtml='';
+        if(override!==null&&override!==''){displayText=typeof override==='object'?(override.text||text):override;}
+        const stepNoteId=('step_'+i+'_'+sec.title).replace(/[^a-z0-9_]/gi,'_');
+        const stepNoteBtn=s.note?'<button class="step-note-view-btn" onclick="toggleStepNoteView(this,\\''+stepNoteId+'\\')" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>':'';
+        const stepNoteRow=s.note?'<div id="'+stepNoteId+'" style="display:none;font-size:0.73rem;color:var(--ink-faint);padding:2px 0 4px 26px">'+esc(s.note)+'</div>':'';
+        return '<div class="vstep" title="Tap to mark done"><div class="vstep-num" onclick="this.closest(\\'.vstep\\').classList.toggle(\\'done\\')">'+(i+1)+'</div><div style="flex:1" onclick="this.closest(\\'.vstep\\').classList.toggle(\\'done\\')">'+esc(displayText)+noteHtml+'</div>'+stepNoteBtn+'</div>'+stepNoteRow;
+      }).join('');
+      return '<div class="method-sec-view">'+(sec.title?'<div class="msec-title">'+esc(sec.title)+'</div>':'')+steps+'</div>';
+    }).join('');
+    methHtml='<div class="view-sec"><div class="vsec-lbl">Method</div>'+secs+'</div>';
+  }
+
+  // Notes
+  const notesHtml=r.notes?'<div class="view-sec"><div class="vsec-lbl">Notes</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">'+esc(r.notes)+'</p></div>':'';
+
+  // YouTube
+  const ytId=extractYouTubeId(r.youtube);
+  const ytHtml=ytId?'<div class="view-sec"><div class="vsec-lbl">Video</div><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--radius)"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" src="https://www.youtube.com/embed/'+ytId+'" allowfullscreen></iframe></div></div>':'';
+
+  vb.innerHTML=tags+metaHtml+ingHtml+methHtml+notesHtml+ytHtml;
+}
+
+window.addEventListener('DOMContentLoaded',render);
+  `;
+
+  // Collect CSS from the main app (vars + view-relevant classes)
+  const css = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Instrument+Sans:wght@300;400;500&display=swap');
+:root{--ink:#1a1410;--ink-mid:#4a3f35;--ink-muted:#7a6e65;--ink-faint:#b0a69c;--cream:#faf7f2;--paper:#f3ede3;--card:#ffffff;--border:#e2d9ce;--border-mid:#cdc2b5;--accent:#b85c2a;--accent-dim:#c97040;--accent-light:#f5e8df;--accent-text:#7a3310;--tag-bg:#ede4d8;--tag-text:#5a4535;--warning:#7a5a10;--warning-bg:#fdf3dc;--radius:8px;--radius-lg:12px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--cream);color:var(--ink);font-family:'Instrument Sans',sans-serif;}
+body{padding:0;margin:0;}
+.page{max-width:680px;margin:0 auto;padding:1.5rem 1rem 4rem;}
+.recipe-header{margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:2px solid var(--border);}
+.recipe-name{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:500;line-height:1.3;color:var(--ink);margin-bottom:0.4rem;}
+.draft-pill{display:inline-block;font-size:0.68rem;background:var(--warning-bg);color:var(--warning);border:1px solid var(--offline-border,#e8c840);border-radius:10px;padding:2px 8px;margin-bottom:0.4rem;}
+.view-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.9rem;}
+.vtag{font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);padding:2px 8px;border-radius:10px;}
+.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.7rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:1.1rem;}
+.vmeta{font-size:0.8rem;color:var(--ink-muted);display:flex;align-items:center;gap:4px;}
+.vmeta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0;}
+.view-sec{margin-bottom:1.3rem;}
+.vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif;}
+.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;margin-bottom:0;border-bottom:1px solid var(--border);}
+.ing-table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+.ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top;}
+.ing-table td:first-child{color:var(--ink);}
+.ing-table tr:first-child td{padding-top:2px;}
+.scaled-qty{color:var(--accent-text);font-weight:500;}
+.ing-view-row{cursor:pointer;transition:opacity .15s;}
+.ing-view-row:hover td:first-child{color:var(--accent-text);}
+.ing-view-row.done{opacity:0.4;}
+.ing-view-row.done td:first-child{text-decoration:line-through;color:var(--ink-faint);}
+.method-sec-view{margin-bottom:1.4rem;}
+.msec-title{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);}
+.vstep{display:flex;gap:0.65rem;margin-bottom:0.45rem;font-size:0.86rem;line-height:1.6;color:var(--ink-mid);cursor:pointer;border-radius:6px;padding:3px 4px;margin-left:-4px;transition:background .12s;}
+.vstep:hover{background:var(--cream);}
+.vstep.done{opacity:0.45;}
+.vstep.done .vstep-num{background:var(--border);color:var(--ink-faint);}
+.vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint);}
+.vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;}
+.scale-bar{display:flex;align-items:center;gap:6px;margin-bottom:1.2rem;padding:0.6rem 0;border-bottom:1px solid var(--border);}
+.scale-bar-lbl{font-size:0.72rem;color:var(--ink-faint);margin-right:2px;}
+.scale-seg{background:none;border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-family:'Instrument Sans',sans-serif;font-size:0.78rem;color:var(--ink-muted);cursor:pointer;transition:all .12s;}
+.scale-seg.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.sub-chooser{display:none;position:fixed;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 20px rgba(26,20,16,.15);min-width:200px;max-width:260px;z-index:500;overflow:hidden;}
+.sub-chooser-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;cursor:pointer;font-size:0.82rem;color:var(--ink-mid);transition:background .1s;}
+.sub-chooser-item:hover{background:var(--paper);}
+.sub-chooser-item.active{background:var(--accent-light);color:var(--accent-text);}
+.sub-chooser-icon{flex-shrink:0;font-size:0.85rem;margin-top:1px;}
+.sub-chooser-item-note{display:block;font-size:0.74rem;color:var(--ink-faint);margin-top:2px;}
+`;
+
+  const scalable = r.scalable !== false;
+  const scaleBar = scalable ? `
+    <div class="scale-bar">
+      <span class="scale-bar-lbl">Scale:</span>
+      <button class="scale-seg active" data-scale="1" onclick="setScale(1)">1×</button>
+      <button class="scale-seg" data-scale="0.5" onclick="setScale(0.5)">½×</button>
+      <button class="scale-seg" data-scale="2" onclick="setScale(2)">2×</button>
+      <button class="scale-seg" data-scale="3" onclick="setScale(3)">3×</button>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${r.name ? r.name.replace(/</g,'&lt;') : 'Recipe'}</title>
+<style>${css}</style>
+</head>
+<body>
+<div class="page">
+  <div class="recipe-header">
+    ${r.status === 'draft' ? '<div class="draft-pill">Draft</div>' : ''}
+    <h1 class="recipe-name">${r.name ? r.name.replace(/</g,'&lt;') : 'Untitled'}</h1>
+  </div>
+  ${scaleBar}
+  <div id="vbody" data-scaled="0"></div>
+</div>
+<div id="sub-chooser" class="sub-chooser"></div>
+<script>${inlineScript}<\/script>
+</body>
+</html>`;
+}
+
 function buildReadableBackup() {
-  const lines = [];
-  lines.push("BENNY'S RECIPES — BACKUP");
   lines.push('Generated: ' + new Date().toLocaleString());
   lines.push('Total recipes: ' + recipes.length);
   lines.push('='.repeat(60));
@@ -3288,8 +3543,9 @@ function triggerDownload() {
     if (!recipe) { toast('Please select a recipe'); return; }
     const fmt = document.querySelector('input[name="dl-single-fmt"]:checked')?.value || 'txt';
     const safeName = (recipe.name || 'recipe').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    if (fmt === 'txt') downloadFile(safeName + '.txt', buildSingleRecipeTxt(recipe), 'text/plain');
-    if (fmt === 'md')  downloadFile(safeName + '.md',  buildSingleRecipeMd(recipe),  'text/markdown');
+    if (fmt === 'txt')  downloadFile(safeName + '.txt',  buildSingleRecipeTxt(recipe),  'text/plain');
+    if (fmt === 'md')   downloadFile(safeName + '.md',   buildSingleRecipeMd(recipe),   'text/markdown');
+    if (fmt === 'html') downloadFile(safeName + '.html', buildSingleRecipeHtml(recipe), 'text/html');
     closeDownload();
     toast('Downloaded ✓');
     return;
