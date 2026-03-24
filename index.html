@@ -283,6 +283,15 @@ header{
 }
 .ing-note-btn:hover,.step-note-btn:hover{border-color:var(--note-border);color:var(--note-text);background:var(--note-bg)}
 .ing-note-btn.on,.step-note-btn.on{background:var(--note-bg);border-color:var(--note-border);color:var(--note-text)}
+/* optional ingredient toggle */
+.optional-toggle{
+  background:none;border:1px solid var(--border);border-radius:5px;
+  color:var(--ink-faint);font-size:0.62rem;font-weight:500;cursor:pointer;
+  padding:0 4px;height:22px;line-height:1;white-space:nowrap;transition:all .12s;
+  font-family:'Instrument Sans',sans-serif;letter-spacing:0.01em;flex-shrink:0;
+}
+.optional-toggle:hover{border-color:var(--ink-muted);color:var(--ink-mid)}
+.optional-toggle.on{background:var(--paper);border-color:var(--border-mid);color:var(--ink-mid)}
 .sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
 .sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
@@ -418,7 +427,7 @@ header{
 .ing-header-card-inner{
   /* identical grid to .ing-desktop-row */
   display:grid;
-  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto;
+  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto auto;
   gap:6px;
   padding:0 8px 4px; /* bottom pad gives breathing room above first card */
   align-items:center;
@@ -433,7 +442,7 @@ header{
 .ing-desktop-header{display:none !important}
 .ing-desktop-row{
   display:grid;
-  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto;
+  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto auto;
   gap:6px;align-items:center;padding:6px 8px;
 }
 .ing-desktop-row .ing-name-wrap{min-width:0;width:100%;overflow:visible;position:relative}
@@ -470,6 +479,16 @@ header{
   .ing-desktop-header{display:none}
   .ing-desktop-row{display:none}
   .ing-mobile-rows{display:flex;flex-direction:column;gap:8px;padding:8px 8px 8px 8px}
+  /* T63: collapsible mobile rows — detail rows hidden when collapsed */
+  .ing-row-wrap.collapsed .ing-mobile-detail{display:none}
+  .ing-mobile-name-row{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  .ing-mobile-name-row .ing-name-wrap{flex:1;min-width:0}
+  .ing-mobile-collapse-btn{
+    background:none;border:none;cursor:pointer;color:var(--ink-faint);
+    font-size:0.75rem;padding:2px 4px;border-radius:4px;flex-shrink:0;
+    line-height:1;transition:transform .15s;margin-top:0;
+  }
+  .ing-row-wrap.collapsed .ing-mobile-collapse-btn{transform:rotate(-90deg)}
 
   /* corner delete button — top right of card */
   .ing-corner-del{
@@ -1736,10 +1755,26 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.83';
+const APP_VERSION = '0.84';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.84',
+    title: 'Optional ingredients, unit plurals & collapsible mobile rows',
+    userNotes: [
+      'Ingredients can now be marked as optional — tap the "opt" button on any ingredient row to flag it, and it will show as "(optional)" in the recipe view',
+      'Unit names now pluralise automatically in recipe view — "1 clove" becomes "2 cloves" when scaling',
+      'On iPhone, ingredient rows in the edit form now collapse to just the name — tap the chevron ▾ to expand and edit details',
+      'Per-recipe scaling was already supported — the "Recipe can be scaled" toggle in the edit form controls this',
+    ],
+    items: [
+      'T24: optional flag on ingredient data model. optional-toggle CSS + button in desktop (9th col) and mobile row 3. toggleIngOptional() syncs both buttons. optionalLabel in renderViewBody nameCell.',
+      'T30: already implemented via scalable toggle in edit form — confirmed working, marking resolved.',
+      'T50: pluralise() function with PLURAL_UNITS map. Applied to qtyFull assembly in renderViewBody.',
+      'T63: ing-mobile-detail wrapper div for rows 2+3. collapsed class hides detail. ing-mobile-name-row with chevron button. toggleIngCollapse(). Auto-collapse when loading existing rows (data.name present).',
+    ]
+  },
   {
     version: '0.83',
     title: 'Ingredient row delete button fix',
@@ -4060,6 +4095,23 @@ function fmtNum(n) {
   return String(s);
 }
 
+// Unit pluralisation — only for countable custom units, not metric abbreviations
+const PLURAL_UNITS = {
+  'clove':'cloves','sprig':'sprigs','slice':'slices','piece':'pieces',
+  'handful':'handfuls','bunch':'bunches','whole':'whole',
+  'sheet':'sheets','leaf':'leaves','strip':'strips','ball':'balls',
+  'rasher':'rashers','fillet':'fillets','stalk':'stalks','stick':'sticks',
+  'can':'cans','jar':'jars','bottle':'bottles','packet':'packets','bag':'bags',
+};
+function pluralise(qtyStr, unit) {
+  if (!unit || !PLURAL_UNITS[unit.toLowerCase()]) return unit;
+  // Extract numeric value from formatted qty string (handles fractions like ½, 1 ½)
+  const clean = qtyStr.replace(/[⅛¼⅓⅜½⅝⅔¾⅞]/g, '.5').replace(/[^\d.]/g, ' ').trim();
+  const num = parseFloat(clean);
+  if (isNaN(num) || num === 1) return unit;
+  return PLURAL_UNITS[unit.toLowerCase()];
+}
+
 // ── SCALE STATE ───────────────────────────────────────────────────────────
 let scaleFactor = 1;
 
@@ -4226,12 +4278,15 @@ function renderViewBody(r) {
 
       const hasOverride = overrideData !== null && overrideData.amount != null;
       const qtyClass    = (scaled && !item.noscale && !activeSub?.noscale) || hasOverride ? ' class="scaled-qty"' : '';
-      const qtyFull     = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
+      const qtyFull     = [qtyDisplay, pluralise(qtyDisplay, unitDisplay)].filter(Boolean).join('\u00a0');
 
       // Name cell — asterisk + orange when substitute is active
+      const optionalLabel = item.optional
+        ? ` <span style="font-size:0.68rem;color:var(--ink-faint);font-style:italic">(optional)</span>`
+        : '';
       const nameCell = activeSub
-        ? `<span style="color:var(--accent-text);font-weight:600">${esc(activeSub.name||'')}*</span>`
-        : `${esc(item.name||'')}`;
+        ? `<span style="color:var(--accent-text);font-weight:600">${esc(activeSub.name||'')}*</span>${optionalLabel}`
+        : `${esc(item.name||'')}${optionalLabel}`;
 
       // Sub column — ⇄ button only if substitutes exist
       const subsJson = esc(JSON.stringify(subs.map(s => ({ name: s.name || '', note: s.note || '' }))));
@@ -4779,6 +4834,7 @@ async function saveRecipe() {
       if (name) {
         const rawAmt = amountEl?.value.trim();
         const noscale = wrap.querySelector('.noscale-toggle.on') !== null;
+        const optional = wrap.querySelector('.optional-toggle.on') !== null;
         const readOv = (cls) => {
           const row    = wrap.querySelector(`.${cls}-amt`)?.closest('.scale-override-row');
           if (!row) return null;
@@ -4850,6 +4906,7 @@ async function saveRecipe() {
           unit:   rawUnit,
           prep:   prepEl?.value.trim() || '',
           note:   ingNoteVal || undefined,
+          optional: optional || undefined,
           noscale,
           substitutes,
           scaleOverrides: noscale ? {
@@ -5340,6 +5397,7 @@ function addIngRow(btn, rowsEl, data) {
   const hasSub = subs.length > 0;
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
   const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
+  const isOptional = data?.optional || false;
 
   const ingNote = data?.note || '';
   wrap.innerHTML = `
@@ -5352,6 +5410,7 @@ function addIngRow(btn, rowsEl, data) {
       <span>Amount</span>
       <span>Unit</span>
       <span>Prep</span>
+      <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
@@ -5373,35 +5432,40 @@ function addIngRow(btn, rowsEl, data) {
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
 
-    <!-- MOBILE: 3 rows with labels, corner delete, no inline × -->
+    <!-- MOBILE: collapsible rows, corner delete -->
     <div class="ing-mobile-rows">
-      <!-- Row 1: Name (padded right to avoid corner × button) -->
-      <div class="ing-field-group" style="padding-right:32px">
+      <!-- Name row — always visible, tap chevron to expand/collapse -->
+      <div class="ing-mobile-name-row" style="padding-right:32px">
         <div class="ing-name-wrap" style="width:100%">
           <input type="text" class="ing-name-mobile" placeholder="Ingredient" value="${esc(data?.name||'')}"
             oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
           <div class="ing-name-sugs"></div>
         </div>
+        <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse">▾</button>
       </div>
-      <!-- Row 2: Amount + Unit (equal height) -->
-      <div class="ing-field-group-row">
-        <div class="ing-field-group amount">
-          <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp mobile-amt"
-            value="${amt != null ? amt : ''}">
+      <!-- Detail rows — hidden when collapsed -->
+      <div class="ing-mobile-detail">
+        <!-- Row 2: Amount + Unit -->
+        <div class="ing-field-group-row">
+          <div class="ing-field-group amount">
+            <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp mobile-amt"
+              value="${amt != null ? amt : ''}">
+          </div>
+          <div class="ing-field-group unit">
+            ${buildUnitSelect(unit)}
+          </div>
         </div>
-        <div class="ing-field-group unit">
-          ${buildUnitSelect(unit)}
-        </div>
-      </div>
-      <!-- Row 3: Prep input + ⇄ 📝 ⊘ buttons, all vertically centred -->
-      <div class="ing-mobile-actions">
-        <div class="ing-field-group" style="flex:1;min-width:0">
-          <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
-        </div>
-        <div class="ing-mobile-btn-group">
-          <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
-          <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
-          <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
+        <!-- Row 3: Prep + buttons -->
+        <div class="ing-mobile-actions">
+          <div class="ing-field-group" style="flex:1;min-width:0">
+            <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
+          </div>
+          <div class="ing-mobile-btn-group">
+            <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
+            <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
+            <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
+            <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)">opt</button>
+          </div>
         </div>
       </div>
     </div>
@@ -5429,6 +5493,8 @@ function addIngRow(btn, rowsEl, data) {
       </button>
     </div>`;
   rowsEl.appendChild(wrap);
+  // T63: auto-collapse on mobile if this row already has data (loading existing recipe)
+  if (data?.name) wrap.classList.add('collapsed');
 }
 
 function toggleIngNoteView(btn, key) {
@@ -5485,6 +5551,18 @@ function toggleIngNoscale(btn) {
     const first = noteRow.querySelector('input');
     if (first) { _pendingSnapshot = null; first.focus(); }
   }
+}
+
+function toggleIngOptional(btn) {
+  captureFormSnapshot(btn.classList.contains('on') ? 'Remove optional' : 'Mark optional');
+  const wrap = btn.closest('.ing-row-wrap');
+  const isNowOn = !btn.classList.contains('on');
+  wrap.querySelectorAll('.optional-toggle').forEach(b => b.classList.toggle('on', isNowOn));
+}
+
+function toggleIngCollapse(btn) {
+  const wrap = btn.closest('.ing-row-wrap');
+  wrap.classList.toggle('collapsed');
 }
 
 function toggleSubIngNote(btn) {
