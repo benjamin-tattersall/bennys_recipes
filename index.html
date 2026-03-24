@@ -248,6 +248,19 @@ header{
 .vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
 .step-note-row{padding:2px 0 4px 26px}
+.step-note-row.show{display:block}
+/* 📝 note icon buttons — same style family as ⇄ and ⊘ */
+.ing-note-btn,.step-note-btn{
+  background:none;border:1px solid var(--border);border-radius:5px;
+  color:var(--ink-faint);width:26px;height:26px;font-size:0.72rem;
+  cursor:pointer;transition:all .12s;padding:0;line-height:1;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.ing-note-btn:hover,.step-note-btn:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
+.ing-note-btn.on,.step-note-btn.on{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+.sub-ing-note-row{display:none;padding:3px 6px 4px}
+.sub-ing-note-row.show{display:block}
+.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--accent);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px}
 .step-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
 .step-note-inp:focus{border-bottom-color:var(--accent)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
@@ -1458,41 +1471,69 @@ header{
 
 <!-- DOWNLOAD MODAL -->
 <div class="backdrop" id="download-modal">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-head">
       <h2>Export recipes</h2>
       <button class="xbtn" onclick="closeDownload()">✕</button>
     </div>
-    <div class="auth-body" style="gap:1rem">
-      <p style="font-size:0.84rem;color:var(--ink-mid)">Choose which recipes to export and the format. Your Gist is also updated with backup files on every save.</p>
+    <div class="auth-body" style="gap:1.1rem">
+      <p style="font-size:0.84rem;color:var(--ink-mid)">Your Gist is also updated with backup files on every save.</p>
 
-      <div class="fg">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <label>Recipes</label>
-          <div style="display:flex;gap:8px">
-            <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(true)">All</button>
-            <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(false)">None</button>
-          </div>
-        </div>
-        <div id="dl-recipe-list" style="display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--paper)"></div>
+      <!-- Export type tabs -->
+      <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <button id="dl-tab-bulk" onclick="dlSwitchTab('bulk')" style="flex:1;padding:7px;font-size:0.8rem;font-family:'Instrument Sans',sans-serif;border:none;cursor:pointer;background:var(--accent);color:#fff;font-weight:500;transition:all .12s">Bulk export</button>
+        <button id="dl-tab-single" onclick="dlSwitchTab('single')" style="flex:1;padding:7px;font-size:0.8rem;font-family:'Instrument Sans',sans-serif;border:none;cursor:pointer;background:var(--paper);color:var(--ink-mid);transition:all .12s">Single recipe</button>
       </div>
 
-      <div class="fg">
-        <label>Format</label>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-txt" checked> Text file (.txt) — plain readable backup
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-md"> Markdown (.md) — formatted with headers and bold text
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-csv"> Spreadsheet (.csv) — opens in Excel or Google Sheets
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="checkbox" id="dl-gist"> Full Gist backup (.json) — restores everything to a new Gist
-          </label>
+      <!-- BULK EXPORT PANEL -->
+      <div id="dl-bulk-panel">
+        <div class="fg">
+          <label>Include</label>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-scope" value="all" checked onchange="dlScopeChange()"> All recipes</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-scope" value="published" onchange="dlScopeChange()"> Published only</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-scope" value="drafts" onchange="dlScopeChange()"> Drafts only</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-scope" value="specific" onchange="dlScopeChange()"> Specific recipes…</label>
+          </div>
         </div>
+
+        <!-- Checklist — shown only when Specific is selected -->
+        <div id="dl-specific-panel" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="font-size:0.82rem;font-weight:600;color:var(--ink-mid)">Select recipes</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(true)">All</button>
+              <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(false)">None</button>
+            </div>
+          </div>
+          <div id="dl-recipe-list" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--paper)"></div>
+        </div>
+
+        <div class="fg">
+          <label>Format</label>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="checkbox" id="dl-txt" checked> Text file (.txt)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="checkbox" id="dl-md"> Markdown (.md)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="checkbox" id="dl-csv"> Spreadsheet (.csv)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="checkbox" id="dl-gist"> Full Gist backup (.json)</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- SINGLE RECIPE EXPORT PANEL -->
+      <div id="dl-single-panel" style="display:none">
+        <div class="fg">
+          <label>Recipe</label>
+          <select id="dl-single-recipe" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;color:var(--ink);background:var(--cream);outline:none;margin-top:4px"></select>
+        </div>
+        <div class="fg">
+          <label>Format</label>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="txt" checked> Text file (.txt) — clean, shareable</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer"><input type="radio" name="dl-single-fmt" value="md"> Markdown (.md)</label>
+          </div>
+        </div>
+        <p style="font-size:0.78rem;color:var(--ink-faint)">Single recipe export produces a clean file — no bulk headers or metadata. PDF export coming soon.</p>
       </div>
     </div>
     <div class="form-foot">
@@ -1660,10 +1701,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.61';
+const APP_VERSION = '0.62';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.62',
+    title: 'Export redesign, note toggles & substitute notes',
+    items: [
+      'Export modal redesigned: Bulk export with All / Published / Drafts / Specific scope, plus a Single Recipe tab for clean individual exports',
+      'Single recipe export produces a clean file with no bulk headers — ideal for sharing',
+      'Method step notes and ingredient notes now use a 📝 toggle button — tap to reveal the note in small light grey text',
+      'Notes do not display inline by default — keeps the recipe view clean until you want context',
+      'When a substitute is active, its note is shown instead of the ingredient\'s note',
+    ]
+  },
   {
     version: '0.61',
     title: 'Step notes, ingredient notes & export selection',
@@ -2278,6 +2330,80 @@ async function syncPending() {
 }
 
 // ── BACKUP HELPERS ─────────────────────────────────────────────────────────
+function buildSingleRecipeTxt(r) {
+  const lines = [];
+  lines.push(r.name || 'Untitled');
+  lines.push('='.repeat((r.name || 'Untitled').length));
+  const hrs = r.hours || 0, mins = r.minutes || 0;
+  if (hrs || mins) lines.push('Time: ' + (hrs ? hrs + (hrs===1?' hr':' hrs') + ' ' : '') + (mins ? mins + ' mins' : ''));
+  const srv = r.serves;
+  if (srv != null) lines.push('Serves: ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
+  if (r.tags?.length) lines.push('Tags: ' + r.tags.join(', '));
+  if (r.source) lines.push('Source: ' + r.source);
+  if (r.notes) { lines.push(''); lines.push('Notes: ' + r.notes); }
+  if (r.ingredients?.length) {
+    lines.push(''); lines.push('INGREDIENTS');
+    r.ingredients.forEach(sec => {
+      if (sec.title) lines.push('  ' + sec.title);
+      (sec.items || []).forEach(item => {
+        const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
+        const prep = item.prep ? ', ' + item.prep : '';
+        const note = item.note ? ' — ' + item.note : '';
+        lines.push('  • ' + (item.name || '?') + (qty ? ' — ' + qty : '') + prep + note);
+      });
+    });
+  }
+  if (r.method?.length) {
+    lines.push(''); lines.push('METHOD');
+    r.method.forEach(sec => {
+      if (sec.title) { lines.push(''); lines.push('  ' + sec.title.toUpperCase()); }
+      (sec.steps || []).forEach((s, i) => {
+        lines.push('  ' + (i+1) + '. ' + (s.text || s));
+        if (s.note) lines.push('     Note: ' + s.note);
+      });
+    });
+  }
+  return lines.join('\n');
+}
+
+function buildSingleRecipeMd(r) {
+  const lines = [];
+  lines.push('# ' + (r.name || 'Untitled'));
+  lines.push('');
+  const hrs = r.hours || 0, mins = r.minutes || 0;
+  if (hrs || mins) lines.push('**Time:** ' + (hrs ? hrs + (hrs===1?' hr':' hrs') + ' ' : '') + (mins ? mins + ' mins' : ''));
+  const srv = r.serves;
+  if (srv != null) lines.push('**Serves:** ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
+  if (r.tags?.length) lines.push('**Tags:** ' + r.tags.join(', '));
+  if (r.source) lines.push('**Source:** ' + r.source);
+  if (r.notes) { lines.push(''); lines.push('> ' + r.notes); }
+  if (r.ingredients?.length) {
+    lines.push(''); lines.push('## Ingredients'); lines.push('');
+    r.ingredients.forEach(sec => {
+      if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
+      (sec.items || []).forEach(item => {
+        const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
+        const prep = item.prep ? ' *('+item.prep+')*' : '';
+        const note = item.note ? '\n  *Note: ' + item.note + '*' : '';
+        lines.push('- **' + (item.name||'?') + '**' + (qty?' — '+qty:'') + prep + note);
+      });
+      lines.push('');
+    });
+  }
+  if (r.method?.length) {
+    lines.push('## Method'); lines.push('');
+    r.method.forEach(sec => {
+      if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
+      (sec.steps || []).forEach((s, i) => {
+        lines.push((i+1) + '. ' + (s.text || s));
+        if (s.note) lines.push('   > *Note: ' + s.note + '*');
+      });
+      lines.push('');
+    });
+  }
+  return lines.join('\n');
+}
+
 function buildReadableBackup() {
   const lines = [];
   lines.push("BENNY'S RECIPES — BACKUP");
@@ -2963,7 +3089,7 @@ function closeWhatsNew() {
 
 // ── DOWNLOAD / EXPORT ─────────────────────────────────────────────────────
 function openDownload() {
-  // Populate recipe checklist — all checked by default
+  // Populate specific recipe checklist
   const list = document.getElementById('dl-recipe-list');
   if (list) {
     list.innerHTML = recipes.length
@@ -2974,33 +3100,79 @@ function openDownload() {
         </label>`).join('')
       : '<p style="font-size:0.84rem;color:var(--ink-faint)">No recipes yet.</p>';
   }
+  // Populate individual recipe dropdown
+  const sel = document.getElementById('dl-single-recipe');
+  if (sel) {
+    sel.innerHTML = recipes.length
+      ? recipes.map(r => `<option value="${r.id}">${esc(r.name || 'Untitled')}${r.status==='draft'?' (draft)':''}</option>`).join('')
+      : '<option value="">No recipes</option>';
+  }
+  // Reset to bulk tab, reset scope to All
+  dlSwitchTab('bulk');
+  const allRadio = document.querySelector('input[name="dl-scope"][value="all"]');
+  if (allRadio) { allRadio.checked = true; }
+  document.getElementById('dl-specific-panel').style.display = 'none';
   document.getElementById('download-modal').classList.add('open');
 }
+
+function dlSwitchTab(tab) {
+  const isBulk = tab === 'bulk';
+  document.getElementById('dl-bulk-panel').style.display   = isBulk ? '' : 'none';
+  document.getElementById('dl-single-panel').style.display  = isBulk ? 'none' : '';
+  const bulkBtn   = document.getElementById('dl-tab-bulk');
+  const singleBtn = document.getElementById('dl-tab-single');
+  if (bulkBtn)   { bulkBtn.style.background   = isBulk ? 'var(--accent)' : 'var(--paper)';   bulkBtn.style.color   = isBulk ? '#fff' : 'var(--ink-mid)';   bulkBtn.style.fontWeight   = isBulk ? '500' : '400'; }
+  if (singleBtn) { singleBtn.style.background = isBulk ? 'var(--paper)' : 'var(--accent)'; singleBtn.style.color = isBulk ? 'var(--ink-mid)' : '#fff'; singleBtn.style.fontWeight = isBulk ? '400' : '500'; }
+}
+
 function dlSelectAll(checked) {
   document.querySelectorAll('.dl-recipe-chk').forEach(chk => chk.checked = checked);
 }
+
+function dlScopeChange() {
+  const scope = document.querySelector('input[name="dl-scope"]:checked')?.value;
+  document.getElementById('dl-specific-panel').style.display = scope === 'specific' ? '' : 'none';
+}
+
 function closeDownload() {
   document.getElementById('download-modal').classList.remove('open');
 }
+
 function triggerDownload() {
+  const isSingle = document.getElementById('dl-single-panel').style.display !== 'none';
+
+  if (isSingle) {
+    const selEl = document.getElementById('dl-single-recipe');
+    const id = Number(selEl?.value);
+    const recipe = recipes.find(r => r.id === id);
+    if (!recipe) { toast('Please select a recipe'); return; }
+    const fmt = document.querySelector('input[name="dl-single-fmt"]:checked')?.value || 'txt';
+    const safeName = (recipe.name || 'recipe').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    if (fmt === 'txt') downloadFile(safeName + '.txt', buildSingleRecipeTxt(recipe), 'text/plain');
+    if (fmt === 'md')  downloadFile(safeName + '.md',  buildSingleRecipeMd(recipe),  'text/markdown');
+    closeDownload();
+    toast('Downloaded ✓');
+    return;
+  }
+
+  // Bulk export
   const wantTxt  = document.getElementById('dl-txt')?.checked;
   const wantMd   = document.getElementById('dl-md')?.checked;
   const wantCsv  = document.getElementById('dl-csv')?.checked;
   const wantGist = document.getElementById('dl-gist')?.checked;
+  if (!wantTxt && !wantMd && !wantCsv && !wantGist) { toast('Please select at least one format'); return; }
 
-  if (!wantTxt && !wantMd && !wantCsv && !wantGist) {
-    toast('Please select at least one format');
-    return;
-  }
+  const scope = document.querySelector('input[name="dl-scope"]:checked')?.value || 'all';
+  let subset;
+  if (scope === 'published') subset = recipes.filter(r => r.status === 'published');
+  else if (scope === 'drafts') subset = recipes.filter(r => r.status === 'draft');
+  else if (scope === 'specific') {
+    const ids = new Set([...document.querySelectorAll('.dl-recipe-chk:checked')].map(c => Number(c.dataset.id)));
+    subset = recipes.filter(r => ids.has(r.id));
+  } else subset = [...recipes];
 
-  // Collect selected recipe IDs from checklist
-  const selectedIds = new Set(
-    [...document.querySelectorAll('.dl-recipe-chk:checked')].map(c => Number(c.dataset.id))
-  );
-  const subset = recipes.filter(r => selectedIds.has(r.id));
-  if (!subset.length) { toast('No recipes selected'); return; }
+  if (!subset.length) { toast('No recipes match that selection'); return; }
 
-  // Temporarily swap global recipes for scoped export
   const origRecipes = recipes;
   recipes = subset;
   try {
@@ -3010,9 +3182,7 @@ function triggerDownload() {
   } finally {
     recipes = origRecipes;
   }
-  // Gist backup always uses full data
   if (wantGist) downloadFile('gist-backup.json', buildGistBackup(), 'application/json');
-
   closeDownload();
   toast(`Exported ${subset.length} recipe${subset.length !== 1 ? 's' : ''} ✓`);
 }
@@ -3838,14 +4008,16 @@ function renderViewBody(r) {
 
       // Sub column — ⇄ button only if substitutes exist
       const subsJson = esc(JSON.stringify(subs.map(s => ({ name: s.name || '', note: s.note || '' }))));
-      const subCol = subs.length
-        ? `<td style="text-align:center;padding:5px 2px">
-            <button class="sub-col-btn${showSub?' active':''}"
+      const subColInner = subs.length
+        ? `<button class="sub-col-btn${showSub?' active':''}"
               onclick="openSubChooser(this,'${itemKey}',JSON.parse(this.dataset.subs))"
               data-subs="${subsJson}"
               title="Switch ingredient"
-              style="background:${showSub?'var(--accent)':'var(--accent-light)'};border:1px solid var(--accent);border-radius:5px;color:${showSub?'#fff':'var(--accent-text)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>
-           </td>`
+              style="background:${showSub?'var(--accent)':'var(--accent-light)'};border:1px solid var(--accent);border-radius:5px;color:${showSub?'#fff':'var(--accent-text)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>`
+        : '';
+      // Keep subCol for backward compat refs
+      const subCol = subs.length
+        ? `<td style="text-align:center;padding:5px 2px">${subColInner}</td>`
         : '<td></td>';
 
       // Does not scale note
@@ -3856,13 +4028,23 @@ function renderViewBody(r) {
         ? `<tr><td colspan="4" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
         : '';
 
-      // Ingredient note (T26) — shown inline beneath ingredient name when present
-      const displayNote = activeSub ? (activeSub.note || '') : (item.note || '');
-      const ingNoteRow = displayNote
-        ? `<tr><td colspan="4" style="padding:0 0.5rem 5px;font-size:0.75rem;color:var(--ink-faint);font-style:italic"><em style="color:var(--accent-text);font-style:normal;font-weight:500;margin-right:3px">Note:</em>${esc(displayNote)}</td></tr>`
-        : '';
+      // Ingredient note (T26) — shown via toggle button, light grey small text
+      const displayNote = activeSub ? (activeSub.ingNote || '') : (item.note || '');
+      const noteKey = itemKey + '_note';
 
-      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${subCol}</tr>${ingNoteRow}${noteRow}`;
+      // Build the 4th column: sub button + note button if applicable
+      const noteBtnHtml = displayNote
+        ? `<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,'${noteKey}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center">📝</button>`
+        : '';
+      const actionCol = subs.length || displayNote
+        ? `<td style="text-align:center;padding:5px 2px;white-space:nowrap">${subs.length ? subColInner : ''}${noteBtnHtml}</td>`
+        : '<td></td>';
+
+      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
+      if (displayNote) {
+        out += `<tr class="ing-note-view-row" id="ing-note-view-${noteKey}" style="display:none"><td colspan="4" style="padding:0 0.5rem 6px;font-size:0.73rem;color:var(--ink-faint)">${esc(displayNote)}</td></tr>`;
+      }
+      out += noteRow;
     });
     return out;
   }
@@ -3973,8 +4155,18 @@ function renderViewBody(r) {
           noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
         }
 
-        const stepNote = s.note ? `<div class="vstep-note"><strong>Note:</strong> ${esc(s.note)}</div>` : '';
-        return `<div class="vstep" onclick="this.classList.toggle('done')" title="Tap to mark done"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}${stepNote}</div></div>`;
+        const stepNoteId = `step-note-${currentId}-${sec.title||'s'}-${i}`.replace(/[^a-z0-9-]/gi,'_');
+        const stepNoteBtn = s.note
+          ? `<button class="step-note-view-btn" onclick="toggleStepNoteView(this,'${stepNoteId}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px">📝</button>`
+          : '';
+        const stepNoteRow = s.note
+          ? `<div id="${stepNoteId}" style="display:none;font-size:0.73rem;color:var(--ink-faint);padding:2px 0 4px 26px">${esc(s.note)}</div>`
+          : '';
+        return `<div class="vstep" title="Tap to mark done">
+          <div class="vstep-num" onclick="this.closest('.vstep').classList.toggle('done')">${i+1}</div>
+          <div style="flex:1" onclick="this.closest('.vstep').classList.toggle('done')">${esc(displayText)}${noteHtml}</div>
+          ${stepNoteBtn}
+        </div>${stepNoteRow}`;
       }).join('');
       return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
     }).join('');
@@ -4379,6 +4571,7 @@ async function saveRecipe() {
           const sUnit = sSel?.value || '';
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
           const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
+          const sIngNote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
           const sNs   = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
           const readSubOv = (cls) => {
             const amtEl = entry.querySelector(`.${cls}-amt`);
@@ -4389,11 +4582,12 @@ async function saveRecipe() {
             return (a || u) ? { amount: a ? parseFloat(a) : null, unit: u } : null;
           };
           substitutes.push({
-            name:   toTitleCase(sName),
-            amount: sAmt ? parseFloat(sAmt) : null,
-            unit:   sUnit,
-            prep:   sPrep,
-            note:   sNote,
+            name:    toTitleCase(sName),
+            amount:  sAmt ? parseFloat(sAmt) : null,
+            unit:    sUnit,
+            prep:    sPrep,
+            note:    sNote,
+            ingNote: sIngNote || undefined,
             noscale: sNs,
             scaleOverrides: sNs ? {
               half:   readSubOv('sub-half'),
@@ -4782,19 +4976,26 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     double: calcOverridePlaceholder(amt, unit, 2),
     triple: calcOverridePlaceholder(amt, unit, 3)
   };
+  const subIngNote = sub?.ingNote || '';
   return `<div class="sub-entry">
     <!-- Corner delete (mobile only) -->
     <button class="sub-entry-corner-del" onclick="removeSubEntry(this)" title="Remove substitute">×</button>
 
-    <!-- DESKTOP: single head row (name / amt / unit / prep / reason / ⊘ / ×) -->
+    <!-- DESKTOP: single head row (name / amt / unit / prep / reason / 📝 / ⊘ / ×) -->
     <div class="sub-entry-head">
       <input type="text" class="sub-name" placeholder="Substitute name" value="${esc(sub?.name||'')}">
       <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
       ${buildUnitSelect(unit)}
       <input type="text" class="sub-prep-inp" placeholder="Prep (e.g. diced)" value="${esc(sub?.prep||'')}">
       <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free)" value="${esc(sub?.note||'')}">
+      <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)">📝</button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
+    </div>
+
+    <!-- Sub ingredient note row (both views) -->
+    <div class="sub-ing-note-row${subIngNote?' show':''}">
+      <input type="text" class="sub-ing-note-inp" placeholder="Note (e.g. adjust salt when using this substitute)" value="${esc(subIngNote)}">
     </div>
 
     <!-- MOBILE: rows with labels, corner delete -->
@@ -4916,6 +5117,7 @@ function addIngRow(btn, rowsEl, data) {
       ${buildUnitSelect(unit)}
       <input type="text" class="prep-inp" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
+      <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)">📝</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
@@ -4951,6 +5153,7 @@ function addIngRow(btn, rowsEl, data) {
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
+          <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)">📝</button>
           <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
         </div>
       </div>
@@ -4960,7 +5163,6 @@ function addIngRow(btn, rowsEl, data) {
     <div class="ing-note-row${ingNote?' show':''}">
       <input type="text" class="ing-note-inp" placeholder="Note (e.g. Chianti recommended)" value="${esc(ingNote)}">
     </div>
-    <button class="ing-note-toggle${ingNote?' hide':''}" onclick="toggleIngNote(this)">${ingNote?'− Remove note':'＋ Add note'}</button>
 
     <!-- Scale overrides panel (inside card, both views) -->
     <div class="noscale-note-row${ns?' show':''}">
@@ -4980,6 +5182,26 @@ function addIngRow(btn, rowsEl, data) {
       </button>
     </div>`;
   rowsEl.appendChild(wrap);
+}
+
+function toggleIngNoteView(btn, key) {
+  const row = document.getElementById('ing-note-view-' + key);
+  if (!row) return;
+  const showing = row.style.display === 'none' || !row.style.display;
+  row.style.display = showing ? '' : 'none';
+  btn.style.background = showing ? 'var(--accent-light)' : 'var(--paper)';
+  btn.style.borderColor = showing ? 'var(--accent)' : 'var(--border)';
+  btn.style.color = showing ? 'var(--accent-text)' : 'var(--ink-faint)';
+}
+
+function toggleStepNoteView(btn, id) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  const showing = row.style.display === 'none' || !row.style.display;
+  row.style.display = showing ? '' : 'none';
+  btn.style.background = showing ? 'var(--accent-light)' : 'var(--paper)';
+  btn.style.borderColor = showing ? 'var(--accent)' : 'var(--border)';
+  btn.style.color = showing ? 'var(--accent-text)' : 'var(--ink-faint)';
 }
 
 function toggleSubPanel(btn) {
@@ -5015,12 +5237,29 @@ function toggleIngNoscale(btn) {
   }
 }
 
+function toggleSubIngNote(btn) {
+  captureFormSnapshot('Toggle substitute note');
+  btn.classList.toggle('on');
+  const entry = btn.closest('.sub-entry');
+  const row   = entry.querySelector('.sub-ing-note-row');
+  const showing = btn.classList.contains('on');
+  row.classList.toggle('show', showing);
+  if (showing) {
+    const inp = row.querySelector('.sub-ing-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
+  } else {
+    const inp = row.querySelector('.sub-ing-note-inp');
+    if (inp) inp.value = '';
+  }
+}
+
 function toggleIngNote(btn) {
   captureFormSnapshot('Toggle ingredient note');
+  btn.classList.toggle('on');
   const wrap = btn.closest('.ing-row-wrap');
   const row  = wrap.querySelector('.ing-note-row');
-  const showing = row.classList.toggle('show');
-  btn.textContent = showing ? '− Remove note' : '＋ Add note';
+  const showing = btn.classList.contains('on');
+  row.classList.toggle('show', showing);
   if (showing) {
     const inp = row.querySelector('.ing-note-inp');
     if (inp) { _pendingSnapshot = null; inp.focus(); }
@@ -5113,11 +5352,12 @@ function addStep(btn, stepsEl, stepData) {
     <div class="step-row" style="align-items:flex-start">
       <div class="step-num-s">${num}</div>
       <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
+      <button class="step-note-btn${stepNote?' on':''}" title="Add note to this step" onclick="toggleStepNote(this)" style="margin-top:4px;flex-shrink:0">📝</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
     </div>
-    <div class="step-note-row">
-      <input type="text" class="step-note-inp" placeholder="Note (e.g. any shape will do)" value="${esc(stepNote)}">
+    <div class="step-note-row${stepNote?' show':''}">
+      <input type="text" class="step-note-inp" placeholder="Note — extra context for this step (e.g. any shape will do)" value="${esc(stepNote)}">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
       <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="Override for ½× — blank = 'does not scale'" value="${esc(ov.half||'')}"></div>
@@ -5128,6 +5368,22 @@ function addStep(btn, stepsEl, stepData) {
   const ta = wrap.querySelector('.step-ta');
   ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
   if (text) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
+}
+
+function toggleStepNote(btn) {
+  captureFormSnapshot('Toggle step note');
+  btn.classList.toggle('on');
+  const wrap = btn.closest('.step-wrap');
+  const row  = wrap.querySelector('.step-note-row');
+  const showing = btn.classList.contains('on');
+  row.classList.toggle('show', showing);
+  if (showing) {
+    const inp = row.querySelector('.step-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
+  } else {
+    const inp = row.querySelector('.step-note-inp');
+    if (inp) inp.value = '';
+  }
 }
 
 function toggleStepNoscale(btn) {
