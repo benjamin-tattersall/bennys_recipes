@@ -247,7 +247,7 @@ header{
 .vstep.done .vstep-num{background:var(--border);color:var(--ink-faint)}
 .vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{padding:3px 8px 5px 26px}
+.step-note-row{display:none;padding:3px 8px 5px 26px}
 .step-note-row.show{display:block}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
@@ -1701,10 +1701,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.63';
+const APP_VERSION = '0.64';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.64',
+    title: 'Note toggle fixes',
+    items: [
+      'Method step note input now hidden by default — 📝 button correctly toggles it on and off',
+      'Note toggle in recipe view now correctly turns off (fixed inverted show/hide logic)',
+      'Note button colour resets properly when toggled off — no more stuck accent colour',
+      'Sub button and note button in ingredient view now stack vertically with a gap — properly aligned',
+      'Note input placeholder simplified to just "Note"',
+    ]
+  },
   {
     version: '0.63',
     title: 'Note button fixes & export polish',
@@ -4048,7 +4059,7 @@ function renderViewBody(r) {
         ? `<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,'${noteKey}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>`
         : '';
       const actionCol = subs.length || displayNote
-        ? `<td style="text-align:center;padding:5px 2px;white-space:nowrap">${subs.length ? subColInner : ''}${noteBtnHtml}</td>`
+        ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:column;align-items:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
         : '<td></td>';
 
       out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
@@ -5006,7 +5017,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
 
     <!-- Sub ingredient note row (both views) -->
     <div class="sub-ing-note-row${subIngNote?' show':''}">
-      <input type="text" class="sub-ing-note-inp" placeholder="Note (e.g. adjust salt when using this substitute)" value="${esc(subIngNote)}">
+      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
     </div>
 
     <!-- MOBILE: rows with labels, corner delete -->
@@ -5173,7 +5184,7 @@ function addIngRow(btn, rowsEl, data) {
 
     <!-- Ingredient note (both views) -->
     <div class="ing-note-row${ingNote?' show':''}">
-      <input type="text" class="ing-note-inp" placeholder="Note (e.g. Chianti recommended)" value="${esc(ingNote)}">
+      <input type="text" class="ing-note-inp" placeholder="Note" value="${esc(ingNote)}">
     </div>
 
     <!-- Scale overrides panel (inside card, both views) -->
@@ -5199,21 +5210,21 @@ function addIngRow(btn, rowsEl, data) {
 function toggleIngNoteView(btn, key) {
   const row = document.getElementById('ing-note-view-' + key);
   if (!row) return;
-  const showing = row.style.display === 'none' || !row.style.display;
-  row.style.display = showing ? '' : 'none';
-  btn.style.background = showing ? 'var(--accent-light)' : 'var(--paper)';
-  btn.style.borderColor = showing ? 'var(--accent)' : 'var(--border)';
-  btn.style.color = showing ? 'var(--accent-text)' : 'var(--ink-faint)';
+  const showing = row.style.display === 'none';
+  row.style.display = showing ? 'table-row' : 'none';
+  btn.style.background = showing ? 'var(--accent-light)' : '';
+  btn.style.borderColor = showing ? 'var(--accent)' : '';
+  btn.style.color = showing ? 'var(--accent-text)' : '';
 }
 
 function toggleStepNoteView(btn, id) {
   const row = document.getElementById(id);
   if (!row) return;
-  const showing = row.style.display === 'none' || !row.style.display;
+  const showing = row.style.display === 'none';
   row.style.display = showing ? '' : 'none';
-  btn.style.background = showing ? 'var(--accent-light)' : 'var(--paper)';
-  btn.style.borderColor = showing ? 'var(--accent)' : 'var(--border)';
-  btn.style.color = showing ? 'var(--accent-text)' : 'var(--ink-faint)';
+  btn.style.background = showing ? 'var(--accent-light)' : '';
+  btn.style.borderColor = showing ? 'var(--accent)' : '';
+  btn.style.color = showing ? 'var(--accent-text)' : '';
 }
 
 function toggleSubPanel(btn) {
@@ -5370,7 +5381,7 @@ function addStep(btn, stepsEl, stepData) {
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
     </div>
     <div class="step-note-row${stepNote?' show':''}">
-      <input type="text" class="step-note-inp" placeholder="Note — extra context for this step (e.g. any shape will do)" value="${esc(stepNote)}">
+      <input type="text" class="step-note-inp" placeholder="Note" value="${esc(stepNote)}">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
       <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="Override for ½× — blank = 'does not scale'" value="${esc(ov.half||'')}"></div>
