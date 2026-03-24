@@ -247,18 +247,18 @@ header{
 .vstep.done .vstep-num{background:var(--border);color:var(--ink-faint)}
 .vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{padding:2px 0 4px 26px}
+.step-note-row{padding:3px 8px 5px 26px}
 .step-note-row.show{display:block}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
   background:none;border:1px solid var(--border);border-radius:5px;
-  color:var(--ink-faint);width:26px;height:26px;font-size:0.72rem;
+  color:var(--ink-faint);width:22px;height:22px;font-size:0.72rem;
   cursor:pointer;transition:all .12s;padding:0;line-height:1;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
 }
 .ing-note-btn:hover,.step-note-btn:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
 .ing-note-btn.on,.step-note-btn.on{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
-.sub-ing-note-row{display:none;padding:3px 6px 4px}
+.sub-ing-note-row{display:none;padding:3px 8px 5px}
 .sub-ing-note-row.show{display:block}
 .sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--accent);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px}
 .step-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
@@ -268,9 +268,9 @@ header{
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:3px 0 2px}
+.ing-note-row{display:none;padding:3px 8px 5px}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s;box-sizing:border-box}
 .ing-note-inp:focus{border-bottom-color:var(--accent)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
@@ -630,7 +630,7 @@ header{
   position:relative; /* for corner delete on mobile */
 }
 .sub-entry-head{
-  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto auto;
+  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto auto auto;
   gap:0.35rem;align-items:center;padding:5px 6px;
 }
 .sub-entry-head input,.sub-entry-head select{
@@ -1522,7 +1522,7 @@ header{
 
       <!-- SINGLE RECIPE EXPORT PANEL -->
       <div id="dl-single-panel" style="display:none">
-        <div class="fg">
+        <div class="fg" style="margin-bottom:0.75rem">
           <label>Recipe</label>
           <select id="dl-single-recipe" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;color:var(--ink);background:var(--cream);outline:none;margin-top:4px"></select>
         </div>
@@ -1701,10 +1701,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.62';
+const APP_VERSION = '0.63';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.63',
+    title: 'Note button fixes & export polish',
+    items: [
+      'Note buttons (📝) now match the size and style of ⇄ and ⊘ — same 22×22px, simple pen icon',
+      'Note input fields now have proper left/right padding — aligned with card edges',
+      'Toggling a note off on iPhone now works correctly (fixed dual-button sync for mobile/desktop)',
+      'Substitute ingredients now have a 📝 note button on iPhone as well as desktop',
+      'Individual recipe export: added breathing room between the recipe selector and Format label',
+    ]
+  },
   {
     version: '0.62',
     title: 'Export redesign, note toggles & substitute notes',
@@ -4034,7 +4045,7 @@ function renderViewBody(r) {
 
       // Build the 4th column: sub button + note button if applicable
       const noteBtnHtml = displayNote
-        ? `<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,'${noteKey}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center">📝</button>`
+        ? `<button class="ing-note-view-btn" onclick="toggleIngNoteView(this,'${noteKey}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>`
         : '';
       const actionCol = subs.length || displayNote
         ? `<td style="text-align:center;padding:5px 2px;white-space:nowrap">${subs.length ? subColInner : ''}${noteBtnHtml}</td>`
@@ -4157,7 +4168,7 @@ function renderViewBody(r) {
 
         const stepNoteId = `step-note-${currentId}-${sec.title||'s'}-${i}`.replace(/[^a-z0-9-]/gi,'_');
         const stepNoteBtn = s.note
-          ? `<button class="step-note-view-btn" onclick="toggleStepNoteView(this,'${stepNoteId}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px">📝</button>`
+          ? `<button class="step-note-view-btn" onclick="toggleStepNoteView(this,'${stepNoteId}')" title="Show note" style="background:var(--paper);border:1px solid var(--border);border-radius:5px;color:var(--ink-faint);width:22px;height:22px;font-size:0.7rem;cursor:pointer;transition:all .12s;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>`
           : '';
         const stepNoteRow = s.note
           ? `<div id="${stepNoteId}" style="display:none;font-size:0.73rem;color:var(--ink-faint);padding:2px 0 4px 26px">${esc(s.note)}</div>`
@@ -4988,7 +4999,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       ${buildUnitSelect(unit)}
       <input type="text" class="sub-prep-inp" placeholder="Prep (e.g. diced)" value="${esc(sub?.prep||'')}">
       <input type="text" class="sub-note-inp" placeholder="Reason (e.g. dairy-free)" value="${esc(sub?.note||'')}">
-      <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)">📝</button>
+      <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
     </div>
@@ -5016,13 +5027,14 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
           ${buildUnitSelect(unit)}
         </div>
       </div>
-      <!-- Row 3: Prep + ⊘ button -->
+      <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
           <div class="sub-mobile-lbl">Prep (optional)</div>
           <input type="text" class="sub-prep-mobile" placeholder="e.g. diced" value="${esc(sub?.prep||'')}">
         </div>
         <div class="sub-mobile-btn-group">
+          <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
           <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleSubNoscale(this)">⊘</button>
         </div>
       </div>
@@ -5117,7 +5129,7 @@ function addIngRow(btn, rowsEl, data) {
       ${buildUnitSelect(unit)}
       <input type="text" class="prep-inp" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
-      <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)">📝</button>
+      <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
@@ -5153,7 +5165,7 @@ function addIngRow(btn, rowsEl, data) {
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
-          <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)">📝</button>
+          <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
           <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
         </div>
       </div>
@@ -5255,11 +5267,12 @@ function toggleSubIngNote(btn) {
 
 function toggleIngNote(btn) {
   captureFormSnapshot('Toggle ingredient note');
-  btn.classList.toggle('on');
   const wrap = btn.closest('.ing-row-wrap');
   const row  = wrap.querySelector('.ing-note-row');
-  const showing = btn.classList.contains('on');
+  const showing = !row.classList.contains('show');
   row.classList.toggle('show', showing);
+  // Sync all .ing-note-btn in this wrap (desktop + mobile both exist in DOM)
+  wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.toggle('on', showing));
   if (showing) {
     const inp = row.querySelector('.ing-note-inp');
     if (inp) { _pendingSnapshot = null; inp.focus(); }
@@ -5352,7 +5365,7 @@ function addStep(btn, stepsEl, stepData) {
     <div class="step-row" style="align-items:flex-start">
       <div class="step-num-s">${num}</div>
       <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
-      <button class="step-note-btn${stepNote?' on':''}" title="Add note to this step" onclick="toggleStepNote(this)" style="margin-top:4px;flex-shrink:0">📝</button>
+      <button class="step-note-btn${stepNote?' on':''}" title="Add note to this step" onclick="toggleStepNote(this)" style="margin-top:4px;flex-shrink:0"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
     </div>
@@ -5372,11 +5385,11 @@ function addStep(btn, stepsEl, stepData) {
 
 function toggleStepNote(btn) {
   captureFormSnapshot('Toggle step note');
-  btn.classList.toggle('on');
   const wrap = btn.closest('.step-wrap');
   const row  = wrap.querySelector('.step-note-row');
-  const showing = btn.classList.contains('on');
+  const showing = !row.classList.contains('show');
   row.classList.toggle('show', showing);
+  btn.classList.toggle('on', showing);
   if (showing) {
     const inp = row.querySelector('.step-note-inp');
     if (inp) { _pendingSnapshot = null; inp.focus(); }
