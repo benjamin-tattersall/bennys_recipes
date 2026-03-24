@@ -29,6 +29,9 @@
   --tag-text:#5a4535;
   --warning:#7a5a10;
   --warning-bg:#fdf3dc;
+  --note-bg:#e8f0fb;
+  --note-border:#b8cfee;
+  --note-text:#2a4a7a;
   --danger:#8a2020;
   --danger-bg:#f8e8e8;
   --offline-bg:#fff8e8;
@@ -246,8 +249,13 @@ header{
 .vstep.done{opacity:0.45}
 .vstep.done .vstep-num{background:var(--border);color:var(--ink-faint)}
 .vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
+/* T43 — ingredient tick-off */
+.ing-view-row{cursor:pointer;transition:opacity .15s}
+.ing-view-row:hover td:first-child{color:var(--accent-text)}
+.ing-view-row.done{opacity:0.4}
+.ing-view-row.done td:first-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{display:none;padding:3px 8px 5px 26px}
+.step-note-row{display:none;padding:3px 8px 5px 26px;background:var(--note-bg)}
 .step-note-row.show{display:block}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
@@ -256,22 +264,22 @@ header{
   cursor:pointer;transition:all .12s;padding:0;line-height:1;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
 }
-.ing-note-btn:hover,.step-note-btn:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
-.ing-note-btn.on,.step-note-btn.on{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+.ing-note-btn:hover,.step-note-btn:hover{border-color:var(--note-border);color:var(--note-text);background:var(--note-bg)}
+.ing-note-btn.on,.step-note-btn.on{background:var(--note-bg);border-color:var(--note-border);color:var(--note-text)}
 .sub-ing-note-row{display:none;padding:3px 8px 5px}
-.sub-ing-note-row.show{display:block}
-.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--accent);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px}
-.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
-.step-note-inp:focus{border-bottom-color:var(--accent)}
+.sub-ing-note-row.show{display:block;background:var(--note-bg)}
+.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px}
+.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
+.step-note-inp:focus{border-bottom-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:3px 8px 5px}
+.ing-note-row{display:none;padding:3px 8px 5px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s;box-sizing:border-box}
-.ing-note-inp:focus{border-bottom-color:var(--accent)}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp:focus{border-bottom-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
 .ing-note-toggle:hover{color:var(--accent-text)}
@@ -1320,7 +1328,7 @@ header{
 
 <!-- INFO MODAL -->
 <div class="backdrop" id="imodal">
-  <div class="modal" style="max-width:620px">
+  <div class="modal" style="max-width:780px">
     <div class="modal-head">
       <h2>How to use Benny's Recipes</h2>
       <button class="xbtn" onclick="closeInfo()">✕</button>
@@ -1368,8 +1376,8 @@ header{
         <p>Tags categorise your recipes — things like "Dinner", "Italian", or "Bake". Type any tag when editing a recipe. Custom tags you create appear under <strong>Other</strong> in Settings → Tags, where you can move them into the appropriate category.</p>
         <h3>Serves</h3>
         <p>Set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum — useful for recipes that comfortably feed different numbers depending on appetite.</p>
-        <h3>Ticking off method steps</h3>
-        <p>While reading a recipe, tap any method step to mark it as done — the step fades and gets a strikethrough so you can see at a glance what's left. Tap again to un-tick. The state resets when you close the recipe.</p>
+        <h3>Ticking off while cooking</h3>
+        <p>While reading a recipe, tap any method step or ingredient to mark it as done — it fades and gets a strikethrough. Tap again to un-tick. The state resets when you close the recipe.</p>
         <h3>Deleting a recipe</h3>
         <p>Deleted recipes move to the <strong>bin</strong>, accessible via the 🗑️ icon in the header. From there you can restore a recipe or permanently delete it. The bin icon turns red when it contains recipes.</p>
         <h3>Undoing changes</h3>
@@ -1701,10 +1709,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.65';
+const APP_VERSION = '0.66';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.66',
+    title: 'Cook mode, note colours & form polish',
+    items: [
+      'Saving a recipe now opens it directly in view mode — no more being sent back to the list',
+      'Tap any ingredient while reading a recipe to tick it off, just like method steps',
+      'Note sections in the edit form now have a soft blue background — consistent with yellow (scale) and red (substitutes)',
+      'Info modal widened on desktop — all tabs now fit without needing to scroll',
+      'Mobile ingredient card field labels removed — placeholder text is clear enough',
+    ]
+  },
   {
     version: '0.65',
     title: 'Substitute note position & placeholder cleanup',
@@ -4072,7 +4091,7 @@ function renderViewBody(r) {
         ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
         : '<td></td>';
 
-      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
+      out += `<tr class="ing-view-row" onclick="if(!event.target.closest('button'))this.classList.toggle('done')" title="Tap to tick off"><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
       if (displayNote) {
         out += `<tr class="ing-note-view-row" id="ing-note-view-${noteKey}" style="display:none"><td colspan="4" style="padding:0 0.5rem 6px;font-size:0.73rem;color:var(--ink-faint)">${esc(displayNote)}</td></tr>`;
       }
@@ -4696,7 +4715,12 @@ async function saveRecipe() {
 
   const saveDesc = editId ? `Edited "${name}"` : `Added "${name}"`;
   isOnline ? await saveToGist(saveDesc) : saveLocally(saveDesc);
-  closeEdit(true); render();
+  const savedId = editId || data.id;
+  closeEdit(true);
+  render();
+  // Open the saved recipe in view mode (T47)
+  const savedRecipe = recipes.find(r => r.id === savedId);
+  if (savedRecipe) openView(savedRecipe);
 }
 
 // ── TAGS INPUT ────────────────────────────────────────────────────────────
@@ -5158,7 +5182,6 @@ function addIngRow(btn, rowsEl, data) {
     <div class="ing-mobile-rows">
       <!-- Row 1: Name (padded right to avoid corner × button) -->
       <div class="ing-field-group" style="padding-right:32px">
-        <div class="ing-field-lbl">Ingredient</div>
         <div class="ing-name-wrap" style="width:100%">
           <input type="text" class="ing-name-mobile" placeholder="Ingredient" value="${esc(data?.name||'')}"
             oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
@@ -5168,19 +5191,16 @@ function addIngRow(btn, rowsEl, data) {
       <!-- Row 2: Amount + Unit (equal height) -->
       <div class="ing-field-group-row">
         <div class="ing-field-group amount">
-          <div class="ing-field-lbl">Amount</div>
           <input type="number" placeholder="0" min="0" step="any" class="amount-inp mobile-amt"
             value="${amt != null ? amt : ''}">
         </div>
         <div class="ing-field-group unit">
-          <div class="ing-field-lbl">Unit</div>
           ${buildUnitSelect(unit)}
         </div>
       </div>
       <!-- Row 3: Prep label+input + ⇄ ⊘ buttons same height, no × -->
       <div class="ing-mobile-actions">
         <div class="ing-field-group" style="flex:1;min-width:0">
-          <div class="ing-field-lbl">Prep</div>
           <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
