@@ -1713,7 +1713,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.69';
+const APP_VERSION = '0.70';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -4640,13 +4640,17 @@ async function saveRecipe() {
           const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
           if (!sName) return;
           const sAmt  = desktopSubAmt?.value.trim() || mobileSubAmt?.value.trim() || '';
-          const sSel  = entry.querySelector('.sub-entry-head .unit-sel')
-                     || entry.querySelector('.sub-entry-mobile .unit-sel');
-          const sUnit = sSel?.value || '';
+          // Sync mobile unit-sel → desktop before reading (T33-style fix for substitute unit)
+          const mobileSubUnitSel = entry.querySelector('.sub-entry-mobile .unit-sel');
+          const desktopSubUnitSel = entry.querySelector('.sub-entry-head .unit-sel');
+          if (mobileSubUnitSel && desktopSubUnitSel && mobileSubUnitSel.value)
+            desktopSubUnitSel.value = mobileSubUnitSel.value;
+          const sUnit = (desktopSubUnitSel || mobileSubUnitSel)?.value || '';
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
           const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
           const sIngNote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
-          const sNs   = entry.querySelector('.sub-noscale-toggle')?.classList.contains('on') || false;
+          // Check ANY sub-noscale-toggle with .on (desktop + mobile both exist in DOM)
+          const sNs = entry.querySelector('.sub-noscale-toggle.on') !== null;
           const readSubOv = (cls) => {
             const amtEl = entry.querySelector(`.${cls}-amt`);
             if (!amtEl) return null;
@@ -5134,9 +5138,13 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
 }
 
 function toggleSubNoscale(btn) {
-  captureFormSnapshot(btn.classList.contains('on') ? 'Remove substitute scale override' : 'Add substitute scale override');
-  btn.classList.toggle('on');
-  btn.closest('.sub-entry').querySelector('.sub-overrides').classList.toggle('show', btn.classList.contains('on'));
+  const entry = btn.closest('.sub-entry');
+  const overrides = entry.querySelector('.sub-overrides');
+  const showing = !overrides.classList.contains('show');
+  captureFormSnapshot(showing ? 'Add substitute scale override' : 'Remove substitute scale override');
+  overrides.classList.toggle('show', showing);
+  // Sync both desktop and mobile sub-noscale-toggle buttons
+  entry.querySelectorAll('.sub-noscale-toggle').forEach(b => b.classList.toggle('on', showing));
 }
 
 function removeSubEntry(btn) {
