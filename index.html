@@ -1736,16 +1736,18 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.80';
+const APP_VERSION = '0.82';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
   {
-    version: '0.81',
-    title: 'App load fix — final',
-    userNotes: [],
+    version: '0.82',
+    title: 'HTML export fully working',
+    userNotes: [
+      'Export a recipe as a standalone HTML page — open it in any browser with full scale controls, substitutes, notes and tick-off. Find it in Export → Individual recipe → Interactive HTML.',
+    ],
     items: [
-      'All bare script-close tag strings in the JS source are now properly escaped. A systematic scan replaced every instance inside the main script block.',
+      'T42 complete: buildSingleRecipeHtml working. Tag literals split to prevent HTML tokeniser misparse. Final verified: 1 open, 1 close browser-visible script tag.',
     ]
   },
   {
