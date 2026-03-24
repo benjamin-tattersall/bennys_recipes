@@ -231,7 +231,7 @@ header{
 .view-sec{margin-bottom:1.3rem}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
-.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-top:2.8rem}
+.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:0;border-bottom:1px solid var(--border)}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
 .ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top}
@@ -704,11 +704,11 @@ header{
 }
 /* per-sub scale overrides */
 .sub-overrides{
-  display:none;padding:4px 6px 5px;border-top:1px solid var(--accent);
-  flex-direction:column;gap:3px;background:var(--accent-light);
+  display:none;padding:4px 6px 5px;border-top:1px solid var(--offline-border);
+  flex-direction:column;gap:3px;background:var(--warning-bg);
 }
 .sub-overrides.show{display:flex}
-.sub-overrides .sub-ov-lbl{font-size:0.67rem;font-weight:500;color:var(--accent-text);padding:1px 0 2px}
+.sub-overrides .sub-ov-lbl{font-size:0.67rem;font-weight:500;color:var(--warning);padding:1px 0 2px}
 .sub-noscale-toggle{
   display:flex;align-items:center;justify-content:center;
   background:none;border:1px solid var(--accent);border-radius:5px;
@@ -1288,6 +1288,7 @@ header{
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeEdit()">Cancel</button>
+      <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate recipe</button>
       <button class="btn-pri" onclick="saveRecipe()">Save recipe</button>
     </div>
   </div>
@@ -1684,9 +1685,12 @@ header{
 <script>
 // ── DEFAULT CONFIG (overridden by saved settings) ─────────────────────────
 const DEFAULT_TAG_GROUPS = {
-  'Meal':    ['Breakfast','Brunch','Lunch','Dinner','Dessert','Snack','Side'],
-  'Cuisine': ['Australian','Chinese','French','Greek','Indian','Indonesian','Italian','Japanese','Korean','Lebanese','Malaysian','Mexican','Middle Eastern','Spanish','Thai','Vietnamese'],
-  'Type':    ['Bake','Bowl','Bread','Burger','Cake','Curry','Noodles','Pasta','Pie','Pizza','Roast','Salad','Sandwich','Seafood','Soup','Stew','Stir-fry','Sushi','Tacos','Toast']
+  'Meal':            ['Breakfast','Brunch','Lunch','Dinner','Dessert','Snack','Side'],
+  'Cuisine':         ['Australian','Chinese','French','Greek','Indian','Indonesian','Italian','Japanese','Korean','Lebanese','Malaysian','Mexican','Middle Eastern','Spanish','Thai','Vietnamese'],
+  'Type':            ['Bake','Bowl','Bread','Burger','Cake','Curry','Noodles','Pasta','Pie','Pizza','Roast','Salad','Sandwich','Seafood','Soup','Stew','Stir-fry','Sushi','Tacos','Toast'],
+  'Protein':         ['Beef','Chicken','Eggs','Fish','Lamb','Lentils','Pork','Seafood','Tofu','Turkey'],
+  'Dietary':         ['Dairy Free','Gluten Free','Halal','Kosher','Nut Free','Vegan','Vegetarian'],
+  'Dietary Option':  ['Dairy Free Option','Gluten Free Option','Vegan Option','Vegetarian Option']
 };
 const DEFAULT_UNIT_GROUPS = {
   'Volume':       ['tsp','tbsp','cup','ml','L'],
@@ -1709,7 +1713,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.67';
+const APP_VERSION = '0.68';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -4008,7 +4012,7 @@ function renderViewBody(r) {
   function buildIngRows(items, showSectionTitle, title) {
     let out = '';
     if (showSectionTitle && title)
-      out += `<tr><td colspan="4" class="ing-sec-title-view">${esc(title)}</td></tr>`;
+      out += `<tr><td colspan="4" style="padding:0;height:2rem"></td></tr><tr><td colspan="4" class="ing-sec-title-view">${esc(title)}</td></tr>`;
     items.forEach((item, idx) => {
       // Normalise: support both old `substitute` and new `substitutes`
       const subs = item.substitutes?.length ? item.substitutes
@@ -4064,7 +4068,7 @@ function renderViewBody(r) {
               onclick="openSubChooser(this,'${itemKey}',JSON.parse(this.dataset.subs))"
               data-subs="${subsJson}"
               title="Switch ingredient"
-              style="background:${showSub?'var(--accent)':'var(--accent-light)'};border:1px solid var(--accent);border-radius:5px;color:${showSub?'#fff':'var(--accent-text)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>`
+              style="background:${showSub?'var(--accent)':'none'};border:1px solid ${showSub?'var(--accent)':'var(--border)'};border-radius:5px;color:${showSub?'#fff':'var(--ink-faint)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>`
         : '';
       // Keep subCol for backward compat refs
       const subCol = subs.length
@@ -4450,6 +4454,9 @@ function openEdit(r) {
 
   document.getElementById('emodal').classList.add('open');
   updateFormUndoButtons();
+  // Show duplicate button only when editing an existing recipe
+  const dupBtn = document.getElementById('duplicate-btn');
+  if (dupBtn) dupBtn.style.display = editId ? '' : 'none';
 }
 
 function toggleScalable() {
@@ -4486,6 +4493,23 @@ function closeEdit(force) {
   document.getElementById('emodal').classList.remove('open');
   formUndoStack = [];
   formRedoStack = [];
+}
+
+function duplicateRecipe() {
+  if (!editId) return;
+  const original = recipes.find(r => r.id === editId);
+  if (!original) return;
+  const copy = JSON.parse(JSON.stringify(original));
+  copy.id      = Date.now();
+  copy.created = Date.now();
+  copy.updated = Date.now();
+  copy.status  = 'draft';
+  copy.name    = (copy.name || 'Recipe') + ' (Copy)';
+  recipes.unshift(copy);
+  closeEdit(true);
+  render();
+  openEdit(copy);
+  toast(`Duplicated — editing "${copy.name}"`);
 }
 
 async function saveRecipe() {
