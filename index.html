@@ -3973,7 +3973,7 @@ function renderViewBody(r) {
           noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
         }
 
-        const stepNote = step.note ? `<div class="vstep-note"><strong>Note:</strong> ${esc(step.note)}</div>` : '';
+        const stepNote = s.note ? `<div class="vstep-note"><strong>Note:</strong> ${esc(s.note)}</div>` : '';
         return `<div class="vstep" onclick="this.classList.toggle('done')" title="Tap to mark done"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}${stepNote}</div></div>`;
       }).join('');
       return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
