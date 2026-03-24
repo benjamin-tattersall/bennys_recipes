@@ -418,7 +418,7 @@ header{
 .ing-header-card-inner{
   /* identical grid to .ing-desktop-row */
   display:grid;
-  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
+  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto;
   gap:6px;
   padding:0 8px 4px; /* bottom pad gives breathing room above first card */
   align-items:center;
@@ -433,7 +433,7 @@ header{
 .ing-desktop-header{display:none !important}
 .ing-desktop-row{
   display:grid;
-  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto;
+  grid-template-columns:40fr 10fr 20fr 30fr auto auto auto auto;
   gap:6px;align-items:center;padding:6px 8px;
 }
 .ing-desktop-row .ing-name-wrap{min-width:0;width:100%;overflow:visible;position:relative}
@@ -1736,10 +1736,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.82';
+const APP_VERSION = '0.83';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.83',
+    title: 'Ingredient row delete button fix',
+    userNotes: [
+      'The delete button on ingredient rows no longer drops to a second line when the recipe can be scaled',
+    ],
+    items: [
+      'T-bug: ing-desktop-row grid had 7 columns but 8 children when scalable=true (sub-toggle + note + noscale + del). noscale-toggle uses display:none when not scalable removing it from grid flow, making 7 items fit. Fixed by adding 8th auto column.',
+    ]
+  },
   {
     version: '0.82',
     title: 'HTML export fully working',
@@ -5342,6 +5352,7 @@ function addIngRow(btn, rowsEl, data) {
       <span>Amount</span>
       <span>Unit</span>
       <span>Prep</span>
+      <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
       <span class="btn-spacer"></span>
