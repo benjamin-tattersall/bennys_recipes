@@ -228,7 +228,7 @@ header{
 .view-sec{margin-bottom:1.3rem}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
-.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-top:1.4rem}
+.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-top:2.8rem}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
 .ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top}
@@ -246,6 +246,23 @@ header{
 .vstep.done{opacity:0.45}
 .vstep.done .vstep-num{background:var(--border);color:var(--ink-faint)}
 .vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
+/* Step note — edit form */
+.step-note-row{padding:2px 0 4px 26px}
+.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
+.step-note-inp:focus{border-bottom-color:var(--accent)}
+.step-note-inp::placeholder{color:var(--ink-faint)}
+/* Step note — recipe view */
+.vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
+.vstep-note strong{font-style:normal;font-weight:600}
+/* ── INGREDIENT NOTES (T26) ── */
+.ing-note-row{display:none;padding:3px 0 2px}
+.ing-note-row.show{display:block}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
+.ing-note-inp:focus{border-bottom-color:var(--accent)}
+.ing-note-inp::placeholder{color:var(--ink-faint)}
+.ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
+.ing-note-toggle:hover{color:var(--accent-text)}
+.ing-note-toggle.hide{display:none}
 .vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
 .vstep-noscale-note{font-size:0.73rem;color:var(--warning);font-style:italic;margin-top:3px;display:none}
 .vbody[data-scaled="1"] .vstep-noscale-note{display:block}
@@ -1381,7 +1398,7 @@ header{
 
       <div class="info-pane" id="info-pane-export">
         <h3>Downloading your recipes</h3>
-        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. Choose which recipes to include — all recipes, published only, or drafts only — then select one or more formats to download.</p>
+        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. A checklist of all your recipes appears — tick the ones you want to include, use the All or None buttons to select quickly, then choose one or more formats to download.</p>
         <h3>Available formats</h3>
         <p><strong>Text file (.txt)</strong> — a plain, human-readable file listing every recipe with ingredients, substitutes, and method steps. Easy to open anywhere, including your phone's Notes app.</p>
         <p><strong>Markdown (.md)</strong> — the same content formatted with headings and bold text. Opens nicely in any markdown viewer, Notion, GitHub, or Obsidian.</p>
@@ -1441,27 +1458,23 @@ header{
 
 <!-- DOWNLOAD MODAL -->
 <div class="backdrop" id="download-modal">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-head">
       <h2>Export recipes</h2>
       <button class="xbtn" onclick="closeDownload()">✕</button>
     </div>
     <div class="auth-body" style="gap:1rem">
-      <p style="font-size:0.84rem;color:var(--ink-mid)">Choose which recipes to export and the format you'd like. Your Gist is also updated with these files on every save.</p>
+      <p style="font-size:0.84rem;color:var(--ink-mid)">Choose which recipes to export and the format. Your Gist is also updated with backup files on every save.</p>
 
       <div class="fg">
-        <label>Include recipes</label>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="radio" name="dl-scope" value="all" checked> All published recipes
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="radio" name="dl-scope" value="published"> Published only
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
-            <input type="radio" name="dl-scope" value="drafts"> Drafts only
-          </label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label>Recipes</label>
+          <div style="display:flex;gap:8px">
+            <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(true)">All</button>
+            <button class="btn-sec" style="font-size:0.72rem;padding:2px 8px" onclick="dlSelectAll(false)">None</button>
+          </div>
         </div>
+        <div id="dl-recipe-list" style="display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--paper)"></div>
       </div>
 
       <div class="fg">
@@ -1647,10 +1660,27 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.59';
+const APP_VERSION = '0.61';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.61',
+    title: 'Step notes, ingredient notes & export selection',
+    items: [
+      'Method steps now support an optional note — shown in the edit form below the step, and displayed in the recipe view in italic with a "Note:" prefix',
+      'Ingredients now support an optional note — add context like "Chianti recommended" that appears beneath the ingredient in the recipe view',
+      'Scale override panel now appears above the substitutes panel in the edit form — clearer visual hierarchy',
+      'Export modal now shows a checklist of individual recipes to include, with All / None shortcuts',
+    ]
+  },
+  {
+    version: '0.60',
+    title: 'Ingredient section spacing',
+    items: [
+      'Ingredient section headers in recipe view now have proper spacing above them — matches the gap between method sections',
+    ]
+  },
   {
     version: '0.59',
     title: 'Ingredient section spacing & weight',
@@ -2933,13 +2963,26 @@ function closeWhatsNew() {
 
 // ── DOWNLOAD / EXPORT ─────────────────────────────────────────────────────
 function openDownload() {
+  // Populate recipe checklist — all checked by default
+  const list = document.getElementById('dl-recipe-list');
+  if (list) {
+    list.innerHTML = recipes.length
+      ? recipes.map(r => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.84rem;font-weight:400;cursor:pointer">
+          <input type="checkbox" class="dl-recipe-chk" data-id="${r.id}" checked>
+          <span>${esc(r.name || 'Untitled')}${r.status==='draft'?' <span style="font-size:0.7rem;color:var(--ink-faint)">(draft)</span>':''}</span>
+        </label>`).join('')
+      : '<p style="font-size:0.84rem;color:var(--ink-faint)">No recipes yet.</p>';
+  }
   document.getElementById('download-modal').classList.add('open');
+}
+function dlSelectAll(checked) {
+  document.querySelectorAll('.dl-recipe-chk').forEach(chk => chk.checked = checked);
 }
 function closeDownload() {
   document.getElementById('download-modal').classList.remove('open');
 }
 function triggerDownload() {
-  const scope = document.querySelector('input[name="dl-scope"]:checked')?.value || 'all';
   const wantTxt  = document.getElementById('dl-txt')?.checked;
   const wantMd   = document.getElementById('dl-md')?.checked;
   const wantCsv  = document.getElementById('dl-csv')?.checked;
@@ -2950,32 +2993,28 @@ function triggerDownload() {
     return;
   }
 
-  // Filter recipes by scope
-  const all = recipes.filter(r => r.status !== 'deleted');
-  let subset;
-  if (scope === 'published') subset = all.filter(r => r.status === 'published');
-  else if (scope === 'drafts') subset = all.filter(r => r.status === 'draft');
-  else subset = all;
-
-  if (!subset.length) { toast('No recipes match that selection'); return; }
+  // Collect selected recipe IDs from checklist
+  const selectedIds = new Set(
+    [...document.querySelectorAll('.dl-recipe-chk:checked')].map(c => Number(c.dataset.id))
+  );
+  const subset = recipes.filter(r => selectedIds.has(r.id));
+  if (!subset.length) { toast('No recipes selected'); return; }
 
   // Temporarily swap global recipes for scoped export
   const origRecipes = recipes;
   recipes = subset;
-
   try {
-    if (wantTxt)  downloadFile('recipes-backup.txt', buildReadableBackup(), 'text/plain');
-    if (wantMd)   downloadFile('recipes-backup.md',  buildRecipesMd(),      'text/markdown');
-    if (wantCsv)  downloadFile('recipes-backup.csv', buildRecipesCsv(),     'text/csv');
+    if (wantTxt) downloadFile('recipes-backup.txt', buildReadableBackup(), 'text/plain');
+    if (wantMd)  downloadFile('recipes-backup.md',  buildRecipesMd(),      'text/markdown');
+    if (wantCsv) downloadFile('recipes-backup.csv', buildRecipesCsv(),     'text/csv');
   } finally {
     recipes = origRecipes;
   }
-
-  // Gist backup always uses full data regardless of scope
+  // Gist backup always uses full data
   if (wantGist) downloadFile('gist-backup.json', buildGistBackup(), 'application/json');
 
   closeDownload();
-  toast('Downloaded ✓');
+  toast(`Exported ${subset.length} recipe${subset.length !== 1 ? 's' : ''} ✓`);
 }
 
 function downloadFile(filename, content, mimeType) {
@@ -3817,8 +3856,13 @@ function renderViewBody(r) {
         ? `<tr><td colspan="4" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
         : '';
 
-      // Sub note
-      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${subCol}</tr>${noteRow}`;
+      // Ingredient note (T26) — shown inline beneath ingredient name when present
+      const displayNote = activeSub ? (activeSub.note || '') : (item.note || '');
+      const ingNoteRow = displayNote
+        ? `<tr><td colspan="4" style="padding:0 0.5rem 5px;font-size:0.75rem;color:var(--ink-faint);font-style:italic"><em style="color:var(--accent-text);font-style:normal;font-weight:500;margin-right:3px">Note:</em>${esc(displayNote)}</td></tr>`
+        : '';
+
+      out += `<tr><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${subCol}</tr>${ingNoteRow}${noteRow}`;
     });
     return out;
   }
@@ -3929,7 +3973,8 @@ function renderViewBody(r) {
           noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
         }
 
-        return `<div class="vstep" onclick="this.classList.toggle('done')" title="Tap to mark done"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}</div></div>`;
+        const stepNote = step.note ? `<div class="vstep-note"><strong>Note:</strong> ${esc(step.note)}</div>` : '';
+        return `<div class="vstep" onclick="this.classList.toggle('done')" title="Tap to mark done"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}${stepNote}</div></div>`;
       }).join('');
       return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
     }).join('');
@@ -4357,11 +4402,13 @@ async function saveRecipe() {
             } : null
           });
         });
+        const ingNoteVal = wrap.querySelector('.ing-note-inp')?.value.trim() || '';
         items.push({
           name,
           amount: rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
           unit:   rawUnit,
           prep:   prepEl?.value.trim() || '',
+          note:   ingNoteVal || undefined,
           noscale,
           substitutes,
           scaleOverrides: noscale ? {
@@ -4385,8 +4432,10 @@ async function saveRecipe() {
       if (text) {
         const nsBtn = wrap.querySelector('.noscale-toggle');
         const noscale = nsBtn?.classList.contains('on') || false;
+        const note = wrap.querySelector('.step-note-inp')?.value.trim() || '';
         steps.push({
           text,
+          note: note || undefined,
           noscale,
           scaleOverrides: noscale ? {
             half:   wrap.querySelector('.ns-half')?.value.trim()  || '',
@@ -4841,6 +4890,7 @@ function addIngRow(btn, rowsEl, data) {
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
   const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
 
+  const ingNote = data?.note || '';
   wrap.innerHTML = `
     <!-- Corner delete (mobile only, shown via CSS) -->
     <button class="ing-corner-del" onclick="removeIngRow(this)" title="Remove ingredient">×</button>
@@ -4906,6 +4956,20 @@ function addIngRow(btn, rowsEl, data) {
       </div>
     </div>
 
+    <!-- Ingredient note (both views) -->
+    <div class="ing-note-row${ingNote?' show':''}">
+      <input type="text" class="ing-note-inp" placeholder="Note (e.g. Chianti recommended)" value="${esc(ingNote)}">
+    </div>
+    <button class="ing-note-toggle${ingNote?' hide':''}" onclick="toggleIngNote(this)">${ingNote?'− Remove note':'＋ Add note'}</button>
+
+    <!-- Scale overrides panel (inside card, both views) -->
+    <div class="noscale-note-row${ns?' show':''}">
+      <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
+      ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
+      ${buildOverrideRow('2×','ns-double', ov.double, amt, unit, 2)}
+      ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
+    </div>
+
     <!-- Substitutes panel (inside card, both views) -->
     <div class="sub-panel${hasSub?' show':''}">
       <div class="sub-panel-head"><span>Substitutes</span></div>
@@ -4914,14 +4978,6 @@ function addIngRow(btn, rowsEl, data) {
         <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
         Add substitute
       </button>
-    </div>
-
-    <!-- Scale overrides panel (inside card, both views) -->
-    <div class="noscale-note-row${ns?' show':''}">
-      <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
-      ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
-      ${buildOverrideRow('2×','ns-double', ov.double, amt, unit, 2)}
-      ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
     </div>`;
   rowsEl.appendChild(wrap);
 }
@@ -4956,6 +5012,21 @@ function toggleIngNoscale(btn) {
   if (btn.classList.contains('on')) {
     const first = noteRow.querySelector('input');
     if (first) { _pendingSnapshot = null; first.focus(); }
+  }
+}
+
+function toggleIngNote(btn) {
+  captureFormSnapshot('Toggle ingredient note');
+  const wrap = btn.closest('.ing-row-wrap');
+  const row  = wrap.querySelector('.ing-note-row');
+  const showing = row.classList.toggle('show');
+  btn.textContent = showing ? '− Remove note' : '＋ Add note';
+  if (showing) {
+    const inp = row.querySelector('.ing-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
+  } else {
+    const inp = row.querySelector('.ing-note-inp');
+    if (inp) inp.value = '';
   }
 }
 
@@ -5036,6 +5107,7 @@ function addStep(btn, stepsEl, stepData) {
   const text = typeof stepData === 'string' ? stepData : (stepData?.text || '');
   const ns   = stepData?.noscale || false;
   const ov   = stepData?.scaleOverrides || {};
+  const stepNote = stepData?.note || '';
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
   wrap.innerHTML = `
     <div class="step-row" style="align-items:flex-start">
@@ -5043,6 +5115,9 @@ function addStep(btn, stepsEl, stepData) {
       <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
+    </div>
+    <div class="step-note-row">
+      <input type="text" class="step-note-inp" placeholder="Note (e.g. any shape will do)" value="${esc(stepNote)}">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
       <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="Override for ½× — blank = 'does not scale'" value="${esc(ov.half||'')}"></div>
