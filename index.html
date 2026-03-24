@@ -709,6 +709,8 @@ header{
 }
 .sub-overrides.show{display:flex}
 .sub-overrides .sub-ov-lbl{font-size:0.67rem;font-weight:500;color:var(--warning);padding:1px 0 2px}
+/* Sub override inputs/selects use cream bg (coloured panel, white inputs — matching note/sub panels) */
+.sub-overrides .ov-unit-sel,.sub-overrides .ov-unit-manual{background:var(--cream) !important;border-color:var(--border) !important}
 .sub-noscale-toggle{
   display:flex;align-items:center;justify-content:center;
   background:none;border:1px solid var(--accent);border-radius:5px;
@@ -1712,7 +1714,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.71';
+const APP_VERSION = '0.72';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -5097,17 +5099,17 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <div class="sub-ov-lbl">Scale overrides for this substitute</div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">½×</span>
-        <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.half?.unit||unit, unit)}
       </div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">2×</span>
-        <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.double?.unit||unit, unit)}
       </div>
       <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">3×</span>
-        <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--offline-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--warning-bg);outline:none;width:100%;text-align:right">
+        <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.triple?.unit||unit, unit)}
       </div>
     </div>
