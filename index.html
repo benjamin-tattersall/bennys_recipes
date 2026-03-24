@@ -228,7 +228,7 @@ header{
 .view-sec{margin-bottom:1.3rem}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
-.ing-sec-title-view{font-size:0.88rem;font-weight:600;color:var(--ink-mid);font-style:italic;margin:18px 0 4px;padding-left:2px}
+.ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;margin:18px 0 0;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .ing-table{width:100%;border-collapse:collapse;font-size:0.84rem}
 .ing-table th{text-align:left;font-size:0.65rem;font-weight:500;color:var(--ink-faint);padding:0 0.5rem 0.4rem;text-transform:uppercase;letter-spacing:0.06em}
 .ing-table td{padding:6px 0.6rem;color:var(--ink-mid);vertical-align:top}
@@ -241,7 +241,11 @@ header{
 /* method in view */
 .method-sec-view{margin-bottom:1.4rem}
 .msec-title{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border)}
-.vstep{display:flex;gap:0.65rem;margin-bottom:0.45rem;font-size:0.86rem;line-height:1.6;color:var(--ink-mid)}
+.vstep{display:flex;gap:0.65rem;margin-bottom:0.45rem;font-size:0.86rem;line-height:1.6;color:var(--ink-mid);cursor:pointer;border-radius:6px;padding:3px 4px;margin-left:-4px;transition:background .12s}
+.vstep:hover{background:var(--cream)}
+.vstep.done{opacity:0.45}
+.vstep.done .vstep-num{background:var(--border);color:var(--ink-faint)}
+.vstep.done > div:last-child{text-decoration:line-through;color:var(--ink-faint)}
 .vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
 .vstep-noscale-note{font-size:0.73rem;color:var(--warning);font-style:italic;margin-top:3px;display:none}
 .vbody[data-scaled="1"] .vstep-noscale-note{display:block}
@@ -397,7 +401,8 @@ header{
 /* hide mobile rows on desktop */
 .ing-mobile-rows{display:none}
 .ing-list-header{display:none} /* not used any more */
-.ing-header-card{display:block} /* show ghost card on desktop */
+.ing-header-card{display:none} /* T29: headers removed, placeholder text guides the user */
+.ing-desktop-header{display:none} /* T29: same — per-row header also removed */
 /* corner delete — desktop (hidden, use inline button) */
 .ing-corner-del{display:none}
 
@@ -727,7 +732,7 @@ header{
 .form-undo-card{
   display:flex;align-items:center;gap:4px;
   border:1px solid var(--border);border-radius:var(--radius);
-  padding:3px 6px;background:var(--paper);margin-left:auto;
+  padding:3px 6px;background:var(--paper);margin-left:auto;margin-right:0.6rem;
 }
 .form-undo-btn{
   background:none;border:none;color:var(--ink-muted);
@@ -1640,10 +1645,23 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.56';
+const APP_VERSION = '0.57';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.57',
+    title: 'Cook mode, form polish & bug fixes',
+    items: [
+      'Tap any method step while reading a recipe to tick it off — ticked steps fade and get a strikethrough so you can see what\'s left at a glance. Tap again to un-tick.',
+      'iPhone unit fix — changing a unit on iPhone now saves correctly',
+      'Undo/redo card now has breathing room beside the ✕ close button',
+      'Ingredient section headers in recipe view now match the style of method section headers',
+      'Ingredient column headers removed from the edit form — placeholder text guides you instead',
+      'Prep field placeholder updated to "Prep instructions (e.g. diced)"',
+      'Unit dropdown now shows "Unit" as a prompt when nothing is selected — "— none —" remains as an explicit option',
+    ]
+  },
   {
     version: '0.56',
     title: 'Changelog history & duplicate cancel fix',
@@ -3881,11 +3899,11 @@ function renderViewBody(r) {
           noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
         }
 
-        return `<div class="vstep"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}</div></div>`;
+        return `<div class="vstep" onclick="this.classList.toggle('done')" title="Tap to mark done"><div class="vstep-num">${i+1}</div><div>${esc(displayText)}${noteHtml}</div></div>`;
       }).join('');
       return `<div class="method-sec-view">${sec.title ? `<div class="msec-title">${esc(sec.title)}</div>` : ''}${steps}</div>`;
     }).join('');
-    methHtml = `<div class="view-sec"><div class="vsec-lbl">Method</div>${secs}</div>`;
+    methHtml = `<div class="view-sec"><div class="vsec-lbl">Method <span style="font-size:0.65rem;font-weight:400;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif">— tap a step to tick it off</span></div>${secs}</div>`;
   }
 
   const notesHtml = r.notes
@@ -4232,9 +4250,19 @@ async function saveRecipe() {
       const desktopPrepEl = wrap.querySelector('.ing-desktop-row .prep-inp');
       if (mobilePrepEl && desktopPrepEl && mobilePrepEl.value.trim())
         desktopPrepEl.value = mobilePrepEl.value.trim();
+      // Sync mobile unit-sel → desktop unit-sel (T33 fix: mobile unit was not being read)
+      const mobileUnitSel = wrap.querySelector('.ing-mobile-rows .unit-sel');
+      const mobileUnitMan = wrap.querySelector('.ing-mobile-rows .unit-manual');
+      const desktopUnitSel = wrap.querySelector('.ing-desktop-row .unit-sel');
+      const desktopUnitMan = wrap.querySelector('.ing-desktop-row .unit-manual');
+      if (mobileUnitSel && desktopUnitSel && mobileUnitSel.value)
+        desktopUnitSel.value = mobileUnitSel.value;
+      if (mobileUnitMan && desktopUnitMan)
+        desktopUnitMan.value = mobileUnitMan.value;
       const amountEl = desktopAmtEl || wrap.querySelector('.amount-inp');
-      const unitSel  = wrap.querySelector('.unit-sel');
-      const unitMan  = wrap.querySelector('.unit-manual');
+      // Always read unit from desktop row after sync — avoids picking up sub-entry unit-sels
+      const unitSel  = desktopUnitSel || wrap.querySelector('.ing-desktop-row .unit-sel');
+      const unitMan  = desktopUnitMan || wrap.querySelector('.ing-desktop-row .unit-manual');
       const prepEl   = desktopPrepEl || wrap.querySelector('.prep-inp');
       const nsBtn    = wrap.querySelector('.noscale-toggle');
       const name     = toTitleCase(nameEl?.value.trim() || '');
@@ -4524,7 +4552,9 @@ function buildUnitSelect(selected) {
   const activeUnits = getActiveUnits();
   // If selected is retired, still show it as selected (it exists in the recipe) but mark it
   const showRetired = selected && RETIRED_UNITS.includes(selected);
-  let opts = `<option value="">— none —</option>`;
+  // "Unit" is the non-selectable prompt shown when nothing is selected
+  let opts = `<option value="" disabled hidden ${!selected ? 'selected' : ''}>Unit</option>`;
+  opts += `<option value="">— none —</option>`;
   if (showRetired) opts += `<optgroup label="Current"><option value="${esc(selected)}" selected>${esc(selected)} (retired)</option></optgroup>`;
   opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
     const active = units.filter(u => !RETIRED_UNITS.includes(u));
@@ -4804,7 +4834,7 @@ function addIngRow(btn, rowsEl, data) {
       <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp"
         value="${amt != null ? amt : ''}">
       ${buildUnitSelect(unit)}
-      <input type="text" class="prep-inp" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+      <input type="text" class="prep-inp" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
@@ -4837,7 +4867,7 @@ function addIngRow(btn, rowsEl, data) {
       <div class="ing-mobile-actions">
         <div class="ing-field-group" style="flex:1;min-width:0">
           <div class="ing-field-lbl">Prep</div>
-          <input type="text" class="prep-inp mobile-prep" placeholder="e.g. diced" value="${esc(data?.prep||'')}">
+          <input type="text" class="prep-inp mobile-prep" placeholder="Prep instructions (e.g. diced)" value="${esc(data?.prep||'')}">
         </div>
         <div class="ing-mobile-btn-group" style="padding-top:16px">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
