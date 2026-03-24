@@ -255,7 +255,7 @@ header{
 .ing-view-row.done{opacity:0.4}
 .ing-view-row.done td:first-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{display:none;padding:3px 8px 5px 26px;background:var(--note-bg)}
+.step-note-row{display:none;padding:5px 8px 5px 26px;background:var(--note-bg)}
 .step-note-row.show{display:block}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
@@ -266,19 +266,19 @@ header{
 }
 .ing-note-btn:hover,.step-note-btn:hover{border-color:var(--note-border);color:var(--note-text);background:var(--note-bg)}
 .ing-note-btn.on,.step-note-btn.on{background:var(--note-bg);border-color:var(--note-border);color:var(--note-text)}
-.sub-ing-note-row{display:none;padding:3px 8px 5px}
+.sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
-.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px}
-.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s}
+.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
+.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s}
 .step-note-inp:focus{border-bottom-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:3px 8px 5px;background:var(--note-bg)}
+.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:2px 0 3px;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
 .ing-note-inp:focus{border-bottom-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
@@ -495,10 +495,10 @@ header{
   .ing-mobile-rows .amount-inp{text-align:right}
 
   /* row 3: prep + ⇄ ⊘ buttons all same height, no × */
-  .ing-mobile-actions{display:flex;align-items:stretch;gap:6px}
+  .ing-mobile-actions{display:flex;align-items:center;gap:6px}
   .ing-mobile-actions .ing-field-group{flex:1;min-width:0}
   .ing-mobile-actions .prep-inp{width:100%}
-  .ing-mobile-btn-group{display:flex;gap:6px;align-items:stretch;flex-shrink:0}
+  .ing-mobile-btn-group{display:flex;gap:6px;align-items:center;flex-shrink:0}
   .ing-mobile-btn-group button{
     height:38px;width:38px;border-radius:6px;
     display:flex;align-items:center;justify-content:center;
@@ -736,7 +736,7 @@ header{
 }
 .sub-indicator:hover{background:var(--accent);color:#fff}
 .sub-indicator.active{background:var(--accent);color:#fff}
-.sub-note-view{font-size:0.72rem;color:var(--accent-text);font-style:italic;padding:2px 0 3px}
+.sub-note-view{font-size:0.72rem;color:var(--accent-text);font-style:italic;padding:3px 0 3px}
 /* sub chooser popup */
 .sub-chooser{
   position:fixed;z-index:500;background:var(--card);
@@ -1709,7 +1709,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.66';
+const APP_VERSION = '0.67';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -4719,8 +4719,7 @@ async function saveRecipe() {
   closeEdit(true);
   render();
   // Open the saved recipe in view mode (T47)
-  const savedRecipe = recipes.find(r => r.id === savedId);
-  if (savedRecipe) openView(savedRecipe);
+  viewRecipe(savedId);
 }
 
 // ── TAGS INPUT ────────────────────────────────────────────────────────────
@@ -5191,19 +5190,19 @@ function addIngRow(btn, rowsEl, data) {
       <!-- Row 2: Amount + Unit (equal height) -->
       <div class="ing-field-group-row">
         <div class="ing-field-group amount">
-          <input type="number" placeholder="0" min="0" step="any" class="amount-inp mobile-amt"
+          <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp mobile-amt"
             value="${amt != null ? amt : ''}">
         </div>
         <div class="ing-field-group unit">
           ${buildUnitSelect(unit)}
         </div>
       </div>
-      <!-- Row 3: Prep label+input + ⇄ ⊘ buttons same height, no × -->
+      <!-- Row 3: Prep input + ⇄ 📝 ⊘ buttons, all vertically centred -->
       <div class="ing-mobile-actions">
         <div class="ing-field-group" style="flex:1;min-width:0">
           <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
         </div>
-        <div class="ing-mobile-btn-group" style="padding-top:16px">
+        <div class="ing-mobile-btn-group">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
           <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
           <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
