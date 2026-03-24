@@ -480,14 +480,17 @@ header{
   .ing-desktop-row{display:none}
   .ing-mobile-rows{display:flex;flex-direction:column;gap:8px;padding:8px 8px 8px 8px}
   /* T63: collapsible mobile rows — detail rows hidden when collapsed */
+  .ing-mobile-detail{display:flex;flex-direction:column;gap:8px}
   .ing-row-wrap.collapsed .ing-mobile-detail{display:none}
   .ing-mobile-name-row{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
   .ing-mobile-name-row .ing-name-wrap{flex:1;min-width:0}
   .ing-mobile-collapse-btn{
-    background:none;border:none;cursor:pointer;color:var(--ink-faint);
-    font-size:0.75rem;padding:2px 4px;border-radius:4px;flex-shrink:0;
-    line-height:1;transition:transform .15s;margin-top:0;
+    background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+    color:var(--ink-faint);font-size:0.85rem;padding:0;
+    height:38px;width:38px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;transition:transform .15s, color .1s;
   }
+  .ing-mobile-collapse-btn:hover{color:var(--ink-mid)}
   .ing-row-wrap.collapsed .ing-mobile-collapse-btn{transform:rotate(-90deg)}
 
   /* corner delete button — top right of card */
@@ -1303,6 +1306,19 @@ header{
         </label>
         <div class="stoggle-pip"></div>
       </div>
+      <!-- T30: which scales are enabled for this recipe -->
+      <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0 2px;flex-wrap:wrap">
+        <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+          <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+          <input type="checkbox" id="scale-double" checked onchange="updateScaleOptions()"> 2×
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+          <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
+        </label>
+      </div>
 
       <div class="fg">
         <label>Ingredients</label>
@@ -1755,10 +1771,26 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.84';
+const APP_VERSION = '0.85';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.85',
+    title: 'Optional ingredients, collapsible rows & scale selection',
+    userNotes: [
+      'Ingredients can now be marked as optional — tap the "opt" button on any ingredient row, and it shows as "(optional)" in the recipe view',
+      'Unit names now pluralise automatically — "1 clove" becomes "2 cloves" when scaled',
+      'On iPhone, ingredient rows now collapse to just the name — tap ▾ to expand and edit details',
+      'Choose which scale options are available per recipe — uncheck ½×, 2×, or 3× to hide those buttons in recipe view',
+    ],
+    items: [
+      'T24: optional-toggle button desktop (9th col) and mobile row 3. toggleIngOptional(). optionalLabel in view. Saved as item.optional.',
+      'T50: pluralise() with PLURAL_UNITS map applied to qtyFull in renderViewBody.',
+      'T63: ing-mobile-detail wrapper, collapsed CSS, toggleIngCollapse(), chevron button styled to match other mobile buttons. Rows start expanded.',
+      'T30: allowedScales {half,double,triple} saved with recipe. Scale checkboxes in edit form. updateScaleOptions() hides override rows. View hides disabled scale-seg buttons.',
+    ]
+  },
   {
     version: '0.84',
     title: 'Optional ingredients, unit plurals & collapsible mobile rows',
@@ -4201,6 +4233,16 @@ function viewRecipe(id) {
   // Show/hide scale bar depending on recipe's scalable flag
   const scalable = r.scalable !== false;
   document.getElementById('view-scale-bar').style.display = scalable ? '' : 'none';
+  // T30: show/hide individual scale buttons based on allowedScales
+  if (scalable && r.allowedScales) {
+    const as = r.allowedScales;
+    document.querySelector('.scale-seg[data-scale="0.5"]').style.display = as.half   !== false ? '' : 'none';
+    document.querySelector('.scale-seg[data-scale="2"]').style.display   = as.double !== false ? '' : 'none';
+    document.querySelector('.scale-seg[data-scale="3"]').style.display   = as.triple !== false ? '' : 'none';
+  } else {
+    // Reset all scale buttons to visible
+    document.querySelectorAll('.scale-seg').forEach(b => b.style.display = '');
+  }
   document.getElementById('vname').textContent = r.name;
   updatePublishBtn(r);
   renderViewBody(r);
@@ -4639,7 +4681,14 @@ function openEdit(r) {
   const scalable = r?.scalable !== false; // undefined/true = scalable
   const row = document.getElementById('scalable-row');
   row.classList.toggle('off', !scalable);
+  // Restore allowed scales checkboxes (default all on)
+  const as = r?.allowedScales;
+  const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+  setChk('scale-half',   as ? as.half   !== false : true);
+  setChk('scale-double', as ? as.double !== false : true);
+  setChk('scale-triple', as ? as.triple !== false : true);
   applyScalableUI(scalable);
+  updateScaleOptions();
 
   // ingredients — sectioned
   formPopulating = true;
@@ -4693,11 +4742,26 @@ function applyScalableUI(scalable) {
   // Show/hide all ⊘ noscale buttons in the form
   document.querySelectorAll('.noscale-toggle').forEach(btn => {
     btn.style.display = scalable ? '' : 'none';
-    // If turning off scaling, collapse any open noscale panels
     if (!scalable) {
       const noteRow = btn.closest('.ing-row-wrap, .step-wrap')?.querySelector('.noscale-note-row');
       if (noteRow) noteRow.classList.remove('show');
     }
+  });
+  // Show/hide the scale options (½× 2× 3× checkboxes)
+  const optRow = document.getElementById('scale-options-row');
+  if (optRow) optRow.style.display = scalable ? 'flex' : 'none';
+}
+
+function updateScaleOptions() {
+  // Hide/show the corresponding override rows based on checkbox state
+  const half   = document.getElementById('scale-half')?.checked;
+  const double = document.getElementById('scale-double')?.checked;
+  const triple = document.getElementById('scale-triple')?.checked;
+  // In the noscale override panel, hide rows for unchecked scales
+  document.querySelectorAll('.noscale-note-row').forEach(panel => {
+    panel.querySelector('.ns-half-row')  && (panel.querySelector('.ns-half-row').style.display   = half   ? '' : 'none');
+    panel.querySelector('.ns-double-row') && (panel.querySelector('.ns-double-row').style.display = double ? '' : 'none');
+    panel.querySelector('.ns-triple-row') && (panel.querySelector('.ns-triple-row').style.display = triple ? '' : 'none');
   });
 }
 
@@ -4950,6 +5014,11 @@ async function saveRecipe() {
     name, tags: formTags.map(toTitleCase),
     hours:hrs||null, minutes:mins||null, serves:srv,
     scalable,
+    allowedScales: scalable ? {
+      half:   document.getElementById('scale-half')?.checked ?? true,
+      double: document.getElementById('scale-double')?.checked ?? true,
+      triple: document.getElementById('scale-triple')?.checked ?? true,
+    } : null,
     source:  document.getElementById('f-source').value.trim(),
     youtube: document.getElementById('f-youtube').value.trim() || null,
     ingredients, method,
@@ -5205,7 +5274,9 @@ function buildOverrideRow(label, cls, ovData, amount, unit, factor) {
   const placeholder = calcOverridePlaceholder(amount, unit, factor);
   const savedAmt  = ov.amount  != null ? ov.amount  : '';
   const savedUnit = ov.unit    || unit || ''; // default to parent unit
-  return `<div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+  // cls is e.g. 'ns-half', 'ns-double', 'ns-triple' — derive row class for T30 hide/show
+  const rowCls = cls.replace('ns-','ns-') + '-row';
+  return `<div class="scale-override-row ${rowCls}" style="grid-template-columns:28px 1fr 1fr;gap:4px">
     <span class="scale-override-lbl">${label}</span>
     <input type="number" min="0" step="any" class="${cls}-amt"
       placeholder="${placeholder ? placeholder.split('\u00a0')[0] : 'amt'}"
@@ -5429,6 +5500,7 @@ function addIngRow(btn, rowsEl, data) {
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
+      <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)">opt</button>
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
 
@@ -5493,8 +5565,7 @@ function addIngRow(btn, rowsEl, data) {
       </button>
     </div>`;
   rowsEl.appendChild(wrap);
-  // T63: auto-collapse on mobile if this row already has data (loading existing recipe)
-  if (data?.name) wrap.classList.add('collapsed');
+  // T63: rows start expanded — user taps chevron to collapse
 }
 
 function toggleIngNoteView(btn, key) {
