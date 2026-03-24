@@ -1288,8 +1288,8 @@ header{
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeEdit()">Cancel</button>
-      <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate recipe</button>
-      <button class="btn-pri" onclick="saveRecipe()">Save recipe</button>
+      <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate</button>
+      <button class="btn-pri" onclick="saveRecipe()">Save</button>
     </div>
   </div>
 </div>
@@ -1713,7 +1713,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.68';
+const APP_VERSION = '0.69';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -4009,10 +4009,12 @@ function renderViewBody(r) {
   }
 
   // build ingredient rows helper (used for both sectioned + full view)
-  function buildIngRows(items, showSectionTitle, title) {
+  function buildIngRows(items, showSectionTitle, title, showSpacer) {
     let out = '';
-    if (showSectionTitle && title)
-      out += `<tr><td colspan="4" style="padding:0;height:2rem"></td></tr><tr><td colspan="4" class="ing-sec-title-view">${esc(title)}</td></tr>`;
+    if (showSectionTitle && title) {
+      if (showSpacer) out += `<tr><td colspan="4" style="padding:0;height:1.4rem"></td></tr>`;
+      out += `<tr><td colspan="4" class="ing-sec-title-view">${esc(title)}</td></tr>`;
+    }
     items.forEach((item, idx) => {
       // Normalise: support both old `substitute` and new `substitutes`
       const subs = item.substitutes?.length ? item.substitutes
@@ -4039,21 +4041,22 @@ function renderViewBody(r) {
         qtyDisplay  = displayItem._combined;
         unitDisplay = '';
       } else if (overrideData !== null) {
-        if (overrideData && (overrideData.amount != null || overrideData.unit)) {
-          qtyDisplay  = overrideData.amount != null ? fmtNum(overrideData.amount) : '';
-          unitDisplay = overrideData.unit || '';
-        }
-      } else if (!scaled || ((item.noscale && !activeSub) || activeSub?.noscale)) {
+        // Has explicit amount override
+        qtyDisplay  = fmtNum(overrideData.amount);
+        unitDisplay = overrideData.unit || '';
+      } else if (!scaled) {
+        // Not scaled — show original amounts
         qtyDisplay  = displayItem.amount != null ? fmtNum(displayItem.amount) : '';
         unitDisplay = displayItem.unit || '';
       } else {
+        // Scaled — use proportional scaling (noscale flag with no override also falls here)
         const { display, unit } = scaleAndFormat(displayItem.amount, displayItem.unit, scaleFactor);
         qtyDisplay  = display;
         unitDisplay = unit || '';
       }
 
-      const hasOverride = overrideData && (overrideData.amount != null || overrideData.unit);
-      const qtyClass    = (scaled && !(item.noscale && !activeSub) && !activeSub?.noscale) || hasOverride ? ' class="scaled-qty"' : '';
+      const hasOverride = overrideData !== null && overrideData.amount != null;
+      const qtyClass    = (scaled && !item.noscale && !activeSub?.noscale) || hasOverride ? ' class="scaled-qty"' : '';
       const qtyFull     = [qtyDisplay, unitDisplay].filter(Boolean).join('\u00a0');
 
       // Name cell — asterisk + orange when substitute is active
@@ -4075,13 +4078,8 @@ function renderViewBody(r) {
         ? `<td style="text-align:center;padding:5px 2px">${subColInner}</td>`
         : '<td></td>';
 
-      // Does not scale note
-      const noscaleActive = activeSub ? activeSub.noscale : item.noscale;
-      const overrideIsBlank = overrideData === null || (!overrideData?.amount && !overrideData?.unit);
-      const showNote = noscaleActive && scaled && key && overrideIsBlank;
-      const noteRow  = showNote
-        ? `<tr><td colspan="4" class="noscale-note-view" style="display:table-row">⊘ Does not scale at ${scaleFactor}×</td></tr>`
-        : '';
+      // Does not scale note — removed (T49 behaviour: blank override = default proportional scaling)
+      const noteRow = '';
 
       // Ingredient note (T26) — shown via toggle button, light grey small text
       const displayNote = activeSub ? (activeSub.ingNote || '') : (item.note || '');
@@ -4162,7 +4160,7 @@ function renderViewBody(r) {
     let rows = '';
     merged.forEach(item => {
       // buildIngRows handles scale internally via scaleFactor
-      rows += buildIngRows([item], false, '');
+      rows += buildIngRows([item], false, '', false);
     });
     return rows;
   }
@@ -4175,8 +4173,8 @@ function renderViewBody(r) {
 
   let ingHtml = '';
   if (r.ingredients?.length) {
-    const sectionedRows = r.ingredients.map(sec =>
-      buildIngRows(sec.items || [], true, sec.title)
+    const sectionedRows = r.ingredients.map((sec, secIdx) =>
+      buildIngRows(sec.items || [], true, sec.title, secIdx > 0)
     ).join('');
 
     ingHtml = `<div class="view-sec">
@@ -4606,12 +4604,12 @@ async function saveRecipe() {
       const unitSel  = desktopUnitSel || wrap.querySelector('.ing-desktop-row .unit-sel');
       const unitMan  = desktopUnitMan || wrap.querySelector('.ing-desktop-row .unit-manual');
       const prepEl   = desktopPrepEl || wrap.querySelector('.prep-inp');
-      const nsBtn    = wrap.querySelector('.noscale-toggle');
+      const nsBtn    = wrap.querySelector('.noscale-toggle.on') || wrap.querySelector('.noscale-toggle');
       const name     = toTitleCase(nameEl?.value.trim() || '');
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
       if (name) {
         const rawAmt = amountEl?.value.trim();
-        const noscale = nsBtn?.classList.contains('on') || false;
+        const noscale = wrap.querySelector('.noscale-toggle.on') !== null;
         const readOv = (cls) => {
           const row    = wrap.querySelector(`.${cls}-amt`)?.closest('.scale-override-row');
           if (!row) return null;
@@ -4619,7 +4617,8 @@ async function saveRecipe() {
           const selEl  = row.querySelector('.ov-unit-sel');
           const manEl  = row.querySelector('.ov-unit-manual');
           const unit   = manEl ? manEl.value.trim() : (selEl?.value || '');
-          return (amt || unit) ? { amount: amt ? parseFloat(amt) : null, unit } : null;
+          // Only return an override if amount is actually set
+          return amt ? { amount: parseFloat(amt), unit: unit || rawUnit } : null;
         };
         // collect substitutes array
         const substitutes = [];
@@ -4654,7 +4653,7 @@ async function saveRecipe() {
             const a = amtEl.value.trim();
             const row = amtEl.closest('.scale-override-row');
             const u = row?.querySelector('.unit-sel')?.value || '';
-            return (a || u) ? { amount: a ? parseFloat(a) : null, unit: u } : null;
+            return a ? { amount: parseFloat(a), unit: u } : null;
           };
           substitutes.push({
             name:    toTitleCase(sName),
@@ -5303,10 +5302,13 @@ function addSubEntry(btn, skipSnapshot) {
 
 function toggleIngNoscale(btn) {
   captureFormSnapshot(btn.classList.contains('on') ? 'Remove scale override' : 'Add scale override');
-  btn.classList.toggle('on');
-  const noteRow = btn.closest('.ing-row-wrap').querySelector('.noscale-note-row');
-  noteRow.classList.toggle('show', btn.classList.contains('on'));
-  if (btn.classList.contains('on')) {
+  const wrap = btn.closest('.ing-row-wrap');
+  const noteRow = wrap.querySelector('.noscale-note-row');
+  const showing = !noteRow.classList.contains('show');
+  noteRow.classList.toggle('show', showing);
+  // Sync both desktop and mobile noscale buttons
+  wrap.querySelectorAll('.noscale-toggle').forEach(b => b.classList.toggle('on', showing));
+  if (showing) {
     const first = noteRow.querySelector('input');
     if (first) { _pendingSnapshot = null; first.focus(); }
   }
