@@ -222,6 +222,11 @@ header{
 
 /* ── VIEW MODAL ── */
 .vbody{padding:1.3rem;max-height:78vh;overflow-y:auto}
+@media(min-width:601px){
+  #vmodal{align-items:center !important;overflow-y:auto !important;padding:1.2rem 1rem !important}
+  #vmodal .modal{max-height:92vh !important;border-radius:var(--radius-lg) !important;margin:auto !important}
+  .vbody{max-height:none}
+}
 .view-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.9rem}
 .vtag{font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);padding:2px 8px;border-radius:10px}
 .view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.7rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:1.1rem}
@@ -1137,21 +1142,21 @@ header{
 <div class="sub-chooser" id="sub-chooser" style="display:none"></div>
 
 <!-- VIEW MODAL -->
-<div class="backdrop" id="vmodal">
-  <div class="modal" style="max-width:980px">
-    <div class="modal-head">
+<div class="backdrop" id="vmodal" style="align-items:flex-start;overflow-y:hidden;padding:0">
+  <div class="modal" style="max-width:980px;max-height:100dvh;display:flex;flex-direction:column;border-radius:0;margin:0">
+    <div class="modal-head" style="flex-shrink:0">
       <h2 id="vname">Recipe</h2>
       <button class="xbtn" onclick="closeView()">✕</button>
     </div>
-    <div id="view-scale-bar" style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+    <div id="view-scale-bar" style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-shrink:0">
       <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
       <button class="scale-seg active" data-scale="1" onclick="setScale(1)">1×</button>
       <button class="scale-seg" data-scale="0.5" onclick="setScale(0.5)">½×</button>
       <button class="scale-seg" data-scale="2" onclick="setScale(2)">2×</button>
       <button class="scale-seg" data-scale="3" onclick="setScale(3)">3×</button>
     </div>
-    <div class="vbody" id="vbody"></div>
-    <div class="view-foot">
+    <div class="vbody" id="vbody" style="flex:1;overflow-y:auto;max-height:none"></div>
+    <div class="view-foot" style="flex-shrink:0">
       <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
       <button id="publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
       <button class="btn-pri" onclick="editCurrent()">Edit</button>
@@ -1333,7 +1338,7 @@ header{
 <div class="backdrop" id="imodal">
   <div class="modal" style="max-width:780px">
     <div class="modal-head">
-      <h2>How to use Benny's Recipes</h2>
+      <h2>Benny's Recipes <span id="info-version" style="font-size:0.72rem;font-weight:400;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif"></span></h2>
       <button class="xbtn" onclick="closeInfo()">✕</button>
     </div>
     <div class="info-body">
@@ -1714,10 +1719,26 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.73';
+const APP_VERSION = '0.74';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.74',
+    title: 'Recipe card polish & UI fixes',
+    userNotes: [
+      'Recipe card now fits your screen perfectly — footer buttons always visible without scrolling',
+      'Info panel now shows the app version number for easy reference',
+      'Substitute ⇄ button now shows the same subtle styling as the note button',
+      'Substitute ingredient fields on iPhone no longer show redundant field labels',
+    ],
+    items: [
+      'T66: vmodal backdrop padding:0, overflow-y:hidden, align-items:flex-start on mobile. Modal max-height:100dvh, display:flex flex-direction:column. vbody flex:1 max-height:none. Desktop media query restores centered/rounded layout.',
+      'T65: info modal h2 changed to Benny\'s Recipes + span#info-version populated in openInfo().',
+      'T64: sub-col-btn active state changed from solid --accent to --accent-light bg + --accent border + --accent-text colour.',
+      'T67: sub-mobile-lbl divs removed from buildSubEntry mobile template.',
+    ]
+  },
   {
     version: '0.73',
     title: 'Scale override input polish',
@@ -3273,6 +3294,8 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function openInfo() {
+  const vEl = document.getElementById('info-version');
+  if (vEl) vEl.textContent = 'v' + APP_VERSION;
   switchInfoTab('start', document.querySelector('.info-tab'));
   document.getElementById('imodal').classList.add('open');
 }
@@ -4064,7 +4087,7 @@ function renderViewBody(r) {
               onclick="openSubChooser(this,'${itemKey}',JSON.parse(this.dataset.subs))"
               data-subs="${subsJson}"
               title="Switch ingredient"
-              style="background:${showSub?'var(--accent)':'none'};border:1px solid ${showSub?'var(--accent)':'var(--border)'};border-radius:5px;color:${showSub?'#fff':'var(--ink-faint)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>`
+              style="background:${showSub?'var(--accent-light)':'none'};border:1px solid ${showSub?'var(--accent)':'var(--border)'};border-radius:5px;color:${showSub?'var(--accent-text)':'var(--ink-faint)'};width:22px;height:22px;font-size:0.75rem;cursor:pointer;transition:all .12s;padding:0;line-height:1">⇄</button>`
         : '';
       // Keep subCol for backward compat refs
       const subCol = subs.length
@@ -5072,24 +5095,20 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     <div class="sub-entry-mobile">
       <!-- Row 1: Name -->
       <div class="sub-mobile-field sub-mobile-row1">
-        <div class="sub-mobile-lbl">Substitute name</div>
         <input type="text" class="sub-name-mobile" placeholder="Name" value="${esc(sub?.name||'')}">
       </div>
       <!-- Row 2: Amount + Unit -->
       <div class="sub-mobile-row2">
         <div class="sub-mobile-field amount">
-          <div class="sub-mobile-lbl">Amount</div>
           <input type="number" class="sub-amt-mobile" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}">
         </div>
         <div class="sub-mobile-field unit">
-          <div class="sub-mobile-lbl">Unit</div>
           ${buildUnitSelect(unit)}
         </div>
       </div>
       <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
-          <div class="sub-mobile-lbl">Prep</div>
           <input type="text" class="sub-prep-mobile" placeholder="Prep" value="${esc(sub?.prep||'')}">
         </div>
         <div class="sub-mobile-btn-group">
@@ -5099,7 +5118,6 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       </div>
       <!-- Row 4: Reason (full width, no buttons) -->
       <div class="sub-mobile-field">
-        <div class="sub-mobile-lbl">Reason</div>
         <input type="text" class="sub-note-mobile" placeholder="Reason" value="${esc(sub?.note||'')}">
       </div>
     </div>
