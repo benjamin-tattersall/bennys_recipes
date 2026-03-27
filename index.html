@@ -1784,10 +1784,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.93b';
+const APP_VERSION = '0.94';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.94',
+    title: 'Save fix for iPhone',
+    userNotes: [
+      'Saving recipes on iPhone now works correctly again',
+      'Ingredient amounts and units save correctly on all devices',
+    ],
+    items: [
+      'T78: Replaced offsetWidth-based visibility checks with window.matchMedia (max-width:600px). offsetWidth returns 0 for elements not yet laid out on iOS Safari, causing save to break. matchMedia is reliable on all platforms.',
+      'Also fixes the subDesktopVisible temporal dead zone error from v93 (subDesktopVisible now declared first in forEach).',
+    ]
+  },
   {
     version: '0.93',
     title: 'Amount and unit save fix',
@@ -4935,6 +4947,12 @@ function duplicateRecipe() {
   toast(`Duplicated — editing "${copy.name}"`);
 }
 
+function isMobileLayout() {
+  // Returns true if we are in mobile layout (desktop ingredient rows are hidden via CSS)
+  // Uses matchMedia to check the breakpoint rather than layout-dependent offsetWidth
+  return window.matchMedia('(max-width: 600px)').matches;
+}
+
 async function saveRecipe() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { toast('Please enter a recipe name'); return; }
@@ -5003,7 +5021,7 @@ async function saveRecipe() {
       const nameEl   = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
                     || wrap.querySelector('.ing-name-mobile');
       // Sync mobile → desktop if mobile is shown
-      const desktopVisible = wrap.querySelector('.ing-desktop-row')?.offsetWidth > 0;
+      const desktopVisible = !isMobileLayout();
       const mobileNameEl = wrap.querySelector('.ing-name-mobile');
       const desktopNameEl = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]');
       if (mobileNameEl && desktopNameEl && mobileNameEl.value.trim() && !desktopVisible)
@@ -5051,7 +5069,7 @@ async function saveRecipe() {
         const substitutes = [];
         wrap.querySelectorAll('.sub-entry').forEach(entry => {
           // Sync mobile → desktop values before reading
-          const subDesktopVisible = entry.querySelector('.sub-entry-head')?.offsetWidth > 0;
+          const subDesktopVisible = !isMobileLayout();
           const mobileSubName = entry.querySelector('.sub-name-mobile');
           const desktopSubName = entry.querySelector('.sub-name');
           if (mobileSubName?.value.trim() && !subDesktopVisible) desktopSubName && (desktopSubName.value = mobileSubName.value.trim());
