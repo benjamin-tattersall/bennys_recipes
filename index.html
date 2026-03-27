@@ -1784,10 +1784,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.92';
+const APP_VERSION = '0.93';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.93',
+    title: 'Amount and unit save fix',
+    userNotes: [
+      'Ingredient amounts and units no longer revert to their original values when saving on desktop',
+      'Substitute ingredient amounts and units also save correctly on desktop',
+    ],
+    items: [
+      'T78: All six mobile-to-desktop sync paths now guarded by desktopVisible (offsetWidth > 0 on desktop row). Previously: unit sync had no guard at all; sub syncs (name/amt/note/prep/unit) had no guard. On desktop these mobile inputs hold stale load-time values and were overwriting desktop edits. Fixed: main unit sel/man, sub name/amt/note/prep/unit sel all skip sync when desktop row is visible.',
+    ]
+  },
   {
     version: '0.92',
     title: 'Method step note styling fix',
@@ -5010,9 +5021,9 @@ async function saveRecipe() {
       const mobileUnitMan = wrap.querySelector('.ing-mobile-rows .unit-manual');
       const desktopUnitSel = wrap.querySelector('.ing-desktop-row .unit-sel');
       const desktopUnitMan = wrap.querySelector('.ing-desktop-row .unit-manual');
-      if (mobileUnitSel && desktopUnitSel && mobileUnitSel.value)
+      if (mobileUnitSel && desktopUnitSel && mobileUnitSel.value && !desktopVisible)
         desktopUnitSel.value = mobileUnitSel.value;
-      if (mobileUnitMan && desktopUnitMan)
+      if (mobileUnitMan && desktopUnitMan && !desktopVisible)
         desktopUnitMan.value = mobileUnitMan.value;
       const amountEl = desktopAmtEl || wrap.querySelector('.amount-inp');
       // Always read unit from desktop row after sync — avoids picking up sub-entry unit-sels
@@ -5042,16 +5053,17 @@ async function saveRecipe() {
           // Sync mobile → desktop values before reading
           const mobileSubName = entry.querySelector('.sub-name-mobile');
           const desktopSubName = entry.querySelector('.sub-name');
-          if (mobileSubName?.value.trim()) desktopSubName && (desktopSubName.value = mobileSubName.value.trim());
+          if (mobileSubName?.value.trim() && !subDesktopVisible) desktopSubName && (desktopSubName.value = mobileSubName.value.trim());
           const mobileSubAmt = entry.querySelector('.sub-amt-mobile');
           const desktopSubAmt = entry.querySelector('.sub-amt');
-          if (mobileSubAmt?.value.trim()) desktopSubAmt && (desktopSubAmt.value = mobileSubAmt.value.trim());
+          const subDesktopVisible = entry.querySelector('.sub-entry-head')?.offsetWidth > 0;
+          if (mobileSubAmt?.value.trim() && !subDesktopVisible) desktopSubAmt && (desktopSubAmt.value = mobileSubAmt.value.trim());
           const mobileSubNote = entry.querySelector('.sub-note-mobile');
           const desktopSubNote = entry.querySelector('.sub-note-inp');
-          if (mobileSubNote?.value.trim()) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
+          if (mobileSubNote?.value.trim() && !subDesktopVisible) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
           const mobileSubPrep = entry.querySelector('.sub-prep-mobile');
           const desktopSubPrep = entry.querySelector('.sub-prep-inp');
-          if (mobileSubPrep?.value.trim()) desktopSubPrep && (desktopSubPrep.value = mobileSubPrep.value.trim());
+          if (mobileSubPrep?.value.trim() && !subDesktopVisible) desktopSubPrep && (desktopSubPrep.value = mobileSubPrep.value.trim());
 
           const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
           if (!sName) return;
@@ -5059,7 +5071,7 @@ async function saveRecipe() {
           // Sync mobile unit-sel → desktop before reading (T33-style fix for substitute unit)
           const mobileSubUnitSel = entry.querySelector('.sub-entry-mobile .unit-sel');
           const desktopSubUnitSel = entry.querySelector('.sub-entry-head .unit-sel');
-          if (mobileSubUnitSel && desktopSubUnitSel && mobileSubUnitSel.value)
+          if (mobileSubUnitSel && desktopSubUnitSel && mobileSubUnitSel.value && !subDesktopVisible)
             desktopSubUnitSel.value = mobileSubUnitSel.value;
           const sUnit = (desktopSubUnitSel || mobileSubUnitSel)?.value || '';
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
