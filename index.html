@@ -292,8 +292,11 @@ header{
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
-.sub-ing-note-row{display:none;padding:5px 8px 5px}
-.sub-ing-note-row.show{display:block;background:var(--note-bg)}
+.sub-ing-note-row{display:none;padding:5px 8px 5px;border-top:1px solid var(--note-border)}
+.sub-ing-note-row.show{display:block}
+.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
+.sub-ing-note-inp:focus{border-color:var(--note-text)}
+.sub-ing-note-inp::placeholder{color:var(--ink-faint)}
 .sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
 .step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s}
 .step-note-inp:focus{border-bottom-color:var(--note-text)}
@@ -302,10 +305,10 @@ header{
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
+.ing-note-row{display:none;padding:5px 8px 5px;border-top:1px solid var(--note-border)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
-.ing-note-inp:focus{border-bottom-color:var(--note-text)}
+.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp:focus{border-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
 .ing-note-toggle:hover{color:var(--accent-text)}
@@ -1784,10 +1787,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.89';
+const APP_VERSION = '0.90';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.90',
+    title: 'Note field styling & desktop amount revert fix',
+    userNotes: [
+      'Ingredient note fields now show a clean bordered style matching the scale override fields — no more blue background',
+      'Editing ingredient amounts on desktop no longer reverts on save',
+    ],
+    items: [
+      'Bug fix: .ing-note-row and .sub-ing-note-row changed from background:note-bg to border-top:note-border. Input changed from border-bottom only / background:none to full border 1px note-border / background:cream — matching scale override panel styling.',
+      'Bug fix: mobile-to-desktop amount/name/prep sync now guarded by desktopVisible check (ing-desktop-row offsetWidth > 0). On desktop the mobile inputs still hold old values from load time; without this guard they overwrote desktop edits on save. Unit sync already reads from correct element so unchanged.',
+    ]
+  },
   {
     version: '0.89',
     title: 'Substitute field inheritance from parent ingredient',
@@ -4938,17 +4953,18 @@ async function saveRecipe() {
       const nameEl   = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
                     || wrap.querySelector('.ing-name-mobile');
       // Sync mobile → desktop if mobile is shown
+      const desktopVisible = wrap.querySelector('.ing-desktop-row')?.offsetWidth > 0;
       const mobileNameEl = wrap.querySelector('.ing-name-mobile');
       const desktopNameEl = wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]');
-      if (mobileNameEl && desktopNameEl && mobileNameEl.value.trim())
+      if (mobileNameEl && desktopNameEl && mobileNameEl.value.trim() && !desktopVisible)
         desktopNameEl.value = mobileNameEl.value.trim();
       const mobileAmtEl = wrap.querySelector('.mobile-amt');
       const desktopAmtEl = wrap.querySelector('.ing-desktop-row .amount-inp');
-      if (mobileAmtEl && desktopAmtEl && mobileAmtEl.value.trim())
+      if (mobileAmtEl && desktopAmtEl && mobileAmtEl.value.trim() && !desktopVisible)
         desktopAmtEl.value = mobileAmtEl.value.trim();
       const mobilePrepEl = wrap.querySelector('.mobile-prep');
       const desktopPrepEl = wrap.querySelector('.ing-desktop-row .prep-inp');
-      if (mobilePrepEl && desktopPrepEl && mobilePrepEl.value.trim())
+      if (mobilePrepEl && desktopPrepEl && mobilePrepEl.value.trim() && !desktopVisible)
         desktopPrepEl.value = mobilePrepEl.value.trim();
       // Sync mobile unit-sel → desktop unit-sel (T33 fix: mobile unit was not being read)
       const mobileUnitSel = wrap.querySelector('.ing-mobile-rows .unit-sel');
