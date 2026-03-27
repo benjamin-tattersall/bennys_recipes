@@ -1784,7 +1784,7 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.93';
+const APP_VERSION = '0.93b';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
@@ -5051,12 +5051,12 @@ async function saveRecipe() {
         const substitutes = [];
         wrap.querySelectorAll('.sub-entry').forEach(entry => {
           // Sync mobile → desktop values before reading
+          const subDesktopVisible = entry.querySelector('.sub-entry-head')?.offsetWidth > 0;
           const mobileSubName = entry.querySelector('.sub-name-mobile');
           const desktopSubName = entry.querySelector('.sub-name');
           if (mobileSubName?.value.trim() && !subDesktopVisible) desktopSubName && (desktopSubName.value = mobileSubName.value.trim());
           const mobileSubAmt = entry.querySelector('.sub-amt-mobile');
           const desktopSubAmt = entry.querySelector('.sub-amt');
-          const subDesktopVisible = entry.querySelector('.sub-entry-head')?.offsetWidth > 0;
           if (mobileSubAmt?.value.trim() && !subDesktopVisible) desktopSubAmt && (desktopSubAmt.value = mobileSubAmt.value.trim());
           const mobileSubNote = entry.querySelector('.sub-note-mobile');
           const desktopSubNote = entry.querySelector('.sub-note-inp');
