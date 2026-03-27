@@ -272,8 +272,11 @@ header{
 .ing-view-row.done{opacity:0.4}
 .ing-view-row.done td:first-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{display:none;padding:5px 8px 5px 26px;background:var(--note-bg)}
+.step-note-row{display:none;padding:5px 8px 5px 26px;border-top:1px solid var(--note-border)}
 .step-note-row.show{display:block}
+.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
+.step-note-inp:focus{border-color:var(--note-text)}
+.step-note-inp::placeholder{color:var(--ink-faint)}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
   background:none;border:1px solid var(--border);border-radius:5px;
@@ -297,10 +300,6 @@ header{
 .sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
 .sub-ing-note-inp:focus{border-color:var(--note-text)}
 .sub-ing-note-inp::placeholder{color:var(--ink-faint)}
-.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
-.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s}
-.step-note-inp:focus{border-bottom-color:var(--note-text)}
-.step-note-inp::placeholder{color:var(--ink-faint)}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
@@ -1787,10 +1786,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.90';
+const APP_VERSION = '0.91';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.91',
+    title: 'Amount revert fix & note field styling',
+    userNotes: [
+      'Editing ingredient amounts no longer reverts when saving — both main ingredients and substitutes',
+      'Method step note fields now use a clean bordered style matching the ingredient note fields',
+    ],
+    items: [
+      'Bug fix (amount revert): _serializeForm now calls _syncInputsToAttributes() before capturing ing-builder/method-builder innerHTML. HTML serialisation captures value attributes not live .value properties — without sync, snapshots stored original values and restored them on undo/save.',
+      'Bug fix (step note blue background): .step-note-row background:note-bg removed, replaced with border-top:note-border. .step-note-inp changed from border-bottom-only/background:none to full border/background:cream matching ing-note-inp style. Removed duplicate old CSS rules.',
+    ]
+  },
   {
     version: '0.90',
     title: 'Note field styling & desktop amount revert fix',
@@ -2494,7 +2505,27 @@ function saveLocallySilent() {
 let _pendingSnapshot = null; // state captured BEFORE a field edit begins
 let _formApplying = false;  // true during formUndo/formRedo/applyFormSnapshot — suppresses delegation
 
+function _syncInputsToAttributes(container) {
+  // Before capturing innerHTML snapshot, sync live .value to the value attribute
+  // so that innerHTML correctly reflects what the user has typed
+  if (!container) return;
+  container.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
+    el.setAttribute('value', el.value);
+  });
+  container.querySelectorAll('textarea').forEach(el => {
+    el.textContent = el.value;
+  });
+  container.querySelectorAll('select').forEach(el => {
+    el.querySelectorAll('option').forEach(opt => {
+      opt.selected = opt.value === el.value;
+    });
+  });
+}
+
 function _serializeForm() {
+  // Sync live values before capturing innerHTML
+  _syncInputsToAttributes(document.getElementById('ing-builder'));
+  _syncInputsToAttributes(document.getElementById('method-builder'));
   return {
     name:     document.getElementById('f-name')?.value    || '',
     source:   document.getElementById('f-source')?.value  || '',
