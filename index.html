@@ -1467,6 +1467,8 @@ header{
       <div class="info-pane" id="info-pane-substitutes">
         <h3>Adding substitutes</h3>
         <p>Any ingredient can have one or more substitutes. When editing an ingredient, tap the <strong>⇄ button</strong> to open the substitutes panel. Each substitute has its own name, amount, unit, prep note, and an optional <strong>Reason</strong> field — use this to explain why the substitution might be made (e.g. "dairy-free alternative" or "if unavailable").</p>
+        <h3>Inherited fields</h3>
+        <p>When you add a substitute, its amount, unit, prep, and note fields default to the parent ingredient's values. The parent's values appear as placeholder text in each field. If you leave a field blank, the substitute will show the parent ingredient's value in the recipe view — useful when only the name changes (e.g. swapping "brown onion" for "red onion" with the same prep and quantities). Fill in a field to override just that value.</p>
         <h3>Choosing a substitute when viewing a recipe</h3>
         <p>Ingredients that have substitutes show a <strong>⇄ button</strong> in the recipe view. Tapping it opens a small chooser listing the original ingredient and all available substitutes. If a substitute has a reason, it appears in smaller text beneath the name to help you decide. Selecting a substitute swaps that ingredient's name, quantity, and prep note in the table. Tap the button again and choose <strong>Original recipe</strong> to revert.</p>
         <h3>Scaling substitutes</h3>
@@ -1782,10 +1784,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.88';
+const APP_VERSION = '0.89';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.89',
+    title: 'Substitute field inheritance from parent ingredient',
+    userNotes: [
+      'Substitute ingredients now inherit the parent ingredient fields by default — amount, unit, prep and note show the parent values as placeholder text, and will use those values in the recipe view if left blank',
+      'Only fill in a substitute field if it differs from the parent — for example, a red onion substituting a brown onion can share the same prep, quantity and notes without re-entering them',
+      'The Info panel Substitutes tab now explains this behaviour',
+    ],
+    items: [
+      'T77: addSubEntry reads parent amt/unit/prep/note from DOM and passes as parent object to buildSubEntry. buildSubEntry shows parent values as placeholder text on amount, prep, sub-ing-note inputs; unit select shows parent unit in prompt. Saved as undefined when empty. renderViewBody merges activeSub with item for fallback display: amount/unit/prep/note all fall back to parent when sub field is empty. displayNote and prep column updated to use merged displayItem. Info modal Substitutes tab gains Inherited fields section.',
+    ]
+  },
   {
     version: '0.88',
     title: 'Sub note order, 4-row mobile layout & optional icon',
@@ -4340,7 +4354,14 @@ function renderViewBody(r) {
       const activeSubIdx = subToggledMap[itemKey];
       const showSub   = activeSubIdx !== undefined && activeSubIdx < subs.length;
       const activeSub = showSub ? subs[activeSubIdx] : null;
-      const displayItem = activeSub || item;
+      // T77: when a sub field is undefined/null, fall back to the parent item's value
+      const displayItem = activeSub ? {
+        ...activeSub,
+        amount: activeSub.amount   != null ? activeSub.amount   : item.amount,
+        unit:   activeSub.unit     != null && activeSub.unit !== '' ? activeSub.unit : item.unit,
+        prep:   activeSub.prep     != null && activeSub.prep !== '' ? activeSub.prep : item.prep,
+        note:   activeSub.ingNote  != null && activeSub.ingNote !== '' ? activeSub.ingNote : item.note,
+      } : item;
       const key = overrideKey();
 
       // Scale override for active display item
@@ -4401,7 +4422,7 @@ function renderViewBody(r) {
       const noteRow = '';
 
       // Ingredient note (T26) — shown via toggle button, light grey small text
-      const displayNote = activeSub ? (activeSub.ingNote || '') : (item.note || '');
+      const displayNote = displayItem.note || '';
       const noteKey = itemKey + '_note';
 
       // Build the 4th column: sub button + note button if applicable
@@ -4412,7 +4433,7 @@ function renderViewBody(r) {
         ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
         : '<td></td>';
 
-      out += `<tr class="ing-view-row" onclick="if(!event.target.closest('button'))this.classList.toggle('done')" title="Tap to tick off"><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(activeSub ? (activeSub.prep||'') : (item.prep||''))}</td>${actionCol}</tr>`;
+      out += `<tr class="ing-view-row" onclick="if(!event.target.closest('button'))this.classList.toggle('done')" title="Tap to tick off"><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(displayItem.prep||'')}</td>${actionCol}</tr>`;
       if (displayNote) {
         out += `<tr class="ing-note-view-row" id="ing-note-view-${noteKey}" style="display:none"><td colspan="4" style="padding:0 0.5rem 6px;font-size:0.73rem;color:var(--ink-faint)">${esc(displayNote)}</td></tr>`;
       }
@@ -5001,10 +5022,10 @@ async function saveRecipe() {
           };
           substitutes.push({
             name:    toTitleCase(sName),
-            amount:  sAmt ? parseFloat(sAmt) : null,
-            unit:    sUnit,
-            prep:    sPrep,
-            note:    sNote,
+            amount:  sAmt ? parseFloat(sAmt) : undefined,
+            unit:    sUnit || undefined,
+            prep:    sPrep || undefined,
+            note:    sNote || undefined,
             ingNote: sIngNote || undefined,
             noscale: sNs,
             scaleOverrides: sNs ? {
@@ -5248,29 +5269,31 @@ function addIngSection(data) {
   else addIngRow(null, rows);
 }
 
-function buildUnitSelect(selected) {
+function buildUnitSelect(selected, defaultUnit) {
   const isCustom = selected && !getAllDropdownUnits().includes(selected);
   const activeUnits = getActiveUnits();
   // If selected is retired, still show it as selected (it exists in the recipe) but mark it
   const showRetired = selected && RETIRED_UNITS.includes(selected);
+  // Use defaultUnit as a visual hint when nothing is selected (T77 inheritance)
+  const effectiveSelected = selected || '';
   // "Unit" is the non-selectable prompt shown when nothing is selected
-  let opts = `<option value="" disabled hidden ${!selected ? 'selected' : ''}>Unit</option>`;
+  let opts = `<option value="" disabled hidden ${!effectiveSelected ? 'selected' : ''}>Unit${defaultUnit ? ' ('+defaultUnit+')' : ''}</option>`;
   opts += `<option value="">— none —</option>`;
   if (showRetired) opts += `<optgroup label="Current"><option value="${esc(selected)}" selected>${esc(selected)} (retired)</option></optgroup>`;
   opts += Object.entries(UNIT_GROUPS).map(([grp, units]) => {
     const active = units.filter(u => !RETIRED_UNITS.includes(u));
     if (!active.length) return '';
     return `<optgroup label="${grp}">${active.map(u =>
-      `<option value="${u}"${u===selected?' selected':''}>${u}</option>`
+      `<option value="${u}"${u===effectiveSelected?' selected':''}>${u}</option>`
     ).join('')}</optgroup>`;
   }).join('');
   opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
 
   if (isCustom) {
-    return `<input type="text" class="unit-manual" placeholder="unit" value="${esc(selected)}" style="border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0" >
+    return `<input type="text" class="unit-manual" placeholder="${esc(defaultUnit||'unit')}" value="${esc(selected)}" style="border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0" >
             <button onclick="switchUnitToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
   }
-  return `<select class="unit-sel${selected&&!showRetired?' has-val':''}" onchange="handleUnitChange(this)">${opts}</select>`;
+  return `<select class="unit-sel${effectiveSelected&&!showRetired?' has-val':''}" onchange="handleUnitChange(this)">${opts}</select>`;
 }
 
 function handleUnitChange(sel) {
@@ -5396,27 +5419,38 @@ function switchOvUnitToDropdown(btn) {
   wrap.replaceWith(newSel);
 }
 
-function buildSubEntry(sub, parentAmt, parentUnit) {
+function buildSubEntry(sub, parentAmt, parentUnit, parent) {
   const ns  = sub?.noscale || false;
   const ov  = sub?.scaleOverrides || {};
   const unit = sub?.unit || '';
   const amt  = sub?.amount;
+  // Parent fallback values for placeholders
+  const pAmt  = parent?.amount != null ? String(parent.amount) : '';
+  const pUnit = parent?.unit || '';
+  const pPrep = parent?.prep || '';
+  const pNote = parent?.note || '';
+  // Placeholder text: show parent value so user knows what will be inherited
+  const amtPlaceholder  = pAmt  ? pAmt  : '0';
+  const prepPlaceholder = pPrep ? pPrep : 'Prep';
+  const notePlaceholder = pNote ? pNote : 'Note';
   const placeholder = {
-    half:   calcOverridePlaceholder(amt, unit, 0.5),
-    double: calcOverridePlaceholder(amt, unit, 2),
-    triple: calcOverridePlaceholder(amt, unit, 3)
+    half:   calcOverridePlaceholder(amt ?? (pAmt ? parseFloat(pAmt) : null), unit || pUnit, 0.5),
+    double: calcOverridePlaceholder(amt ?? (pAmt ? parseFloat(pAmt) : null), unit || pUnit, 2),
+    triple: calcOverridePlaceholder(amt ?? (pAmt ? parseFloat(pAmt) : null), unit || pUnit, 3)
   };
   const subIngNote = sub?.ingNote || '';
-  return `<div class="sub-entry">
+  // Store parent data on the element via data attributes for save-time inheritance
+  const parentData = esc(JSON.stringify({ amount: parent?.amount ?? null, unit: pUnit, prep: pPrep, note: pNote }));
+  return `<div class="sub-entry" data-parent='${parentData}'>
     <!-- Corner delete (mobile only) -->
     <button class="sub-entry-corner-del" onclick="removeSubEntry(this)" title="Remove substitute">×</button>
 
     <!-- DESKTOP: single head row (name / amt / unit / prep / reason / 📝 / ⊘ / ×) -->
     <div class="sub-entry-head">
       <input type="text" class="sub-name" placeholder="Name" value="${esc(sub?.name||'')}">
-      <input type="number" class="sub-amt" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
-      ${buildUnitSelect(unit)}
-      <input type="text" class="sub-prep-inp" placeholder="Prep" value="${esc(sub?.prep||'')}">
+      <input type="number" class="sub-amt" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
+      ${buildUnitSelect(unit, pUnit)}
+      <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}">
       <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}">
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
@@ -5432,16 +5466,16 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       <!-- Row 2: Amount + Unit -->
       <div class="sub-mobile-row2">
         <div class="sub-mobile-field amount">
-          <input type="number" class="sub-amt-mobile" placeholder="0" min="0" step="any" value="${amt != null ? amt : ''}">
+          <input type="number" class="sub-amt-mobile" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}">
         </div>
         <div class="sub-mobile-field unit">
-          ${buildUnitSelect(unit)}
+          ${buildUnitSelect(unit, pUnit)}
         </div>
       </div>
       <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
-          <input type="text" class="sub-prep-mobile" placeholder="Prep" value="${esc(sub?.prep||'')}">
+          <input type="text" class="sub-prep-mobile" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}">
         </div>
         <div class="sub-mobile-btn-group">
           <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
@@ -5456,7 +5490,7 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
 
     <!-- Sub ingredient note (both views) -->
     <div class="sub-ing-note-row${subIngNote?' show':''}">
-      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
+      <input type="text" class="sub-ing-note-inp" placeholder="${esc(notePlaceholder)}" value="${esc(subIngNote)}">
     </div>
     <!-- Scale overrides (both views) -->
     <div class="sub-overrides${ns?' show':''}">
@@ -5519,7 +5553,9 @@ function addIngRow(btn, rowsEl, data) {
   const subs = data?.substitutes || (data?.substitute ? [data.substitute] : []);
   const hasSub = subs.length > 0;
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
-  const subEntries = subs.map(s => buildSubEntry(s, amt, unit)).join('');
+  const subEntries = subs.map(s => buildSubEntry(s, amt, unit, {
+    amount: amt, unit, prep: data?.prep || '', note: data?.note || ''
+  })).join('');
   const isOptional = data?.optional || false;
 
   const ingNote = data?.note || '';
@@ -5654,9 +5690,16 @@ function toggleSubPanel(btn) {
 
 function addSubEntry(btn, skipSnapshot) {
   if (!skipSnapshot) captureFormSnapshot('Add substitute');
+  const wrap = btn.closest('.ing-row-wrap');
   const entries = btn.closest('.sub-panel').querySelector('.sub-entries');
+  // Read parent ingredient values to use as inherited defaults
+  const parentAmt  = parseFloat(wrap.querySelector('.amount-inp')?.value) || null;
+  const parentUnit = (wrap.querySelector('.unit-manual')?.value || wrap.querySelector('.unit-sel')?.value || '').trim();
+  const parentPrep = (wrap.querySelector('.prep-inp')?.value || '').trim();
+  const parentNote = (wrap.querySelector('.ing-note-inp')?.value || '').trim();
+  const parent = { amount: parentAmt, unit: parentUnit, prep: parentPrep, note: parentNote };
   const div = document.createElement('div');
-  div.innerHTML = buildSubEntry(null, null, '');
+  div.innerHTML = buildSubEntry(null, parentAmt, parentUnit, parent);
   entries.appendChild(div.firstElementChild);
   entries.querySelector('.sub-entry:last-child .sub-name')?.focus();
 }
