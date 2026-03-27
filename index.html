@@ -290,8 +290,8 @@ header{
   padding:0 4px;height:22px;line-height:1;white-space:nowrap;transition:all .12s;
   font-family:'Instrument Sans',sans-serif;letter-spacing:0.01em;flex-shrink:0;
 }
-.optional-toggle:hover{border-color:var(--note-border);color:var(--note-text)}
-.optional-toggle.on{background:var(--note-bg);border-color:var(--note-border);color:var(--note-text)}
+.optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
+.optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
 .sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
 .sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
@@ -482,11 +482,15 @@ header{
   /* T63: collapsible mobile rows — detail rows hidden when collapsed */
   .ing-mobile-detail{display:flex;flex-direction:column;gap:8px}
   .ing-row-wrap.collapsed .ing-mobile-detail{display:none}
+  /* Also hide note/sub/scale panels when collapsed */
+  .ing-row-wrap.collapsed .ing-note-row,
+  .ing-row-wrap.collapsed .noscale-note-row,
+  .ing-row-wrap.collapsed .sub-panel{display:none !important}
   .ing-mobile-name-row{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
   .ing-mobile-name-row .ing-name-wrap{flex:1;min-width:0}
   .ing-mobile-collapse-btn{
     background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
-    color:var(--ink-faint);font-size:1.1rem;padding:0;
+    color:var(--ink-faint);font-size:2.2rem;padding:0;
     height:38px;width:38px;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;transition:transform .15s, color .1s;
   }
@@ -1771,10 +1775,25 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.86';
+const APP_VERSION = '0.87';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.87',
+    title: 'Optional green, bigger chevron & scale override hiding',
+    userNotes: [
+      'Optional ingredient button is now green when active',
+      'Ingredient collapse chevron is now much larger and easier to see',
+      'Collapsing an ingredient on iPhone now also hides its note, substitute and scale override panels',
+      'Scale override fields for disabled scales now hide automatically in the edit form',
+    ],
+    items: [
+      'T24: optional-toggle active/hover changed from note colours to green (#eaf4ea bg, #7aaa7a border, #2d5a2d text).',
+      'T63: ing-mobile-collapse-btn font-size 1.1rem -> 2.2rem. Collapsed class now also hides .ing-note-row, .noscale-note-row, .sub-panel via CSS important rule.',
+      'T30: updateScaleOptions rewritten to query all .ns-half-row/.sub-half-row etc directly. Added sub-half-row/double-row/triple-row classes to sub override rows. updateScaleOptions called from toggleIngNoscale, toggleStepNoscale, toggleSubNoscale when opening panels.',
+    ]
+  },
   {
     version: '0.86',
     title: 'Polish: optional button colour & chevron size',
@@ -4766,16 +4785,14 @@ function applyScalableUI(scalable) {
 }
 
 function updateScaleOptions() {
-  // Hide/show the corresponding override rows based on checkbox state
-  const half   = document.getElementById('scale-half')?.checked;
-  const double = document.getElementById('scale-double')?.checked;
-  const triple = document.getElementById('scale-triple')?.checked;
-  // In the noscale override panel, hide rows for unchecked scales
-  document.querySelectorAll('.noscale-note-row').forEach(panel => {
-    panel.querySelector('.ns-half-row')  && (panel.querySelector('.ns-half-row').style.display   = half   ? '' : 'none');
-    panel.querySelector('.ns-double-row') && (panel.querySelector('.ns-double-row').style.display = double ? '' : 'none');
-    panel.querySelector('.ns-triple-row') && (panel.querySelector('.ns-triple-row').style.display = triple ? '' : 'none');
-  });
+  const half   = document.getElementById('scale-half')?.checked ?? true;
+  const double = document.getElementById('scale-double')?.checked ?? true;
+  const triple = document.getElementById('scale-triple')?.checked ?? true;
+  // Hide/show ALL override rows of each scale type across the entire form
+  // Covers ingredient noscale rows, step noscale rows, and substitute override rows
+  document.querySelectorAll('.ns-half-row, .sub-half-row').forEach(r => r.style.display   = half   ? '' : 'none');
+  document.querySelectorAll('.ns-double-row, .sub-double-row').forEach(r => r.style.display = double ? '' : 'none');
+  document.querySelectorAll('.ns-triple-row, .sub-triple-row').forEach(r => r.style.display = triple ? '' : 'none');
 }
 
 function closeEdit(force) {
@@ -5419,17 +5436,17 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
     <!-- Scale overrides (both views) -->
     <div class="sub-overrides${ns?' show':''}">
       <div class="sub-ov-lbl">Scale overrides for this substitute</div>
-      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+      <div class="scale-override-row sub-half-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">½×</span>
         <input type="number" min="0" step="any" class="sub-half-amt" placeholder="${placeholder.half||'amt'}" value="${ov.half?.amount != null ? ov.half.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.half?.unit||unit, unit)}
       </div>
-      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+      <div class="scale-override-row sub-double-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">2×</span>
         <input type="number" min="0" step="any" class="sub-double-amt" placeholder="${placeholder.double||'amt'}" value="${ov.double?.amount != null ? ov.double.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.double?.unit||unit, unit)}
       </div>
-      <div class="scale-override-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
+      <div class="scale-override-row sub-triple-row" style="grid-template-columns:28px 1fr 1fr;gap:4px">
         <span class="scale-override-lbl" style="background:var(--warning-bg);border:1px solid var(--offline-border);color:var(--warning)">3×</span>
         <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.triple?.unit||unit, unit)}
@@ -5450,6 +5467,7 @@ function toggleSubNoscale(btn) {
   overrides.classList.toggle('show', showing);
   // Sync both desktop and mobile sub-noscale-toggle buttons
   entry.querySelectorAll('.sub-noscale-toggle').forEach(b => b.classList.toggle('on', showing));
+  if (showing) updateScaleOptions(); // T30: hide rows for unchecked scales
 }
 
 function removeSubEntry(btn) {
@@ -5632,6 +5650,7 @@ function toggleIngNoscale(btn) {
   // Sync both desktop and mobile noscale buttons
   wrap.querySelectorAll('.noscale-toggle').forEach(b => b.classList.toggle('on', showing));
   if (showing) {
+    updateScaleOptions(); // T30: hide override rows for unchecked scales
     const first = noteRow.querySelector('input');
     if (first) { _pendingSnapshot = null; first.focus(); }
   }
@@ -5805,6 +5824,7 @@ function toggleStepNoscale(btn) {
   const noteRow = btn.closest('.step-wrap').querySelector('.noscale-note-row');
   noteRow.classList.toggle('show', btn.classList.contains('on'));
   if (btn.classList.contains('on')) {
+    updateScaleOptions(); // T30: hide override rows for unchecked scales
     const first = noteRow.querySelector('input');
     if (first) { _pendingSnapshot = null; first.focus(); }
   }
