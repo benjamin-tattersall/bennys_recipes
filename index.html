@@ -290,8 +290,8 @@ header{
   padding:0 4px;height:22px;line-height:1;white-space:nowrap;transition:all .12s;
   font-family:'Instrument Sans',sans-serif;letter-spacing:0.01em;flex-shrink:0;
 }
-.optional-toggle:hover{border-color:var(--ink-muted);color:var(--ink-mid)}
-.optional-toggle.on{background:var(--paper);border-color:var(--border-mid);color:var(--ink-mid)}
+.optional-toggle:hover{border-color:var(--note-border);color:var(--note-text)}
+.optional-toggle.on{background:var(--note-bg);border-color:var(--note-border);color:var(--note-text)}
 .sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
 .sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
@@ -486,7 +486,7 @@ header{
   .ing-mobile-name-row .ing-name-wrap{flex:1;min-width:0}
   .ing-mobile-collapse-btn{
     background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
-    color:var(--ink-faint);font-size:0.85rem;padding:0;
+    color:var(--ink-faint);font-size:1.1rem;padding:0;
     height:38px;width:38px;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;transition:transform .15s, color .1s;
   }
@@ -1771,10 +1771,23 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.85';
+const APP_VERSION = '0.86';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.86',
+    title: 'Polish: optional button colour & chevron size',
+    userNotes: [
+      'Optional ingredient button now uses blue/purple when active — matching the note button style',
+      'Collapse chevron on ingredient rows is now larger and easier to tap',
+    ],
+    items: [
+      'T24 polish: optional-toggle active state changed from paper/border to note-bg/note-border/note-text (blue-purple). Hover state also uses note colours.',
+      'T63 polish: ing-mobile-collapse-btn font-size increased from 0.85rem to 1.1rem for a more visible chevron.',
+      'T30 note: remaining work tracked as T72 — hide override input rows in the noscale panel for unchecked scales (half/double/triple). Currently users can fill fields that become irrelevant.',
+    ]
+  },
   {
     version: '0.85',
     title: 'Optional ingredients, collapsible rows & scale selection',
