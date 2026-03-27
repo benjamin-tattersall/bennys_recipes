@@ -286,9 +286,9 @@ header{
 /* optional ingredient toggle */
 .optional-toggle{
   background:none;border:1px solid var(--border);border-radius:5px;
-  color:var(--ink-faint);font-size:0.62rem;font-weight:500;cursor:pointer;
-  padding:0 4px;height:22px;line-height:1;white-space:nowrap;transition:all .12s;
-  font-family:'Instrument Sans',sans-serif;letter-spacing:0.01em;flex-shrink:0;
+  color:var(--ink-faint);cursor:pointer;
+  padding:0;width:22px;height:22px;line-height:1;transition:all .12s;
+  flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
@@ -537,7 +537,7 @@ header{
   .ing-mobile-rows .unit-sel.has-val{color:var(--ink)}
   .ing-mobile-rows .amount-inp{text-align:right}
 
-  /* row 3: prep + ⇄ ⊘ buttons all same height, no × */
+  /* row 3: prep full width */
   .ing-mobile-actions{display:flex;align-items:center;gap:6px}
   .ing-mobile-actions .ing-field-group{flex:1;min-width:0}
   .ing-mobile-actions .prep-inp{width:100%}
@@ -546,6 +546,13 @@ header{
     height:38px;width:38px;border-radius:6px;
     display:flex;align-items:center;justify-content:center;
     font-size:0.85rem;padding:0;flex-shrink:0;
+  }
+  /* row 4: all buttons evenly spaced full width */
+  .ing-mobile-btn-row{display:flex;gap:6px;align-items:center}
+  .ing-mobile-btn-row button{
+    flex:1;height:38px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.85rem;padding:0;
   }
 
   /* sub-panel and noscale inside card on mobile */
@@ -1775,10 +1782,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.87';
+const APP_VERSION = '0.88';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.88',
+    title: 'Sub note order, 4-row mobile layout & optional icon',
+    userNotes: [
+      'Substitute ingredient note field now appears before scale overrides — consistent with main ingredient layout',
+      'Ingredient edit rows on iPhone now use a 4-row layout — prep gets its own row, toggle buttons span the full width evenly',
+      'Optional ingredient button now shows a asterisk icon instead of "opt" text',
+    ],
+    items: [
+      'T75: Swapped sub-ing-note-row and sub-overrides in buildSubEntry template.',
+      'T76: Mobile template restructured to 4 rows: (1) name+chevron, (2) amount+unit, (3) prep only, (4) all buttons evenly spaced full width via ing-mobile-btn-row with flex:1 on each button. Old ing-mobile-btn-group kept for CSS compatibility.',
+      'T74: optional-toggle buttons replaced with asterisk SVG (3 spokes, 11x11). CSS updated to inline-flex 22x22 centered.',
+    ]
+  },
   {
     version: '0.87',
     title: 'Optional green, bigger chevron & scale override hiding',
@@ -5433,6 +5454,10 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
       </div>
     </div>
 
+    <!-- Sub ingredient note (both views) -->
+    <div class="sub-ing-note-row${subIngNote?' show':''}">
+      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
+    </div>
     <!-- Scale overrides (both views) -->
     <div class="sub-overrides${ns?' show':''}">
       <div class="sub-ov-lbl">Scale overrides for this substitute</div>
@@ -5451,10 +5476,6 @@ function buildSubEntry(sub, parentAmt, parentUnit) {
         <input type="number" min="0" step="any" class="sub-triple-amt" placeholder="${placeholder.triple||'amt'}" value="${ov.triple?.amount != null ? ov.triple.amount : ''}" style="border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;text-align:right">
         ${buildOverrideUnitSelect(ov.triple?.unit||unit, unit)}
       </div>
-    </div>
-    <!-- Sub ingredient note (both views) -->
-    <div class="sub-ing-note-row${subIngNote?' show':''}">
-      <input type="text" class="sub-ing-note-inp" placeholder="Note" value="${esc(subIngNote)}">
     </div>
   </div>`;
 }
@@ -5531,13 +5552,13 @@ function addIngRow(btn, rowsEl, data) {
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
-      <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)">opt</button>
+      <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)"><svg viewBox="0 0 10 10" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></button>
       <button class="del-btn" onclick="removeIngRow(this)">×</button>
     </div>
 
     <!-- MOBILE: collapsible rows, corner delete -->
     <div class="ing-mobile-rows">
-      <!-- Name row — always visible, tap chevron to expand/collapse -->
+      <!-- Row 1: Name + chevron -->
       <div class="ing-mobile-name-row" style="padding-right:32px">
         <div class="ing-name-wrap" style="width:100%">
           <input type="text" class="ing-name-mobile" placeholder="Ingredient" value="${esc(data?.name||'')}"
@@ -5558,17 +5579,16 @@ function addIngRow(btn, rowsEl, data) {
             ${buildUnitSelect(unit)}
           </div>
         </div>
-        <!-- Row 3: Prep + buttons -->
-        <div class="ing-mobile-actions">
-          <div class="ing-field-group" style="flex:1;min-width:0">
-            <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
-          </div>
-          <div class="ing-mobile-btn-group">
-            <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
-            <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
-            <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
-            <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)">opt</button>
-          </div>
+        <!-- Row 3: Prep only -->
+        <div class="ing-field-group">
+          <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
+        </div>
+        <!-- Row 4: All toggle buttons, evenly spaced full width -->
+        <div class="ing-mobile-btn-row">
+          <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
+          <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
+          <button class="noscale-toggle${ns?' on':''}" title="Scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
+          <button class="optional-toggle${isOptional?' on':''}" title="Mark as optional" onclick="toggleIngOptional(this)"><svg viewBox="0 0 10 10" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></button>
         </div>
       </div>
     </div>
