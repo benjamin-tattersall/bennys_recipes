@@ -272,10 +272,10 @@ header{
 .ing-view-row.done{opacity:0.4}
 .ing-view-row.done td:first-child{text-decoration:line-through;color:var(--ink-faint)}
 /* Step note — edit form */
-.step-note-row{display:none;padding:5px 8px 5px 26px;border-top:1px solid var(--note-border)}
+.step-note-row{display:none;padding:4px 0 2px}
 .step-note-row.show{display:block}
-.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
-.step-note-inp:focus{border-color:var(--note-text)}
+.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s}
+.step-note-inp:focus{border-bottom-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
@@ -295,19 +295,17 @@ header{
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
-.sub-ing-note-row{display:none;padding:5px 8px 5px;border-top:1px solid var(--note-border)}
-.sub-ing-note-row.show{display:block}
-.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
-.sub-ing-note-inp:focus{border-color:var(--note-text)}
-.sub-ing-note-inp::placeholder{color:var(--ink-faint)}
+.sub-ing-note-row{display:none;padding:5px 8px 5px}
+.sub-ing-note-row.show{display:block;background:var(--note-bg)}
+.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:5px 8px 5px;border-top:1px solid var(--note-border)}
+.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;background:var(--cream);font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:5px 7px;transition:border-color .15s;box-sizing:border-box}
-.ing-note-inp:focus{border-color:var(--note-text)}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp:focus{border-bottom-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
 .ing-note-toggle:hover{color:var(--accent-text)}
@@ -1786,10 +1784,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.91';
+const APP_VERSION = '0.92';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.92',
+    title: 'Method step note styling fix',
+    userNotes: [
+      'Method step note field no longer shows a blue background — it now matches the clean style of the scale override fields',
+    ],
+    items: [
+      'step-note-row: removed border-top and all background. step-note-inp reverted to border-bottom only / background:none matching noscale override input style. Ingredient note rows (ing-note-row, sub-ing-note-row) reverted to their original v89 state — blue bg panel with border-bottom input.',
+    ]
+  },
   {
     version: '0.91',
     title: 'Amount revert fix & note field styling',
