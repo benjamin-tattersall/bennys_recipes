@@ -499,7 +499,7 @@ header{
   .ing-mobile-name-row .ing-name-wrap{flex:1;min-width:0}
   .ing-mobile-collapse-btn{
     background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;
-    color:var(--ink-faint);font-size:2.2rem;padding:0;
+    color:var(--ink-faint);font-size:1rem;line-height:1;padding:0;
     height:38px;width:38px;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;transition:transform .15s, color .1s;
   }
@@ -511,10 +511,17 @@ header{
   .ing-row-wrap.collapsed .ing-name-wrap{display:none}
   .ing-summary-name{font-size:0.88rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
   .ing-summary-name.empty{color:var(--ink-faint);font-weight:400;font-style:italic}
-  .ing-summary-meta{display:flex;align-items:center;gap:5px;margin-top:1px;flex-wrap:wrap}
+  .ing-summary-meta{display:flex;align-items:center;gap:4px;margin-top:1px}
   .ing-summary-qty{font-size:0.75rem;color:var(--ink-mid)}
-  .ing-summary-indicator{font-size:0.68rem;color:var(--ink-faint);line-height:1;display:flex;align-items:center}
-  .ing-summary-indicator.on{color:var(--accent-text)}
+  .ing-summary-sep{font-size:0.72rem;color:var(--ink-faint)}
+  .ing-summary-prep{font-size:0.75rem;color:var(--ink-mid)}
+  .ing-summary-indicators{display:flex;align-items:center;gap:5px;margin-top:2px}
+  .ing-summary-indicator{font-size:0.7rem;line-height:1;display:none;align-items:center;gap:2px}
+  .ing-summary-indicator.on{display:flex}
+  .ing-summary-indicator[data-key="note"]{color:var(--note-text)}
+  .ing-summary-indicator[data-key="sub"]{color:var(--accent-dim)}
+  .ing-summary-indicator[data-key="scale"]{color:var(--warning)}
+  .ing-summary-indicator[data-key="opt"]{color:var(--ink-muted)}
 
   /* corner delete button — top right of card */
   .ing-corner-del{
@@ -1808,10 +1815,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.01';
+const APP_VERSION = '1.02';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.02',
+    title: 'Ingredient card polish',
+    userNotes: [
+      'Chevron button is now properly centred using an SVG icon',
+      'Collapsed ingredient cards now show the prep field alongside the amount, separated by a dash',
+      'Active toggles (note, substitute, scale, optional) each show in their own colour on the collapsed card',
+    ],
+    items: [
+      'Chevron: replaced text glyph with SVG polyline, removed font-size:2.2rem (descender issue), now line-height:1 font-size:1rem with flex centering.',
+      'T73 prep: added ing-summary-sep and ing-summary-prep spans to meta row. updateIngSummary dynamically shows/hides prep with dash separator.',
+      'T73 indicators: moved to separate .ing-summary-indicators row below qty. Each has individual colour via data-key CSS: note=note-text(blue), sub=accent-dim(orange), scale=warning(amber), opt=ink-muted(grey). CSS uses display:none/.on{display:flex} instead of style attr.',
+    ]
+  },
   {
     version: '1.01',
     title: 'Compressed ingredient cards',
@@ -5863,16 +5884,19 @@ function addIngRow(btn, rowsEl, data) {
         </div>
         <!-- T73: summary shown when collapsed -->
         <div class="ing-summary" onclick="toggleIngCollapse(this.closest('.ing-row-wrap').querySelector('.ing-mobile-collapse-btn'))">
-          <div class="ing-summary-name ${data?.name?'':'empty'}">${esc(data?.name||'Ingredient')}</div>
+          <div class="ing-summary-name${data?.name?'':' empty'}">${esc(data?.name||'Ingredient')}</div>
           <div class="ing-summary-meta">
             <span class="ing-summary-qty">${amt!=null&&amt!==''?amt+(unit?' '+unit:''):unit||''}</span>
-            ${ingNote?'<span class="ing-summary-indicator on" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>':'<span class="ing-summary-indicator" data-key="note" title="Has note" style="display:none"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>'}
-            ${hasSub?'<span class="ing-summary-indicator on" data-key="sub" title="Has substitute">⇄</span>':'<span class="ing-summary-indicator" data-key="sub" title="Has substitute" style="display:none">⇄</span>'}
-            ${ns?'<span class="ing-summary-indicator on" data-key="scale" title="Has scale overrides">⊘</span>':'<span class="ing-summary-indicator" data-key="scale" title="Has scale overrides" style="display:none">⊘</span>'}
-            ${isOptional?'<span class="ing-summary-indicator on" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>':'<span class="ing-summary-indicator" data-key="opt" title="Optional" style="display:none"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>'}
+            ${data?.prep?`<span class="ing-summary-sep">–</span><span class="ing-summary-prep">${esc(data.prep)}</span>`:''}
+          </div>
+          <div class="ing-summary-indicators">
+            <span class="ing-summary-indicator${ingNote?' on':''}" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg> note</span>
+            <span class="ing-summary-indicator${hasSub?' on':''}" data-key="sub" title="Has substitute">⇄ sub</span>
+            <span class="ing-summary-indicator${ns?' on':''}" data-key="scale" title="Has scale overrides">⊘ scale</span>
+            <span class="ing-summary-indicator${isOptional?' on':''}" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg> optional</span>
           </div>
         </div>
-        <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse">▾</button>
+                <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse"><svg viewBox="0 0 10 6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
       </div>
       <!-- Detail rows — hidden when collapsed -->
       <div class="ing-mobile-detail">
@@ -6010,34 +6034,56 @@ function updateIngSummary(wrap) {
   if (!summary) return;
   const nameEl   = wrap.querySelector('.ing-name-mobile');
   const amtEl    = wrap.querySelector('.mobile-amt');
+  const prepEl   = wrap.querySelector('.mobile-prep');
   const unitSel  = wrap.querySelector('.ing-mobile-rows .unit-sel');
   const unitMan  = wrap.querySelector('.ing-mobile-rows .unit-manual');
   const name     = nameEl?.value.trim() || '';
   const amt      = amtEl?.value.trim()  || '';
   const unit     = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
-  const hasNote  = wrap.querySelector('.ing-note-btn.on') !== null;
-  const hasSub   = wrap.querySelector('.sub-toggle.on')  !== null;
-  const hasScale = wrap.querySelector('.noscale-toggle.on') !== null;
-  const isOpt    = wrap.querySelector('.optional-toggle.on') !== null;
+  const prep     = prepEl?.value.trim() || '';
+  const hasNote  = wrap.querySelector('.ing-note-btn.on')     !== null;
+  const hasSub   = wrap.querySelector('.sub-toggle.on')       !== null;
+  const hasScale = wrap.querySelector('.noscale-toggle.on')   !== null;
+  const isOpt    = wrap.querySelector('.optional-toggle.on')  !== null;
 
+  // Name
   const nameDiv = summary.querySelector('.ing-summary-name');
   if (nameDiv) {
     nameDiv.textContent = name || 'Ingredient';
     nameDiv.className   = 'ing-summary-name' + (name ? '' : ' empty');
   }
+
+  // Qty + prep row
   const qtySpan = summary.querySelector('.ing-summary-qty');
-  if (qtySpan) {
-    const parts = [amt, unit].filter(Boolean);
-    qtySpan.textContent = parts.join(' ');
+  if (qtySpan) qtySpan.textContent = [amt, unit].filter(Boolean).join(' ');
+  // Show/hide prep
+  let sepEl  = summary.querySelector('.ing-summary-sep');
+  let prepEl2 = summary.querySelector('.ing-summary-prep');
+  if (prep) {
+    if (!sepEl) {
+      sepEl = document.createElement('span');
+      sepEl.className = 'ing-summary-sep';
+      sepEl.textContent = '–';
+      qtySpan.after(sepEl);
+    }
+    if (!prepEl2) {
+      prepEl2 = document.createElement('span');
+      prepEl2.className = 'ing-summary-prep';
+      sepEl.after(prepEl2);
+    }
+    prepEl2.textContent = prep;
+    sepEl.style.display = '';
+    prepEl2.style.display = '';
+  } else {
+    if (sepEl)  sepEl.style.display  = 'none';
+    if (prepEl2) prepEl2.style.display = 'none';
   }
-  // Refresh indicator visibility
-  const indicators = summary.querySelectorAll('.ing-summary-indicator');
+
+  // Indicators — show/hide each one
   const stateMap = { note: hasNote, sub: hasSub, scale: hasScale, opt: isOpt };
-  indicators.forEach(el => {
-    const key = el.dataset.key;
-    const active = stateMap[key] || false;
+  summary.querySelectorAll('.ing-summary-indicator').forEach(el => {
+    const active = stateMap[el.dataset.key] || false;
     el.classList.toggle('on', active);
-    el.style.display = active ? '' : 'none';
   });
 }
 
