@@ -1210,13 +1210,12 @@ header{
           <!-- icon populated by updatePublishBtn() -->
         </button>
       </div>
+      <button class="xbtn" onclick="editCurrent()" title="Edit recipe" style="font-size:0.95rem;margin-right:2px">
+        <svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l2 2L5 11H3v-2L9.5 2.5z"/></svg>
+      </button>
       <button class="xbtn" onclick="closeView()">✕</button>
     </div>
     <div class="vbody" id="vbody" style="flex:1;overflow-y:auto;max-height:none"></div>
-    <div class="view-foot" style="flex-shrink:0">
-      <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
-      <button class="btn-pri" onclick="editCurrent()">Edit</button>
-    </div>
   </div>
 </div>
 
@@ -1362,10 +1361,16 @@ header{
       </div>
 
     </div>
-    <div class="form-foot">
-      <button class="btn-sec" onclick="closeEdit()">Cancel</button>
-      <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate</button>
-      <button class="btn-pri" onclick="saveRecipe()">Save</button>
+    <div class="form-foot" style="justify-content:space-between">
+      <div style="display:flex;gap:0.55rem">
+        <button class="btn-danger" onclick="deleteRecipe()" id="edit-delete-btn">Delete</button>
+        <button id="edit-publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
+      </div>
+      <div style="display:flex;gap:0.55rem">
+        <button class="btn-sec" onclick="closeEdit()">Cancel</button>
+        <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate</button>
+        <button class="btn-pri" onclick="saveRecipe()">Save</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1447,7 +1452,7 @@ header{
         <h3>Adding a recipe</h3>
         <p>Tap <strong>Add recipe</strong> in the header. Fill in the name, tags, cook time, and serves. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the recipe.</p>
         <h3>Drafts and publishing</h3>
-        <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. Open the recipe and tap <strong>Publish</strong> to make it visible. You can unpublish it again at any time. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
+        <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. When viewing a recipe, tap the <strong>status icon</strong> next to the recipe name — a green tick means published, an amber dashed circle means draft. You can also publish or unpublish from inside the <strong>Edit form</strong> using the Publish/Unpublish button in the footer. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
         <h3>Organising with tags</h3>
         <p>Tags categorise your recipes — things like "Dinner", "Italian", or "Bake". Type any tag when editing a recipe. Custom tags you create appear under <strong>Other</strong> in Settings → Tags, where you can move them into the appropriate category.</p>
         <h3>Serves</h3>
@@ -1791,10 +1796,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.96';
+const APP_VERSION = '0.97';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.97',
+    title: 'Recipe view redesign — edit icon, publish in edit form',
+    userNotes: [
+      'Recipe view is now a clean read experience — the only action is the pencil ✎ edit icon in the top right, next to the close button',
+      'Delete and Publish/Unpublish have moved into the Edit form footer, where they sit alongside Cancel and Save',
+      'The publish status icon in the recipe header still shows at a glance whether a recipe is published or draft',
+    ],
+    items: [
+      'T79 follow-up: view-foot removed entirely. Edit pencil icon added to modal-head left of X. Delete + Publish/Unpublish added to edit form footer left side. updatePublishBtn syncs both view icon and edit btn. togglePublish and deleteRecipe both use currentId||editId. openEdit shows/hides delete+publish for new vs existing. Info modal updated.',
+    ]
+  },
   {
     version: '0.96',
     title: 'Recipe view polish — publish icon, scroll with scale bar & close warning',
@@ -4099,34 +4116,45 @@ function toggleShowDrafts() {
 }
 
 async function togglePublish() {
-  const r = recipes.find(x => x.id === currentId);
+  const id = currentId || editId;
+  const r = recipes.find(x => x.id === id);
   if (!r) return;
   r.status = (r.status === 'published') ? 'draft' : 'published';
   const action = r.status === 'published' ? 'Published' : 'Unpublished';
   isOnline ? await saveToGist(`${action} "${r.name}"`) : saveLocally(`${action} "${r.name}"`);
-  // Update the button label immediately
   updatePublishBtn(r);
   render();
   toast(r.status === 'published' ? 'Recipe published ✓' : 'Moved back to drafts');
 }
 
 function updatePublishBtn(r) {
-  const btn = document.getElementById('publish-icon-btn');
-  if (!btn) return;
-  if (r.status === 'published') {
-    // Green circle with tick — published
-    btn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="10" cy="10" r="9" stroke="var(--success)" stroke-width="1.5" fill="var(--success-bg)"/>
-      <polyline points="6,10.5 9,13.5 14,7.5" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
-    btn.title = 'Published — tap to unpublish';
-  } else {
-    // Amber pencil circle — draft
-    btn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="10" cy="10" r="9" stroke="#c8960a" stroke-width="1.5" stroke-dasharray="3 2" fill="#fffbe8"/>
-      <path d="M7.5 13l1-3.5L12 6l1.5 1.5-3.5 3.5L7.5 13z" stroke="#c8960a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
-    btn.title = 'Draft — tap to publish';
+  // Update the view header publish icon
+  const iconBtn = document.getElementById('publish-icon-btn');
+  if (iconBtn) {
+    if (r.status === 'published') {
+      iconBtn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="9" stroke="var(--success)" stroke-width="1.5" fill="var(--success-bg)"/>
+        <polyline points="6,10.5 9,13.5 14,7.5" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+      iconBtn.title = 'Published — tap to unpublish';
+    } else {
+      iconBtn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="9" stroke="#c8960a" stroke-width="1.5" stroke-dasharray="3 2" fill="#fffbe8"/>
+        <path d="M7.5 13l1-3.5L12 6l1.5 1.5-3.5 3.5L7.5 13z" stroke="#c8960a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+      iconBtn.title = 'Draft — tap to publish';
+    }
+  }
+  // Update the edit form publish button
+  const editBtn = document.getElementById('edit-publish-btn');
+  if (editBtn) {
+    if (r.status === 'published') {
+      editBtn.textContent = 'Unpublish';
+      editBtn.className = 'btn-unpublish';
+    } else {
+      editBtn.textContent = 'Publish';
+      editBtn.className = 'btn-publish';
+    }
   }
 }
 
@@ -4753,15 +4781,19 @@ function editCurrent() {
 }
 
 async function deleteRecipe() {
-  if (!currentId) return;
-  const r = recipes.find(x => x.id === currentId);
+  const id = currentId || editId;
+  if (!id) return;
+  const r = recipes.find(x => x.id === id);
   if (!r) return;
   showConfirm('Move to bin?', `"${r.name}" will be moved to the bin. You can restore it later.`, [
     { label: 'Move to bin', danger: true, fn: async () => {
-      recipes = recipes.filter(x => x.id !== currentId);
+      recipes = recipes.filter(x => x.id !== id);
       bin.unshift({ ...r, deletedAt: Date.now() });
       isOnline ? await saveToGist(`Deleted "${r.name}"`) : saveLocally(`Deleted "${r.name}"`);
-      closeView(); render(); updateBinBtn();
+      closeEdit(true);
+      document.getElementById('vmodal').classList.remove('open');
+      currentId = null; scaleFactor = 1;
+      render(); updateBinBtn();
       toast(`"${r.name}" moved to bin`);
     }}
   ]);
@@ -4939,9 +4971,18 @@ function openEdit(r) {
 
   document.getElementById('emodal').classList.add('open');
   updateFormUndoButtons();
-  // Show duplicate button only when editing an existing recipe
+  // Show duplicate/delete/publish buttons only when editing an existing recipe
   const dupBtn = document.getElementById('duplicate-btn');
   if (dupBtn) dupBtn.style.display = editId ? '' : 'none';
+  const delBtn = document.getElementById('edit-delete-btn');
+  if (delBtn) delBtn.style.display = editId ? '' : 'none';
+  const pubBtn = document.getElementById('edit-publish-btn');
+  if (pubBtn) pubBtn.style.display = editId ? '' : 'none';
+  // Sync publish button state with current recipe
+  if (editId) {
+    const recipeForBtn = recipes.find(rx => rx.id === editId);
+    if (recipeForBtn) updatePublishBtn(recipeForBtn);
+  }
 }
 
 function toggleScalable() {
