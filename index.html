@@ -1363,11 +1363,11 @@ header{
         <div style="display:flex;gap:8px">
           <button class="add-row-btn" style="flex:1" onclick="addTopLevelIngRow()">
             <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-            Add ingredient
+            Ingredient
           </button>
-          <button class="add-row-btn" onclick="addIngSection()">
+          <button class="add-row-btn" style="flex:1" onclick="addIngSection()">
             <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-            Add section
+            Section
           </button>
         </div>
       </div>
@@ -1378,11 +1378,11 @@ header{
         <div style="display:flex;gap:8px">
           <button class="add-row-btn" style="flex:1" onclick="addTopLevelStep()">
             <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-            Add step
+            Step
           </button>
-          <button class="add-row-btn" onclick="addMethodSection()">
+          <button class="add-row-btn" style="flex:1" onclick="addMethodSection()">
             <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-            Add section
+            Section
           </button>
         </div>
       </div>
@@ -1831,10 +1831,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.04';
+const APP_VERSION = '1.05';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.05',
+    title: 'Sections polish — named sections required, scroll to new row, button labels',
+    userNotes: [
+      'Adding a section now prompts for a name — unnamed sections are no longer possible',
+      'Adding an ingredient or step scrolls the form to the new row automatically',
+      'Builder buttons are now equal width with cleaner labels: + Ingredient / + Section / + Step',
+    ],
+    items: [
+      'T82 polish: addIngSection/addMethodSection prompt for name on manual creation; empty name shows toast and aborts. addIngRow/addStep return their wrap element. addTopLevelIngRow/addTopLevelStep call scrollIntoView after adding. Builder footer buttons now flex:1 equal width, labels are Ingredient/Section/Step (no Add prefix).',
+    ]
+  },
   {
     version: '1.04',
     title: 'Sections opt-in — Stage 1',
@@ -5602,7 +5614,8 @@ function addTopLevelIngRow() {
     if (firstSec) document.getElementById('ing-builder').insertBefore(unsec, firstSec);
     else document.getElementById('ing-builder').appendChild(unsec);
   }
-  addIngRow(null, unsec.querySelector('.ing-rows'));
+  const newRow = addIngRow(null, unsec.querySelector('.ing-rows'));
+  if (newRow) setTimeout(() => newRow.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
 }
 
 function addMethodUnsectioned(data) {
@@ -5628,11 +5641,20 @@ function addTopLevelStep() {
     if (firstSec) document.getElementById('method-builder').insertBefore(unsec, firstSec);
     else document.getElementById('method-builder').appendChild(unsec);
   }
-  addStep(null, unsec.querySelector('.method-steps'));
+  const newStep = addStep(null, unsec.querySelector('.method-steps'));
+  if (newStep) setTimeout(() => newStep.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
 }
 
 function addIngSection(data) {
-  if (!data) captureFormSnapshot('Add ingredient section');
+  if (!data) {
+    // T82: prompt for section name — sections must be named
+    const name = prompt('Section name:', '');
+    if (name === null) return; // cancelled
+    const trimmed = name.trim();
+    if (!trimmed) { toast('Please enter a section name'); return; }
+    data = { title: trimmed, items: [] };
+    captureFormSnapshot('Add ingredient section');
+  }
   const block = document.createElement('div');
   block.className = 'ing-sec-block';
   block.innerHTML = `
@@ -5655,7 +5677,7 @@ function addIngSection(data) {
     <div class="ing-sec-foot">
       <button class="add-row-btn" style="flex:1;font-size:0.76rem" onclick="addIngRow(this)">
         <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-        Add ingredient
+        Ingredient
       </button>
     </div>`;
   document.getElementById('ing-builder').appendChild(block);
@@ -6062,6 +6084,7 @@ function addIngRow(btn, rowsEl, data) {
     </div>`;
   rowsEl.appendChild(wrap);
   // T63: rows start expanded — user taps chevron to collapse
+  return wrap;
 }
 
 function toggleIngNoteView(btn, key) {
@@ -6288,7 +6311,15 @@ document.addEventListener('click', e => {
 
 // ── METHOD BUILDER ────────────────────────────────────────────────────────
 function addMethodSection(data) {
-  if (!data) captureFormSnapshot('Add method section');
+  if (!data) {
+    // T82: prompt for section name — sections must be named
+    const name = prompt('Section name:', '');
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) { toast('Please enter a section name'); return; }
+    data = { title: trimmed, steps: [] };
+    captureFormSnapshot('Add method section');
+  }
   const block = document.createElement('div');
   block.className = 'method-sec-block';
   block.innerHTML = `
@@ -6300,7 +6331,7 @@ function addMethodSection(data) {
     <div class="method-sec-foot">
       <button class="add-row-btn" style="flex:1;font-size:0.76rem" onclick="addStep(this)">
         <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-        Add step
+        Step
       </button>
     </div>`;
   document.getElementById('method-builder').appendChild(block);
@@ -6340,6 +6371,7 @@ function addStep(btn, stepsEl, stepData) {
   const ta = wrap.querySelector('.step-ta');
   ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
   if (text) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
+  return wrap;
 }
 
 function toggleStepNote(btn) {
