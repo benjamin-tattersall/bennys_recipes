@@ -37,6 +37,9 @@
   --offline-bg:#fff8e8;
   --offline-border:#e8c840;
   --header:60px;
+  --success:#2d6a2d;
+  --success-bg:#eaf4ea;
+  --success-border:#7aaa7a;
   --radius:8px;
   --radius-lg:12px;
 }
@@ -205,6 +208,13 @@ header{
   cursor:pointer;transition:all .1s;
 }
 .btn-unpublish:hover{background:var(--paper);color:var(--ink)}
+/* T79: publish status icon in recipe header */
+.publish-icon-btn{
+  background:none;border:none;cursor:pointer;padding:2px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;transition:opacity .15s;opacity:0.8;flex-shrink:0;
+}
+.publish-icon-btn:hover{opacity:1}
 .cmeta{font-size:0.74rem;color:var(--ink-faint);display:flex;align-items:center;gap:3px}
 .cmeta svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 
@@ -1194,20 +1204,17 @@ header{
 <div class="backdrop" id="vmodal" style="align-items:flex-start;overflow-y:hidden;padding:0">
   <div class="modal" style="max-width:980px;max-height:100dvh;display:flex;flex-direction:column;border-radius:0;margin:0">
     <div class="modal-head" style="flex-shrink:0">
-      <h2 id="vname">Recipe</h2>
+      <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;flex:1">
+        <h2 id="vname" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Recipe</h2>
+        <button id="publish-icon-btn" class="publish-icon-btn" onclick="togglePublish()" title="Toggle publish status">
+          <!-- icon populated by updatePublishBtn() -->
+        </button>
+      </div>
       <button class="xbtn" onclick="closeView()">✕</button>
-    </div>
-    <div id="view-scale-bar" style="padding:0.6rem 1.3rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-shrink:0">
-      <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
-      <button class="scale-seg active" data-scale="1" onclick="setScale(1)">1×</button>
-      <button class="scale-seg" data-scale="0.5" onclick="setScale(0.5)">½×</button>
-      <button class="scale-seg" data-scale="2" onclick="setScale(2)">2×</button>
-      <button class="scale-seg" data-scale="3" onclick="setScale(3)">3×</button>
     </div>
     <div class="vbody" id="vbody" style="flex:1;overflow-y:auto;max-height:none"></div>
     <div class="view-foot" style="flex-shrink:0">
       <button class="btn-danger" onclick="deleteRecipe()">Delete</button>
-      <button id="publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
       <button class="btn-pri" onclick="editCurrent()">Edit</button>
     </div>
   </div>
@@ -1784,10 +1791,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.95';
+const APP_VERSION = '0.96';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.96',
+    title: 'Recipe view polish — publish icon, scroll with scale bar & close warning',
+    userNotes: [
+      'The publish/draft status now shows as a subtle icon in the recipe title header — green tick for published, amber dashed circle for draft. Tap it to toggle.',
+      'Scale buttons now scroll with the recipe content rather than sitting in a fixed bar above it',
+      'Closing a recipe with ticked-off ingredients or steps now asks for confirmation first',
+    ],
+    items: [
+      'T79: Removed publish-btn from view-foot. Added publish-icon-btn to modal-head. updatePublishBtn() renders SVG icons: green circle+tick for published, amber dashed circle+pencil for draft. Success colour vars added to :root.',
+      'T80: Removed fixed view-scale-bar from HTML. Scale bar now rendered inside renderViewBody() as first element of vbody. Scale buttons respect allowedScales. setScale() re-renders body which rebuilds scale bar with correct active state.',
+      'T81: closeView() checks for .vstep.done and .ing-view-row.done before closing. If any found, shows confirm dialog. Applies to both the X button and backdrop click.',
+    ]
+  },
   {
     version: '0.95',
     title: 'Scale override text, version on update prompt & unit fix',
@@ -4090,14 +4111,22 @@ async function togglePublish() {
 }
 
 function updatePublishBtn(r) {
-  const btn = document.getElementById('publish-btn');
+  const btn = document.getElementById('publish-icon-btn');
   if (!btn) return;
   if (r.status === 'published') {
-    btn.textContent = 'Unpublish';
-    btn.className   = 'btn-unpublish';
+    // Green circle with tick — published
+    btn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" stroke="var(--success)" stroke-width="1.5" fill="var(--success-bg)"/>
+      <polyline points="6,10.5 9,13.5 14,7.5" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+    btn.title = 'Published — tap to unpublish';
   } else {
-    btn.textContent = 'Publish';
-    btn.className   = 'btn-publish';
+    // Amber pencil circle — draft
+    btn.innerHTML = `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" stroke="#c8960a" stroke-width="1.5" stroke-dasharray="3 2" fill="#fffbe8"/>
+      <path d="M7.5 13l1-3.5L12 6l1.5 1.5-3.5 3.5L7.5 13z" stroke="#c8960a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+    btn.title = 'Draft — tap to publish';
   }
 }
 
@@ -4386,22 +4415,6 @@ function viewRecipe(id) {
   scaleFactor = 1;
   // Clear substitute toggle state for the new recipe
   Object.keys(subToggledMap).forEach(k => delete subToggledMap[k]);
-  document.querySelectorAll('.scale-seg').forEach(b => {
-    b.classList.toggle('active', parseFloat(b.dataset.scale) === 1);
-  });
-  // Show/hide scale bar depending on recipe's scalable flag
-  const scalable = r.scalable !== false;
-  document.getElementById('view-scale-bar').style.display = scalable ? '' : 'none';
-  // T30: show/hide individual scale buttons based on allowedScales
-  if (scalable && r.allowedScales) {
-    const as = r.allowedScales;
-    document.querySelector('.scale-seg[data-scale="0.5"]').style.display = as.half   !== false ? '' : 'none';
-    document.querySelector('.scale-seg[data-scale="2"]').style.display   = as.double !== false ? '' : 'none';
-    document.querySelector('.scale-seg[data-scale="3"]').style.display   = as.triple !== false ? '' : 'none';
-  } else {
-    // Reset all scale buttons to visible
-    document.querySelectorAll('.scale-seg').forEach(b => b.style.display = '');
-  }
   document.getElementById('vname').textContent = r.name;
   updatePublishBtn(r);
   renderViewBody(r);
@@ -4412,6 +4425,20 @@ function renderViewBody(r) {
   const scaled = scaleFactor !== 1;
   const vbody  = document.getElementById('vbody');
   vbody.setAttribute('data-scaled', scaled ? '1' : '0');
+
+  // T80: build scale bar inside scrollable body
+  const scalable = r.scalable !== false;
+  const as = r.allowedScales || {};
+  const showHalf   = as.half   !== false;
+  const showDouble = as.double !== false;
+  const showTriple = as.triple !== false;
+  const scaleBarHtml = scalable ? `<div id="view-scale-bar" style="padding:0.6rem 0 0.8rem;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:1.1rem">
+    <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
+    <button class="scale-seg${scaleFactor===1?' active':''}" data-scale="1" onclick="setScale(1)">1×</button>
+    ${showHalf   ? `<button class="scale-seg${scaleFactor===0.5?' active':''}" data-scale="0.5" onclick="setScale(0.5)">½×</button>` : ''}
+    ${showDouble ? `<button class="scale-seg${scaleFactor===2?' active':''}" data-scale="2" onclick="setScale(2)">2×</button>` : ''}
+    ${showTriple ? `<button class="scale-seg${scaleFactor===3?' active':''}" data-scale="3" onclick="setScale(3)">3×</button>` : ''}
+  </div>` : '';
 
   const mins = totalMins(r);
   const metaItems = [];
@@ -4675,6 +4702,7 @@ function renderViewBody(r) {
     : '';
 
   vbody.innerHTML = `
+    ${scaleBarHtml}
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
@@ -4696,7 +4724,27 @@ function toggleIngView(btn) {
   }
 }
 
-function closeView() { document.getElementById('vmodal').classList.remove('open'); currentId=null; scaleFactor=1; }
+function closeView() {
+  // T81: warn if user has ticked off any steps or ingredients
+  const vbody = document.getElementById('vbody');
+  const hasDone = vbody && (
+    vbody.querySelectorAll('.vstep.done').length > 0 ||
+    vbody.querySelectorAll('.ing-view-row.done').length > 0
+  );
+  if (hasDone) {
+    showConfirm(
+      'Close recipe?',
+      'You have ticked off ingredients or steps — these will be cleared when you close.',
+      [{ label: 'Close anyway', danger: true, fn: () => {
+        document.getElementById('vmodal').classList.remove('open');
+        currentId = null; scaleFactor = 1;
+      }}]
+    );
+    return;
+  }
+  document.getElementById('vmodal').classList.remove('open');
+  currentId = null; scaleFactor = 1;
+}
 
 function editCurrent() {
   const r = recipes.find(x=>x.id===currentId);
