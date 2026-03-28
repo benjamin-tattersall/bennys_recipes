@@ -5053,6 +5053,7 @@ async function saveRecipe() {
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
       if (name) {
         const rawAmt = amountEl?.value.trim();
+        console.log('[SAVE DEBUG] ing:', name, '| desktopAmtEl:', desktopAmtEl?.value, '| mobileAmtEl:', wrap.querySelector('.mobile-amt')?.value, '| amountEl class:', amountEl?.className, '| rawAmt:', rawAmt, '| isMobile:', isMobileLayout());
         const noscale = wrap.querySelector('.noscale-toggle.on') !== null;
         const optional = wrap.querySelector('.optional-toggle.on') !== null;
         const readOv = (cls) => {
