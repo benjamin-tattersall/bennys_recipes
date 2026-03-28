@@ -1815,10 +1815,18 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.02';
+const APP_VERSION = '1.03';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.03',
+    title: 'Ingredient card indicator icons — text labels removed',
+    userNotes: [
+      'Collapsed ingredient cards now show toggle indicators as icons only — no text labels',
+    ],
+    items: ['T73 polish: removed text labels (note/sub/scale/optional) from indicator spans. Icons and colours unchanged.']
+  },
   {
     version: '1.02',
     title: 'Ingredient card polish',
@@ -5890,10 +5898,10 @@ function addIngRow(btn, rowsEl, data) {
             ${data?.prep?`<span class="ing-summary-sep">–</span><span class="ing-summary-prep">${esc(data.prep)}</span>`:''}
           </div>
           <div class="ing-summary-indicators">
-            <span class="ing-summary-indicator${ingNote?' on':''}" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg> note</span>
-            <span class="ing-summary-indicator${hasSub?' on':''}" data-key="sub" title="Has substitute">⇄ sub</span>
-            <span class="ing-summary-indicator${ns?' on':''}" data-key="scale" title="Has scale overrides">⊘ scale</span>
-            <span class="ing-summary-indicator${isOptional?' on':''}" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg> optional</span>
+            <span class="ing-summary-indicator${ingNote?' on':''}" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>
+            <span class="ing-summary-indicator${hasSub?' on':''}" data-key="sub" title="Has substitute">⇄</span>
+            <span class="ing-summary-indicator${ns?' on':''}" data-key="scale" title="Has scale overrides">⊘</span>
+            <span class="ing-summary-indicator${isOptional?' on':''}" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>
           </div>
         </div>
                 <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse"><svg viewBox="0 0 10 6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
