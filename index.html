@@ -1798,10 +1798,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.99';
+const APP_VERSION = '1.00';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.00',
+    title: 'Multi-version test — confirmation',
+    userNotes: [
+      'If you can see BOTH this message AND the v0.99 message below it — the multi-version update summary is working perfectly!',
+    ],
+    items: [
+      'T85 test: second version to confirm multi-version summary works end-to-end.',
+    ]
+  },
   {
     version: '0.99',
     title: 'Multi-version update summary',
