@@ -283,7 +283,7 @@ header{
 /* Step note — edit form */
 .step-note-row{display:none;padding:4px 0 2px}
 .step-note-row.show{display:block}
-.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 .step-note-inp:focus{border-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
@@ -306,14 +306,14 @@ header{
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
 .sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
-.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
 .ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 .ing-note-inp:focus{border-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
@@ -1171,7 +1171,7 @@ header{
     </svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.82,6.68 L15.11,6.87 L15.11,9.13 L12.82,9.32 L12.34,10.48 L13.82,12.23 L12.23,13.82 L10.48,12.34 L9.32,12.82 L9.13,15.11 L6.87,15.11 L6.68,12.82 L5.52,12.34 L3.77,13.82 L2.18,12.23 L3.66,10.48 L3.18,9.32 L0.89,9.13 L0.89,6.87 L3.18,6.68 L3.66,5.52 L2.18,3.77 L3.77,2.18 L5.52,3.66 L6.68,3.18 L6.87,0.89 L9.13,0.89 L9.32,3.18 L10.48,3.66 L12.23,2.18 L13.82,3.77 L12.34,5.52 Z" fill="currentColor" fill-opacity="0.12" stroke="currentColor"/><circle cx="8" cy="8" r="2.5" fill="var(--card)" stroke="currentColor"/></svg>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
   </button>
   <button class="hbtn hbtn-accent" onclick="openAdd()">
     <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
@@ -1832,10 +1832,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.07';
+const APP_VERSION = '1.08';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.08',
+    title: 'Settings icon & note field sizing',
+    userNotes: [
+      'Settings icon updated to the standard Lucide gear/cog design',
+      'Note and substitute note fields are now visibly smaller than the main ingredient fields',
+    ],
+    items: [
+      'T91: Replaced generated gear path with Lucide settings icon (standard 24px viewBox gear with interlocking teeth path + centre circle).',
+      'T92: Note inputs font-size 0.72rem, padding 3px 6px, color ink-mid. Visibly smaller than main ingredient inputs (0.8rem) and scale override inputs (0.76rem), making hierarchy clear.',
+    ]
+  },
   {
     version: '1.07',
     title: 'Settings gear icon & note field styling',
