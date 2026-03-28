@@ -1798,10 +1798,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.98';
+const APP_VERSION = '0.99';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.99',
+    title: 'Multi-version update summary',
+    userNotes: [
+      'If you missed several updates, you will now see all of them listed here — each version grouped with its own header. Load this version but do NOT open the app yet, then load the next version.',
+    ],
+    items: [
+      'T85: checkWhatsNew now walks CHANGELOG from APP_VERSION down to seen_version, collecting all entries with userNotes. Each version shown with a v header, divider between versions. Latest version header is slightly more prominent.',
+    ]
+  },
   {
     version: '0.98',
     title: 'Edit form footer & view header polish',
@@ -3590,21 +3600,37 @@ function saveSetup() {
 function checkWhatsNew() {
   const seen = localStorage.getItem('seen_version');
   if (seen === APP_VERSION) return;
-  const latest = CHANGELOG.find(c => c.version === APP_VERSION);
-  if (!latest?.userNotes?.length) {
+
+  // Collect all CHANGELOG entries newer than seen_version that have userNotes
+  // CHANGELOG is ordered newest first, so we walk until we hit seen_version
+  const toShow = [];
+  for (const entry of CHANGELOG) {
+    if (entry.version === seen) break; // stop at the last seen version
+    if (entry.userNotes?.length) toShow.push(entry);
+  }
+
+  if (!toShow.length) {
     localStorage.setItem('seen_version', APP_VERSION);
     return;
   }
+
   const body = document.getElementById('update-modal-body');
   if (body) {
-    body.innerHTML = latest.userNotes.map(note =>
-      `<div style="display:flex;gap:0.6rem;align-items:flex-start">
-        <span style="color:var(--accent-text);font-size:0.9rem;flex-shrink:0;margin-top:1px">✦</span>
-        <span style="font-size:0.86rem;color:var(--ink-mid);line-height:1.5">${note}</span>
-      </div>`
-    ).join('');
+    body.innerHTML = toShow.map((entry, i) => {
+      const notes = entry.userNotes.map(note =>
+        `<div style="display:flex;gap:0.6rem;align-items:flex-start">
+          <span style="color:var(--accent-text);font-size:0.9rem;flex-shrink:0;margin-top:1px">✦</span>
+          <span style="font-size:0.86rem;color:var(--ink-mid);line-height:1.5">${note}</span>
+        </div>`
+      ).join('');
+      // Version header — slightly smaller/muted for older versions
+      const isLatest = i === 0;
+      const vHeader = `<div style="font-size:${isLatest?'0.72':'0.68'}rem;font-weight:500;color:${isLatest?'var(--ink-faint)':'var(--border-mid)'};font-family:'Instrument Sans',sans-serif;${i>0?'margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid var(--border);':''}">v${entry.version}</div>`;
+      return vHeader + notes;
+    }).join('');
   }
-  // T84: show version number in modal header
+
+  // T84: show current version in modal header
   const vEl = document.getElementById('update-modal-version');
   if (vEl) vEl.textContent = 'v' + APP_VERSION;
   document.getElementById('update-modal').classList.add('open');
