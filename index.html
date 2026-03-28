@@ -283,8 +283,8 @@ header{
 /* Step note — edit form */
 .step-note-row{display:none;padding:4px 0 2px}
 .step-note-row.show{display:block}
-.step-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s}
-.step-note-inp:focus{border-bottom-color:var(--note-text)}
+.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.step-note-inp:focus{border-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
 .ing-note-btn,.step-note-btn{
@@ -304,17 +304,17 @@ header{
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
-.sub-ing-note-row{display:none;padding:4px 8px 4px 14px}
+.sub-ing-note-row{display:none;padding:5px 8px 5px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
-.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.74rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
+.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:4px 8px 4px 14px;background:var(--note-bg)}
+.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.74rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
-.ing-note-inp:focus{border-bottom-color:var(--note-text)}
+.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp:focus{border-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
 .ing-note-toggle:hover{color:var(--accent-text)}
@@ -1171,7 +1171,7 @@ header{
     </svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 5.2A2.8 2.8 0 1 0 8 10.8 2.8 2.8 0 0 0 8 5.2z"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.9 2.9l1.1 1.1M12 12l1.1 1.1M13.1 2.9L12 4M4 12l-1.1 1.1"/></svg>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.82,6.68 L15.11,6.87 L15.11,9.13 L12.82,9.32 L12.34,10.48 L13.82,12.23 L12.23,13.82 L10.48,12.34 L9.32,12.82 L9.13,15.11 L6.87,15.11 L6.68,12.82 L5.52,12.34 L3.77,13.82 L2.18,12.23 L3.66,10.48 L3.18,9.32 L0.89,9.13 L0.89,6.87 L3.18,6.68 L3.66,5.52 L2.18,3.77 L3.77,2.18 L5.52,3.66 L6.68,3.18 L6.87,0.89 L9.13,0.89 L9.32,3.18 L10.48,3.66 L12.23,2.18 L13.82,3.77 L12.34,5.52 Z" fill="currentColor" fill-opacity="0.12" stroke="currentColor"/><circle cx="8" cy="8" r="2.5" fill="var(--card)" stroke="currentColor"/></svg>
   </button>
   <button class="hbtn hbtn-accent" onclick="openAdd()">
     <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
@@ -1832,10 +1832,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.06';
+const APP_VERSION = '1.07';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.07',
+    title: 'Settings gear icon & note field styling',
+    userNotes: [
+      'Settings icon is now a proper gear/cog shape',
+      'Note and substitute note fields now match the compact box style of the scale override inputs',
+    ],
+    items: [
+      'T91: Replaced sun/light SVG with programmatic 8-tooth gear path + centre hole circle. Stroke width 1.2, fill-opacity 0.12 body, cream centre hole.',
+      'T92 revised: Note/sub-note inputs now use border:1px solid note-border, border-radius:5px, padding:4px 7px, font-size:0.76rem, background:cream — matching scale-override-row input exactly. Reverted T92 indent changes from v106. Step note input also updated to match.',
+    ]
+  },
   {
     version: '1.06',
     title: 'UI polish sweep',
