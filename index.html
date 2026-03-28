@@ -1538,7 +1538,7 @@ header{
     <div class="modal-head" style="border-bottom:none;padding-bottom:0.5rem">
       <div>
         <div style="font-size:0.7rem;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif;font-weight:400;margin-bottom:2px">Benny's Recipes has been updated</div>
-        <h2 style="font-size:1.1rem">Here's what's new</h2>
+        <h2 style="font-size:1.1rem">Here's what's new <span id="update-modal-version" style="font-size:0.72rem;font-weight:400;color:var(--ink-faint);font-family:'Instrument Sans',sans-serif"></span></h2>
       </div>
     </div>
     <div id="update-modal-body" style="padding:0 1.3rem 0.5rem;max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.5rem"></div>
@@ -1784,10 +1784,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.95-debug';
+const APP_VERSION = '0.95';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.95',
+    title: 'Scale override text, version on update prompt & unit fix',
+    userNotes: [
+      'Scale override hint text updated — "leave blank to use proportional scaling" is more accurate',
+      'The update prompt now shows the version number alongside the update notes',
+      'Substitute ingredient unit fields no longer incorrectly show "— none —" when a parent amount is edited',
+    ],
+    items: [
+      'T83: Scale override panel hint changed from "leave blank to show does not scale" to "leave blank to use proportional scaling".',
+      'T84: update-modal-version span added to modal header. checkWhatsNew() populates it with APP_VERSION.',
+      'T86: Removed select/option syncing from _syncInputsToAttributes(). When unit is empty (inherited), el.value="" matched both the placeholder AND the none option — the sync was marking the none option as selected. Selects already serialise correctly via innerHTML without manual sync.',
+    ]
+  },
   {
     version: '0.94',
     title: 'Save fix for iPhone',
@@ -2538,18 +2552,16 @@ let _formApplying = false;  // true during formUndo/formRedo/applyFormSnapshot �
 
 function _syncInputsToAttributes(container) {
   // Before capturing innerHTML snapshot, sync live .value to the value attribute
-  // so that innerHTML correctly reflects what the user has typed
+  // so that innerHTML correctly reflects what the user has typed.
+  // NOTE: selects are NOT synced here — their selected attribute is already maintained
+  // by the DOM, and syncing by value would incorrectly mark "— none —" as selected
+  // when the unit is empty (inherited from parent), overwriting the placeholder option.
   if (!container) return;
   container.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
     el.setAttribute('value', el.value);
   });
   container.querySelectorAll('textarea').forEach(el => {
     el.textContent = el.value;
-  });
-  container.querySelectorAll('select').forEach(el => {
-    el.querySelectorAll('option').forEach(opt => {
-      opt.selected = opt.value === el.value;
-    });
   });
 }
 
@@ -3538,6 +3550,9 @@ function checkWhatsNew() {
       </div>`
     ).join('');
   }
+  // T84: show version number in modal header
+  const vEl = document.getElementById('update-modal-version');
+  if (vEl) vEl.textContent = 'v' + APP_VERSION;
   document.getElementById('update-modal').classList.add('open');
 }
 function closeUpdateModal() {
@@ -5053,7 +5068,6 @@ async function saveRecipe() {
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
       if (name) {
         const rawAmt = amountEl?.value.trim();
-        console.log('[SAVE] ' + (name||'?') + ': rawAmt=' + JSON.stringify(rawAmt) + ' desktop=' + JSON.stringify(desktopAmtEl?.value) + ' mobile=' + JSON.stringify(wrap.querySelector('.mobile-amt')?.value) + ' isMobile=' + isMobileLayout());
         const noscale = wrap.querySelector('.noscale-toggle.on') !== null;
         const optional = wrap.querySelector('.optional-toggle.on') !== null;
         const readOv = (cls) => {
@@ -5722,7 +5736,7 @@ function addIngRow(btn, rowsEl, data) {
 
     <!-- Scale overrides panel (inside card, both views) -->
     <div class="noscale-note-row${ns?' show':''}">
-      <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to show "does not scale"</div>
+      <div style="font-size:0.67rem;color:var(--warning);font-weight:500;padding:2px 2px 3px">Scale overrides — leave blank to use proportional scaling</div>
       ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
       ${buildOverrideRow('2×','ns-double', ov.double, amt, unit, 2)}
       ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
