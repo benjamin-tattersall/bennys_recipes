@@ -269,7 +269,7 @@ header{
 .scaled-qty{color:var(--accent-text);font-weight:500}
 /* method in view */
 .method-sec-view{margin-bottom:1.4rem}
-.msec-title{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.msec-title{font-size:0.82rem;font-weight:500;color:var(--ink-mid);padding-bottom:4px;padding-left:0.6rem;margin-bottom:6px;border-bottom:1px solid var(--border)}
 .vstep{display:flex;gap:0.65rem;margin-bottom:0.45rem;font-size:0.86rem;line-height:1.6;color:var(--ink-mid);cursor:pointer;border-radius:6px;padding:3px 4px;margin-left:-4px;transition:background .12s}
 .vstep:hover{background:var(--cream)}
 .vstep.done{opacity:0.45}
@@ -304,16 +304,16 @@ header{
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
-.sub-ing-note-row{display:none;padding:5px 8px 5px}
+.sub-ing-note-row{display:none;padding:4px 8px 4px 14px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
-.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
+.sub-ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.74rem;color:var(--ink-mid);outline:none;padding:3px 0 3px}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
+.ing-note-row{display:none;padding:4px 8px 4px 14px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp{width:100%;border:none;border-bottom:1px solid var(--note-border);background:none;font-family:'Instrument Sans',sans-serif;font-size:0.74rem;color:var(--ink-mid);outline:none;padding:3px 0 3px;transition:border-color .15s;box-sizing:border-box}
 .ing-note-inp:focus{border-bottom-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
@@ -331,7 +331,7 @@ header{
 .btn-pri:hover{background:var(--accent-text)}
 
 /* ── FORM ── */
-.fbody{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem;max-height:76vh;overflow-y:auto}
+.fbody{padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:0.9rem;flex:1;overflow-y:auto}
 .fg{display:flex;flex-direction:column;gap:0.3rem}
 .fg label{font-size:0.82rem;font-weight:600;color:var(--ink-mid)}
 .fg input,.fg textarea,.fg select{
@@ -709,6 +709,7 @@ header{
 .sub-panel.show{display:flex}
 .sub-panel-head{
   display:flex;align-items:center;justify-content:space-between;
+  padding-left:6px;
   font-size:0.67rem;font-weight:500;color:var(--accent-text);
   text-transform:uppercase;letter-spacing:0.05em;padding:0 2px 2px;
 }
@@ -1170,7 +1171,7 @@ header{
     </svg>
   </button>
   <button class="hbtn" onclick="openSettings()" title="Settings">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M12.6 3.4l-.85.85M4.25 11.75l-.85.85"/></svg>
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.2"/><path d="M8 5.2A2.8 2.8 0 1 0 8 10.8 2.8 2.8 0 0 0 8 5.2z"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.9 2.9l1.1 1.1M12 12l1.1 1.1M13.1 2.9L12 4M4 12l-1.1 1.1"/></svg>
   </button>
   <button class="hbtn hbtn-accent" onclick="openAdd()">
     <svg viewBox="0 0 14 14"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
@@ -1240,8 +1241,8 @@ header{
 </div>
 
 <!-- ADD/EDIT MODAL -->
-<div class="backdrop" id="emodal">
-  <div class="modal">
+<div class="backdrop" id="emodal" style="align-items:flex-start;overflow-y:hidden;padding:0">
+  <div class="modal" style="max-width:900px;max-height:100dvh;display:flex;flex-direction:column;border-radius:0;margin:0;width:100%">
     <div class="modal-head">
       <h2 id="form-title">Add recipe</h2>
       <div class="form-undo-card">
@@ -1485,7 +1486,9 @@ header{
 
       <div class="info-pane" id="info-pane-recipes">
         <h3>Adding a recipe</h3>
-        <p>Tap <strong>Add recipe</strong> in the header. Fill in the name, tags, cook time, and serves. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the recipe.</p>
+        <p>Tap <strong>+ Add recipe</strong> in the header. Fill in the name, tags, cook time, and serves. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the recipe.</p>
+        <h3>Ingredients and method sections</h3>
+        <p>Ingredients and method steps are added directly — no section wrapper by default. Use the <strong>+ Ingredient</strong> and <strong>+ Step</strong> buttons to build your list. If you want to group items, tap <strong>+ Section</strong> to create a named section. Sections must have a name. Unnamed items always appear at the top.</p>
         <h3>Drafts and publishing</h3>
         <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. When viewing a recipe, tap the <strong>status icon</strong> next to the recipe name — a green tick means published, an amber dashed circle means draft. You can also publish or unpublish from inside the <strong>Edit form</strong> using the Publish/Unpublish button in the footer. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
         <h3>Organising with tags</h3>
@@ -1494,17 +1497,17 @@ header{
         <p>Set an exact number of serves, or switch to <strong>Range</strong> mode to enter a minimum and maximum — useful for recipes that comfortably feed different numbers depending on appetite.</p>
         <h3>Ticking off while cooking</h3>
         <p>While reading a recipe, tap any method step or ingredient to mark it as done — it fades and gets a strikethrough. Tap again to un-tick. The state resets when you close the recipe.</p>
-        <h3>Deleting a recipe</h3>
-        <p>Deleted recipes move to the <strong>bin</strong>, accessible via the 🗑️ icon in the header. From there you can restore a recipe or permanently delete it. The bin icon turns red when it contains recipes.</p>
+        <h3>Editing and deleting a recipe</h3>
+        <p>When viewing a recipe, tap the <strong>✎ pencil icon</strong> in the header to open the edit form. From there, the <strong>🗑 bin icon</strong> in the footer moves the recipe to the bin — accessible via the bin icon in the main header where you can restore or permanently delete it.</p>
         <h3>Undoing changes</h3>
         <p>While editing a recipe, the <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session — adding or removing ingredients, editing fields, toggling scaling flags, and more. Changes are not undoable once you've saved and closed the form.</p>
       </div>
 
       <div class="info-pane" id="info-pane-scaling">
         <h3>Scaling a recipe up or down</h3>
-        <p>When viewing a recipe, use the <strong>1× / ½× / 2× / 3×</strong> buttons at the top to change the serving size. Ingredient quantities update automatically, with units adjusting sensibly — for example, 3 teaspoons becomes 1 tablespoon.</p>
+        <p>When viewing a recipe, use the <strong>1× / ½× / 2× / 3×</strong> scale buttons — they scroll with the recipe content — to change the serving size. Ingredient quantities update automatically, with units adjusting sensibly — for example, 3 teaspoons becomes 1 tablespoon.</p>
         <h3>Ingredients that don't scale well</h3>
-        <p>Some ingredients — like salt, spices, or baking powder — don't simply double or halve. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set a specific amount for each scale size individually. Leaving a scale size blank will show a note that this ingredient doesn't scale at that size.</p>
+        <p>Some ingredients — like salt, spices, or baking powder — don't simply double or halve. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set a specific amount for each scale size individually. Leaving a scale size blank means proportional scaling is used for that size.</p>
         <h3>Method steps that change with scale</h3>
         <p>The same ⊘ flag works for method steps — useful when cooking times or temperatures need different instructions at different batch sizes.</p>
         <h3>Turning off scaling for a recipe</h3>
@@ -1572,9 +1575,7 @@ header{
       </div>
 
     </div>
-    <div class="form-foot">
-      <button class="btn-sec" onclick="closeInfo()">Close</button>
-    </div>
+
   </div>
 </div>
 
@@ -1831,10 +1832,28 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.05';
+const APP_VERSION = '1.06';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.06',
+    title: 'UI polish sweep',
+    userNotes: [
+      'Edit form now opens full screen, matching the recipe view',
+      'The Close button has been removed from the info panel footer — use the ✕ in the top right',
+      'Settings icon is now a gear/cog as expected',
+      'Note and substitute fields are now visually smaller and indented, showing they belong to the ingredient above',
+      'Method section headers in recipe view are now indented to match ingredient section headers',
+    ],
+    items: [
+      'T88: emodal backdrop padding:0, align-items:flex-start. Inner modal max-height:100dvh, flex-column, border-radius:0. fbody uses flex:1 instead of max-height:76vh.',
+      'T89: Removed form-foot with Close button from info modal. ✕ in header is the only close.',
+      'T91: Settings SVG replaced with gear (circle + 8 spokes) icon.',
+      'T92: ing-note-row and sub-ing-note-row padding-left:14px (indent). Note inputs font-size:0.74rem. sub-panel-head padding-left:6px.',
+      'T93: msec-title padding-left:0.6rem added to match ingredient table cell indent.',
+    ]
+  },
   {
     version: '1.05',
     title: 'Sections polish — named sections required, scroll to new row, button labels',
