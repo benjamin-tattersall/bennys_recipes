@@ -412,6 +412,9 @@ header{
 /* ── INGREDIENT SECTIONS BUILDER ── */
 .ing-builder{display:flex;flex-direction:column;gap:1rem}
 .ing-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+/* T82: unsectioned group — no border/card styling, just the rows */
+.ing-unsec-block{margin-bottom:4px}
+.ing-unsec-block .ing-rows{display:flex;flex-direction:column}
 .ing-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
 .ing-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.92rem;font-weight:600;color:var(--ink-mid)}
 .ing-sec-head input::placeholder{color:var(--ink-faint);font-weight:400}
@@ -608,6 +611,7 @@ header{
 /* ── METHOD BUILDER ── */
 .method-builder{display:flex;flex-direction:column;gap:1rem}
 .method-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.method-unsec-block{margin-bottom:4px}
 .method-sec-head{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--paper);border-bottom:1px solid var(--border)}
 .method-sec-head input{flex:1;border:none;background:none;outline:none;font-family:'Instrument Sans',sans-serif;font-size:0.92rem;font-weight:600;color:var(--ink-mid)}
 .method-sec-head input::placeholder{color:var(--ink-faint);font-weight:400}
@@ -1356,19 +1360,31 @@ header{
       <div class="fg">
         <label>Ingredients</label>
         <div class="ing-builder" id="ing-builder"></div>
-        <button class="add-row-btn" onclick="addIngSection()">
-          <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-          Add ingredient section
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="add-row-btn" style="flex:1" onclick="addTopLevelIngRow()">
+            <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+            Add ingredient
+          </button>
+          <button class="add-row-btn" onclick="addIngSection()">
+            <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+            Add section
+          </button>
+        </div>
       </div>
 
       <div class="fg">
         <label>Method</label>
         <div class="method-builder" id="method-builder"></div>
-        <button class="add-row-btn" onclick="addMethodSection()">
-          <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-          Add method section
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="add-row-btn" style="flex:1" onclick="addTopLevelStep()">
+            <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+            Add step
+          </button>
+          <button class="add-row-btn" onclick="addMethodSection()">
+            <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+            Add section
+          </button>
+        </div>
       </div>
 
       <div class="fg">
@@ -1815,10 +1831,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.03';
+const APP_VERSION = '1.04';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.04',
+    title: 'Sections opt-in — Stage 1',
+    userNotes: [
+      'Ingredients and method steps no longer default to being inside a section — new recipes start clean',
+      'Use the new "Add ingredient" and "Add step" buttons to build your list, or "Add section" to create a named group',
+      'Existing recipes with unnamed sections load as plain lists; named sections still load with their section header',
+    ],
+    items: [
+      'T82 Stage 1: addIngUnsectioned/addMethodUnsectioned render borderless groups (no title input, no delete). addTopLevelIngRow/addTopLevelStep find-or-create unsectioned block and append row. Builder footer: two buttons per builder — Add ingredient/step (primary) + Add section (secondary). Loading: sec.title ? addIngSection : addIngUnsectioned. Save: querySelectorAll covers both .ing-sec-block and .ing-unsec-block. New recipes start empty.',
+    ]
+  },
   {
     version: '1.03',
     title: 'Ingredient card indicator icons — text labels removed',
@@ -5042,14 +5070,18 @@ function openEdit(r) {
   formPopulating = true;
   const ib = document.getElementById('ing-builder');
   ib.innerHTML = '';
-  if (r?.ingredients?.length) r.ingredients.forEach(sec => addIngSection(sec));
-  else addIngSection();
+  // T82: sections with title → named section block; sections without title → unsectioned group
+  // New recipes start empty — user adds via buttons
+  if (r?.ingredients?.length) {
+    r.ingredients.forEach(sec => sec.title ? addIngSection(sec) : addIngUnsectioned(sec));
+  }
 
   // method
   const mb = document.getElementById('method-builder');
   mb.innerHTML = '';
-  if (r?.method?.length) r.method.forEach(sec => addMethodSection(sec));
-  else addMethodSection();
+  if (r?.method?.length) {
+    r.method.forEach(sec => sec.title ? addMethodSection(sec) : addMethodUnsectioned(sec));
+  }
   formPopulating = false;
 
   document.getElementById('ing-builder').addEventListener('focusin', e => {
@@ -5215,9 +5247,9 @@ async function saveRecipe() {
 
   const scalable = !document.getElementById('scalable-row').classList.contains('off');
 
-  // collect ingredients (sectioned)
+  // collect ingredients (unsectioned + named sections)
   const ingredients = [];
-  document.querySelectorAll('.ing-sec-block').forEach(sec => {
+  document.querySelectorAll('#ing-builder .ing-sec-block, #ing-builder .ing-unsec-block').forEach(sec => {
     const title = sec.querySelector('.ing-sec-title-inp')?.value.trim() || '';
     const items = [];
     sec.querySelectorAll('.ing-row-wrap').forEach(wrap => {
@@ -5347,7 +5379,7 @@ async function saveRecipe() {
 
   // collect method
   const method = [];
-  document.querySelectorAll('.method-sec-block').forEach(sec => {
+  document.querySelectorAll('#method-builder .method-sec-block, #method-builder .method-unsec-block').forEach(sec => {
     const title = sec.querySelector('.msec-title-inp')?.value.trim() || '';
     const steps = [];
     sec.querySelectorAll('.step-wrap').forEach(wrap => {
@@ -5525,6 +5557,80 @@ function hideSugs() { document.getElementById('tag-sugs').classList.remove('show
 document.addEventListener('click', e => { if (!e.target.closest('.tags-wrap')) hideSugs(); });
 
 // ── INGREDIENT SECTION BUILDER ────────────────────────────────────────────
+function addIngUnsectioned(data) {
+  // T82: renders an unsectioned ingredient group — no border card, no title input
+  const block = document.createElement('div');
+  block.className = 'ing-unsec-block';
+  block.dataset.unsectioned = '1';
+  block.innerHTML = `
+    <div class="ing-header-card">
+      <div class="ing-header-card-inner">
+        <span>Ingredient</span>
+        <span>Amount</span>
+        <span>Unit</span>
+        <span>Prep</span>
+        <span class="btn-spacer"></span>
+        <span class="btn-spacer"></span>
+        <span class="btn-spacer"></span>
+      </div>
+    </div>
+    <div class="ing-rows"></div>`;
+  document.getElementById('ing-builder').appendChild(block);
+  const rows = block.querySelector('.ing-rows');
+  if (data?.items?.length) data.items.forEach(i => addIngRow(null, rows, i));
+  // If no items, don't add a blank row — user uses the "Add ingredient" button
+}
+
+function addTopLevelIngRow() {
+  captureFormSnapshot('Add ingredient');
+  // Find or create the unsectioned block
+  let unsec = document.querySelector('#ing-builder .ing-unsec-block');
+  if (!unsec) {
+    unsec = document.createElement('div');
+    unsec.className = 'ing-unsec-block';
+    unsec.dataset.unsectioned = '1';
+    unsec.innerHTML = `
+      <div class="ing-header-card">
+        <div class="ing-header-card-inner">
+          <span>Ingredient</span><span>Amount</span><span>Unit</span><span>Prep</span>
+          <span class="btn-spacer"></span><span class="btn-spacer"></span><span class="btn-spacer"></span>
+        </div>
+      </div>
+      <div class="ing-rows"></div>`;
+    // Insert before first named section if any, else append
+    const firstSec = document.querySelector('#ing-builder .ing-sec-block');
+    if (firstSec) document.getElementById('ing-builder').insertBefore(unsec, firstSec);
+    else document.getElementById('ing-builder').appendChild(unsec);
+  }
+  addIngRow(null, unsec.querySelector('.ing-rows'));
+}
+
+function addMethodUnsectioned(data) {
+  // T82: renders an unsectioned method group — no border card, no title input
+  const block = document.createElement('div');
+  block.className = 'method-unsec-block';
+  block.dataset.unsectioned = '1';
+  block.innerHTML = `<div class="method-steps"></div>`;
+  document.getElementById('method-builder').appendChild(block);
+  const stepsEl = block.querySelector('.method-steps');
+  if (data?.steps?.length) data.steps.forEach(s => addStep(null, stepsEl, s));
+}
+
+function addTopLevelStep() {
+  captureFormSnapshot('Add step');
+  let unsec = document.querySelector('#method-builder .method-unsec-block');
+  if (!unsec) {
+    unsec = document.createElement('div');
+    unsec.className = 'method-unsec-block';
+    unsec.dataset.unsectioned = '1';
+    unsec.innerHTML = `<div class="method-steps"></div>`;
+    const firstSec = document.querySelector('#method-builder .method-sec-block');
+    if (firstSec) document.getElementById('method-builder').insertBefore(unsec, firstSec);
+    else document.getElementById('method-builder').appendChild(unsec);
+  }
+  addStep(null, unsec.querySelector('.method-steps'));
+}
+
 function addIngSection(data) {
   if (!data) captureFormSnapshot('Add ingredient section');
   const block = document.createElement('div');
