@@ -505,6 +505,16 @@ header{
   }
   .ing-mobile-collapse-btn:hover{color:var(--ink-mid)}
   .ing-row-wrap.collapsed .ing-mobile-collapse-btn{transform:rotate(-90deg)}
+  /* T73: collapsed summary card */
+  .ing-summary{display:none;flex:1;min-width:0;cursor:pointer;padding:1px 0}
+  .ing-row-wrap.collapsed .ing-summary{display:block}
+  .ing-row-wrap.collapsed .ing-name-wrap{display:none}
+  .ing-summary-name{font-size:0.88rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+  .ing-summary-name.empty{color:var(--ink-faint);font-weight:400;font-style:italic}
+  .ing-summary-meta{display:flex;align-items:center;gap:5px;margin-top:1px;flex-wrap:wrap}
+  .ing-summary-qty{font-size:0.75rem;color:var(--ink-mid)}
+  .ing-summary-indicator{font-size:0.68rem;color:var(--ink-faint);line-height:1;display:flex;align-items:center}
+  .ing-summary-indicator.on{color:var(--accent-text)}
 
   /* corner delete button — top right of card */
   .ing-corner-del{
@@ -1798,10 +1808,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.00';
+const APP_VERSION = '1.01';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.01',
+    title: 'Compressed ingredient cards',
+    userNotes: [
+      'Collapsed ingredients now show a compact summary — ingredient name in bold, amount and unit, and small indicators for any active toggles (note, substitute, scale override, optional)',
+      'Tap anywhere on the summary or the chevron to expand back to full edit',
+    ],
+    items: [
+      'T73: .ing-summary div added to ing-mobile-name-row. CSS shows summary / hides name input when .collapsed. toggleIngCollapse calls updateIngSummary() before collapsing to snapshot current input values. ingNameRowClick() expands on tap anywhere in name row when collapsed. Indicators use data-key attrs for dynamic show/hide.',
+    ]
+  },
   {
     version: '1.00',
     title: 'Multi-version test — confirmation',
@@ -5834,11 +5855,22 @@ function addIngRow(btn, rowsEl, data) {
     <!-- MOBILE: collapsible rows, corner delete -->
     <div class="ing-mobile-rows">
       <!-- Row 1: Name + chevron -->
-      <div class="ing-mobile-name-row" style="padding-right:32px">
+      <div class="ing-mobile-name-row" style="padding-right:32px" onclick="ingNameRowClick(event,this)">
         <div class="ing-name-wrap" style="width:100%">
           <input type="text" class="ing-name-mobile" placeholder="Ingredient" value="${esc(data?.name||'')}"
             oninput="ingNameInput(this)" onfocus="ingNameInput(this)" autocomplete="off">
           <div class="ing-name-sugs"></div>
+        </div>
+        <!-- T73: summary shown when collapsed -->
+        <div class="ing-summary" onclick="toggleIngCollapse(this.closest('.ing-row-wrap').querySelector('.ing-mobile-collapse-btn'))">
+          <div class="ing-summary-name ${data?.name?'':'empty'}">${esc(data?.name||'Ingredient')}</div>
+          <div class="ing-summary-meta">
+            <span class="ing-summary-qty">${amt!=null&&amt!==''?amt+(unit?' '+unit:''):unit||''}</span>
+            ${ingNote?'<span class="ing-summary-indicator on" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>':'<span class="ing-summary-indicator" data-key="note" title="Has note" style="display:none"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>'}
+            ${hasSub?'<span class="ing-summary-indicator on" data-key="sub" title="Has substitute">⇄</span>':'<span class="ing-summary-indicator" data-key="sub" title="Has substitute" style="display:none">⇄</span>'}
+            ${ns?'<span class="ing-summary-indicator on" data-key="scale" title="Has scale overrides">⊘</span>':'<span class="ing-summary-indicator" data-key="scale" title="Has scale overrides" style="display:none">⊘</span>'}
+            ${isOptional?'<span class="ing-summary-indicator on" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>':'<span class="ing-summary-indicator" data-key="opt" title="Optional" style="display:none"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>'}
+          </div>
         </div>
         <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse">▾</button>
       </div>
@@ -5965,9 +5997,55 @@ function toggleIngOptional(btn) {
   wrap.querySelectorAll('.optional-toggle').forEach(b => b.classList.toggle('on', isNowOn));
 }
 
+function ingNameRowClick(e, row) {
+  // If already collapsed, any click on the name row should expand
+  const wrap = row.closest('.ing-row-wrap');
+  if (wrap.classList.contains('collapsed') && !e.target.closest('.ing-mobile-collapse-btn')) {
+    toggleIngCollapse(wrap.querySelector('.ing-mobile-collapse-btn'));
+  }
+}
+
+function updateIngSummary(wrap) {
+  const summary = wrap.querySelector('.ing-summary');
+  if (!summary) return;
+  const nameEl   = wrap.querySelector('.ing-name-mobile');
+  const amtEl    = wrap.querySelector('.mobile-amt');
+  const unitSel  = wrap.querySelector('.ing-mobile-rows .unit-sel');
+  const unitMan  = wrap.querySelector('.ing-mobile-rows .unit-manual');
+  const name     = nameEl?.value.trim() || '';
+  const amt      = amtEl?.value.trim()  || '';
+  const unit     = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
+  const hasNote  = wrap.querySelector('.ing-note-btn.on') !== null;
+  const hasSub   = wrap.querySelector('.sub-toggle.on')  !== null;
+  const hasScale = wrap.querySelector('.noscale-toggle.on') !== null;
+  const isOpt    = wrap.querySelector('.optional-toggle.on') !== null;
+
+  const nameDiv = summary.querySelector('.ing-summary-name');
+  if (nameDiv) {
+    nameDiv.textContent = name || 'Ingredient';
+    nameDiv.className   = 'ing-summary-name' + (name ? '' : ' empty');
+  }
+  const qtySpan = summary.querySelector('.ing-summary-qty');
+  if (qtySpan) {
+    const parts = [amt, unit].filter(Boolean);
+    qtySpan.textContent = parts.join(' ');
+  }
+  // Refresh indicator visibility
+  const indicators = summary.querySelectorAll('.ing-summary-indicator');
+  const stateMap = { note: hasNote, sub: hasSub, scale: hasScale, opt: isOpt };
+  indicators.forEach(el => {
+    const key = el.dataset.key;
+    const active = stateMap[key] || false;
+    el.classList.toggle('on', active);
+    el.style.display = active ? '' : 'none';
+  });
+}
+
 function toggleIngCollapse(btn) {
   const wrap = btn.closest('.ing-row-wrap');
-  wrap.classList.toggle('collapsed');
+  const collapsing = !wrap.classList.contains('collapsed');
+  if (collapsing) updateIngSummary(wrap);
+  wrap.classList.toggle('collapsed', collapsing);
 }
 
 function toggleSubIngNote(btn) {
