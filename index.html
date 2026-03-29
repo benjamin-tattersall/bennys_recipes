@@ -1832,10 +1832,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.09';
+const APP_VERSION = '1.10';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.10',
+    title: 'Note and substitute fields now visibly smaller',
+    userNotes: [
+      'Note fields and all substitute ingredient fields are now the same compact size as scale override fields',
+    ],
+    items: [
+      'T92 root cause: .fg input (specificity 0,1,1) was beating .ing-note-inp (0,1,0) in the cascade regardless of CSS order. Fix: inline styles applied directly to ing-note-inp, step-note-inp, sub-ing-note-inp, sub-name, sub-amt, sub-prep-inp, sub-note-inp in their templates — inline always beats class rules. All set to 0.76rem/4px 6px matching scale-override-row input.',
+    ]
+  },
   {
     version: '1.09',
     title: 'Two-tier input sizing — sub-fields match scale overrides',
@@ -5917,11 +5927,11 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
 
     <!-- DESKTOP: single head row (name / amt / unit / prep / reason / 📝 / ⊘ / ×) -->
     <div class="sub-entry-head">
-      <input type="text" class="sub-name" placeholder="Name" value="${esc(sub?.name||'')}">
-      <input type="number" class="sub-amt" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right">
+      <input type="text" class="sub-name" placeholder="Name" value="${esc(sub?.name||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+      <input type="number" class="sub-amt" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right;border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       ${buildUnitSelect(unit, pUnit)}
-      <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}">
-      <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}">
+      <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+      <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
@@ -5960,7 +5970,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
 
     <!-- Sub ingredient note (both views) -->
     <div class="sub-ing-note-row${subIngNote?' show':''}">
-      <input type="text" class="sub-ing-note-inp" placeholder="${esc(notePlaceholder)}" value="${esc(subIngNote)}">
+      <input type="text" class="sub-ing-note-inp" placeholder="${esc(notePlaceholder)}" value="${esc(subIngNote)}" style="border:1px solid var(--note-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
     </div>
     <!-- Scale overrides (both views) -->
     <div class="sub-overrides${ns?' show':''}">
@@ -6115,7 +6125,7 @@ function addIngRow(btn, rowsEl, data) {
 
     <!-- Ingredient note (both views) -->
     <div class="ing-note-row${ingNote?' show':''}">
-      <input type="text" class="ing-note-inp" placeholder="Note" value="${esc(ingNote)}">
+      <input type="text" class="ing-note-inp" placeholder="Note" value="${esc(ingNote)}" style="border:1px solid var(--note-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
     </div>
 
     <!-- Scale overrides panel (inside card, both views) -->
@@ -6413,7 +6423,7 @@ function addStep(btn, stepsEl, stepData) {
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
     </div>
     <div class="step-note-row${stepNote?' show':''}">
-      <input type="text" class="step-note-inp" placeholder="Note" value="${esc(stepNote)}">
+      <input type="text" class="step-note-inp" placeholder="Note" value="${esc(stepNote)}" style="border:1px solid var(--note-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
       <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="½× override" value="${esc(ov.half||'')}"></div>
