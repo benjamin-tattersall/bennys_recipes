@@ -1869,10 +1869,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.17';
+const APP_VERSION = '1.18';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.18',
+    title: 'Substitute groups — dropdown with presets',
+    userNotes: [
+      'The substitute group field is now a dropdown with preset options (Dairy Free, Gluten Free, Vegetarian, Vegan, Nut Free, Low Carb, Keto, Paleo) — or type a custom name',
+      'Note: after adding group names to substitutes, save the recipe for the mode switcher to appear when viewing',
+    ],
+    items: [
+      'T23: Replaced text input with buildGroupSelect() — returns a styled select with 8 presets + Type manually option, matching unit select pattern. handleGroupChange() and switchGroupToDropdown() handle manual entry toggle. Both desktop and mobile templates updated. sGroup save selector unchanged (.sub-group-inp covers both select and input).',
+    ]
+  },
   {
     version: '1.17',
     title: 'Recipe-level substitute groups',
@@ -5926,6 +5937,52 @@ function addIngSection(data) {
   else addIngRow(null, rows);
 }
 
+
+function buildGroupSelect(selected) {
+  // T23: group dropdown with presets + manual option (like unit select)
+  const isCustom = selected && !['Dairy Free', 'Gluten Free', 'Vegetarian', 'Vegan', 'Nut Free', 'Low Carb', 'Keto', 'Paleo'].includes(selected);
+  if (isCustom) {
+    return `<input type="text" class="sub-group-inp sub-group-manual"
+      placeholder="Group name" value="${esc(selected)}"
+      style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box;min-width:0">
+      <button onclick="switchGroupToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
+  }
+  const opts = [
+    `<option value="" ${!selected?'selected':''}>Group…</option>`,
+    ...['Dairy Free', 'Gluten Free', 'Vegetarian', 'Vegan', 'Nut Free', 'Low Carb', 'Keto', 'Paleo'].map(g => `<option value="${esc(g)}" ${g===selected?'selected':''}>${esc(g)}</option>`),
+    `<option value="__manual__">Type manually…</option>`
+  ].join('');
+  return `<select class="sub-group-inp sub-group-sel" onchange="handleGroupChange(this)"
+    style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:${selected?'var(--ink)':'var(--ink-muted)'};background:var(--cream);outline:none;box-sizing:border-box;min-width:0">${opts}</select>`;
+}
+
+function handleGroupChange(sel) {
+  if (sel.value !== '__manual__') return;
+  const manual = document.createElement('input');
+  manual.type = 'text';
+  manual.className = 'sub-group-inp sub-group-manual';
+  manual.placeholder = 'Group name';
+  manual.style.cssText = 'border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box;min-width:0;width:100%';
+  const backBtn = document.createElement('button');
+  backBtn.textContent = '×';
+  backBtn.title = 'Back to dropdown';
+  backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
+  backBtn.onclick = (e) => switchGroupToDropdown(e.target);
+  sel.replaceWith(manual);
+  manual.after(backBtn);
+  manual.focus();
+}
+
+function switchGroupToDropdown(btn) {
+  const parent = btn.closest('.sub-entry-head, .sub-mobile-field');
+  if (!parent) return;
+  const newSel = document.createElement('div');
+  newSel.innerHTML = buildGroupSelect('');
+  const frag = newSel.firstChild;
+  btn.previousElementSibling?.remove();
+  btn.replaceWith(frag);
+}
+
 function buildUnitSelect(selected, defaultUnit) {
   const isCustom = selected && !getAllDropdownUnits().includes(selected);
   const activeUnits = getActiveUnits();
@@ -6109,7 +6166,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       ${buildUnitSelect(unit, pUnit)}
       <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
-      <input type="text" class="sub-group-inp" placeholder="Group (e.g. Dairy Free)" value="${esc(sub?.group||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+      ${buildGroupSelect(sub?.group||'')}
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
@@ -6146,7 +6203,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       </div>
       <!-- Row 5: Group (T23) -->
       <div class="sub-mobile-field">
-        <input type="text" class="sub-group-inp" placeholder="Group (e.g. Dairy Free)" value="${esc(sub?.group||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
+        ${buildGroupSelect(sub?.group||'')}
       </div>
     </div>
 
