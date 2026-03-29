@@ -764,11 +764,11 @@ header{
   .sub-entry-mobile input,
   .sub-entry-mobile .unit-sel,
   .sub-entry-mobile .unit-manual{
-    width:100%;border:1px solid var(--accent);border-radius:6px;
-    padding:8px 9px;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+    width:100%;border:1px solid var(--accent);border-radius:5px;
+    padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;
     color:var(--ink);background:var(--cream);outline:none;
     transition:border-color .15s;box-sizing:border-box;
-    height:38px;display:block;
+    height:auto;display:block;
   }
   .sub-entry-mobile input:focus,
   .sub-entry-mobile .unit-sel:focus{border-color:var(--accent-text)}
@@ -1833,10 +1833,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.11';
+const APP_VERSION = '1.12';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.12',
+    title: 'Substitute input fields now visibly smaller on iPhone',
+    userNotes: [
+      'Substitute ingredient fields (name, amount, unit, prep) are now the correct compact size on iPhone',
+    ],
+    items: [
+      'T92: Root cause on mobile — .sub-entry-mobile input CSS rule had explicit height:38px and font-size:0.84rem/padding:8px 9px. Despite inline styles winning on font-size/padding, height:38px was not overridden by inline style so inputs stayed large. Fixed CSS rule to height:auto, font-size:0.76rem, padding:4px 6px matching scale-override-row input.',
+    ]
+  },
   {
     version: '1.11',
     title: 'Substitute fields match smaller tier on iPhone',
