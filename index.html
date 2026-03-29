@@ -472,6 +472,7 @@ header{
 .ing-desktop-row .unit-manual:focus{border-color:var(--accent)}
 .ing-desktop-row input::placeholder{color:var(--ink-faint);font-size:0.76rem}
 .ing-desktop-row .unit-sel{color:var(--ink-muted);cursor:pointer}
+.sub-entry .unit-sel,.sub-entry .unit-manual{font-size:0.76rem;padding:4px 6px;border-color:var(--accent)}
 .ing-desktop-row .unit-sel.has-val{color:var(--ink)}
 .ing-desktop-row .amount-inp{text-align:right}
 /* hide mobile rows on desktop */
@@ -778,7 +779,7 @@ header{
 
   .sub-mobile-btn-group{display:flex;gap:6px;align-items:center;flex-shrink:0}
   .sub-mobile-btn-group button{
-    height:38px;width:38px;border-radius:6px;
+    height:28px;width:28px;border-radius:5px;
     display:flex;align-items:center;justify-content:center;
     font-size:0.85rem;padding:0;flex-shrink:0;
   }
@@ -1832,10 +1833,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.11';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.11',
+    title: 'Substitute fields match smaller tier on iPhone',
+    userNotes: [
+      'All substitute ingredient fields — name, amount, unit, prep, and reason — are now the same compact size as note and scale override fields on all devices',
+    ],
+    items: [
+      'T92: Mobile sub-entry inputs (sub-name-mobile, sub-amt-mobile, sub-prep-mobile) now have inline styles at 0.76rem/4px 6px — desktop sub-entry inputs were already fixed in v110 but mobile CSS was missing. sub-entry .unit-sel/.unit-manual CSS rule added for unit select. Mobile sub button group reduced 38px->28px to match desktop sub toggle button size.',
+    ]
+  },
   {
     version: '1.10',
     title: 'Note and substitute fields now visibly smaller',
@@ -5941,12 +5952,12 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
     <div class="sub-entry-mobile">
       <!-- Row 1: Name -->
       <div class="sub-mobile-field sub-mobile-row1">
-        <input type="text" class="sub-name-mobile" placeholder="Name" value="${esc(sub?.name||'')}">
+        <input type="text" class="sub-name-mobile" placeholder="Name" value="${esc(sub?.name||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
       </div>
       <!-- Row 2: Amount + Unit -->
       <div class="sub-mobile-row2">
         <div class="sub-mobile-field amount">
-          <input type="number" class="sub-amt-mobile" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}">
+          <input type="number" class="sub-amt-mobile" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box;text-align:right">
         </div>
         <div class="sub-mobile-field unit">
           ${buildUnitSelect(unit, pUnit)}
@@ -5955,7 +5966,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
-          <input type="text" class="sub-prep-mobile" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}">
+          <input type="text" class="sub-prep-mobile" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
         </div>
         <div class="sub-mobile-btn-group">
           <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
