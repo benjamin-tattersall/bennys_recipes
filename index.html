@@ -255,6 +255,17 @@ header{
 .vmeta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 .vmeta strong{color:var(--ink);font-weight:500}
 .view-sec{margin-bottom:1.3rem}
+/* T23: recipe-level substitute group switcher */
+.sub-group-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:1px solid var(--border)}
+.sub-group-lbl{font-size:0.7rem;color:var(--ink-faint);font-weight:500;
+  text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+.sub-group-btn{background:none;border:1px solid var(--border);border-radius:20px;
+  padding:3px 12px;font-size:0.76rem;color:var(--ink-mid);cursor:pointer;
+  font-family:'Instrument Sans',sans-serif;transition:all .15s}
+.sub-group-btn:hover{border-color:var(--accent);color:var(--accent-text)}
+.sub-group-btn.active{background:var(--accent);border-color:var(--accent);
+  color:#fff;font-weight:500}
 .vsec-lbl{font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:0.75rem;font-family:'Playfair Display',serif}
 /* ingredient sections in view */
 .ing-sec-title-view{font-size:0.82rem;font-weight:500;color:var(--ink-mid);font-style:normal;padding-bottom:4px;margin-bottom:0;border-bottom:1px solid var(--border)}
@@ -535,13 +546,14 @@ header{
   .ing-summary{display:none;flex:1;min-width:0;cursor:pointer;padding:1px 0}
   .ing-row-wrap.collapsed .ing-summary{display:block}
   .ing-row-wrap.collapsed .ing-name-wrap{display:none}
-  .ing-summary-name{font-size:0.88rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+  .ing-summary-name-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .ing-summary-name{font-size:0.88rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;flex:1;min-width:0}
   .ing-summary-name.empty{color:var(--ink-faint);font-weight:400;font-style:italic}
   .ing-summary-meta{display:flex;align-items:center;gap:4px;margin-top:1px}
   .ing-summary-qty{font-size:0.75rem;color:var(--ink-mid)}
   .ing-summary-sep{font-size:0.72rem;color:var(--ink-faint)}
   .ing-summary-prep{font-size:0.75rem;color:var(--ink-mid)}
-  .ing-summary-indicators{display:flex;align-items:center;gap:5px;margin-top:2px}
+  .ing-summary-indicators{display:flex;align-items:center;gap:5px;flex-shrink:0}
   .ing-summary-indicator{font-size:0.7rem;line-height:1;display:none;align-items:center;gap:2px}
   .ing-summary-indicator.on{display:flex}
   .ing-summary-indicator[data-key="note"]{color:var(--note-text)}
@@ -744,7 +756,7 @@ header{
   position:relative; /* for corner delete on mobile */
 }
 .sub-entry-head{
-  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr) auto auto auto;
+  display:grid;grid-template-columns:minmax(0,2fr) 68px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr) auto auto auto;
   gap:0.35rem;align-items:center;padding:5px 6px;
 }
 .sub-entry-head input,.sub-entry-head select{
@@ -1512,6 +1524,8 @@ header{
         <p>Tap <strong>+ Add recipe</strong> in the header. Fill in the name, tags, cook time, and serves. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the recipe.</p>
         <h3>Ingredients and method sections</h3>
         <p>Ingredients and method steps are added directly — no section wrapper by default. Use the <strong>+ Ingredient</strong> and <strong>+ Step</strong> buttons to build your list. If you want to group items, tap <strong>+ Section</strong> to create a named section. Sections must have a name. Unnamed items always appear at the top.</p>
+        <h3>Collapsing sections while editing</h3>
+        <p>Each ingredient or method section has a <strong>⌄ chevron</strong> in its header. Tap it to collapse the section into a compact dot-point summary — each ingredient shows its name, amount, unit, prep, and any active toggles. Tap again to expand. Useful for keeping long recipes manageable while editing.</p>
         <h3>Drafts and publishing</h3>
         <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. When viewing a recipe, tap the <strong>status icon</strong> next to the recipe name — a green tick means published, an amber dashed circle means draft. You can also publish or unpublish from inside the <strong>Edit form</strong> using the Publish/Unpublish button in the footer. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
         <h3>Organising with tags</h3>
@@ -1855,10 +1869,42 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.17';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.17',
+    title: 'Recipe-level substitute groups',
+    userNotes: [
+      'You can now tag substitute ingredients with a group name (e.g. "Dairy Free", "Vegan") when editing',
+      'When viewing a recipe that has grouped substitutes, a mode switcher appears — tap a group to swap all matching substitutes at once across every ingredient',
+      'Tap "Original" to revert all substitutions back to the base recipe',
+    ],
+    items: [
+      'T23: sub.group field added to data model. Group input added to sub-entry-head (desktop, extra grid column) and mobile sub-entry (Row 5). sGroup collected in saveRecipe, saved as sub.group. renderViewBody builds groupBarHtml from unique groups across all ingredients. activateSubGroup() sets subToggledMap for every ingredient with a matching group sub then re-renders. Group bar shows Original + one button per group.',
+    ]
+  },
+  {
+    version: '1.16',
+    title: 'Compact ingredient card — indicators in name row',
+    userNotes: [
+      'When an ingredient is collapsed, the toggle indicators (note, substitute, scale, optional) now sit in the same row as the ingredient name — name on the left, indicators on the right',
+    ],
+    items: [
+      'T95: Added .ing-summary-name-row flex container (space-between). Name and indicators share the first row. Removed separate .ing-summary-indicators row below qty. updateIngSummary querySelector updated for new DOM.',
+    ]
+  },
+  {
+    version: '1.15',
+    title: 'Section collapse dot points & info window update',
+    userNotes: [
+      'Collapsed section dot points now match the ingredient name colour — bold and clear',
+    ],
+    items: [
+      'T94: dot point colour changed from var(--ink-faint) to var(--ink) in toggleSecCollapse template. Info window updated with section collapse description.',
+    ]
+  },
   {
     version: '1.14',
     title: 'Section collapse — rich dot-point summary',
@@ -5000,12 +5046,63 @@ function renderViewBody(r) {
        </div>`
     : '';
 
+  // T23: collect unique substitute groups across all ingredients
+  const subGroups = new Set();
+  r.ingredients?.forEach(sec => sec.items?.forEach(item =>
+    item.substitutes?.forEach(s => { if (s.group) subGroups.add(s.group); })
+  ));
+  const groupBarHtml = subGroups.size ? `<div class="sub-group-bar">
+    <span class="sub-group-lbl">Mode:</span>
+    <button class="sub-group-btn active" onclick="activateSubGroup(null, this)">Original</button>
+    ${[...subGroups].map(g => `<button class="sub-group-btn" onclick="activateSubGroup('${esc(g)}', this)">${esc(g)}</button>`).join('')}
+  </div>` : '';
+
   vbody.innerHTML = `
     ${scaleBarHtml}
+    ${groupBarHtml}
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
     ${ingHtml}${methHtml}${notesHtml}${ytHtml}`;
+}
+
+function activateSubGroup(group, btn) {
+  // T23: switch all ingredient substitutes to the named group at once
+  // Update button active states
+  document.querySelectorAll('.sub-group-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const r = recipes.find(x => x.id === currentId);
+  if (!r) return;
+
+  // Reset all sub selections
+  Object.keys(subToggledMap).forEach(k => delete subToggledMap[k]);
+
+  if (group) {
+    // For each ingredient, find the first substitute matching this group and activate it
+    r.ingredients?.forEach((sec, si) => {
+      sec.items?.forEach((item, idx) => {
+        const subs = item.substitutes?.length ? item.substitutes
+          : (item.substitute?.name ? [item.substitute] : []);
+        const matchIdx = subs.findIndex(s => s.group === group);
+        if (matchIdx >= 0) {
+          const itemKey = (item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + idx;
+          subToggledMap[itemKey] = matchIdx;
+        }
+      });
+    });
+  }
+
+  renderViewBody(r);
+  // Restore the active button after re-render (renderViewBody rebuilds the bar)
+  if (group) {
+    document.querySelectorAll('.sub-group-btn').forEach(b => {
+      if (b.textContent.trim() === group) b.classList.add('active');
+    });
+  } else {
+    const orig = document.querySelector('.sub-group-btn');
+    if (orig) orig.classList.add('active');
+  }
 }
 
 function toggleIngView(btn) {
@@ -5472,6 +5569,7 @@ async function saveRecipe() {
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
           const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
           const sIngNote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
+          const sGroup   = entry.querySelector('.sub-group-inp')?.value.trim() || '';
           // Check ANY sub-noscale-toggle with .on (desktop + mobile both exist in DOM)
           const sNs = entry.querySelector('.sub-noscale-toggle.on') !== null;
           const readSubOv = (cls) => {
@@ -5489,6 +5587,7 @@ async function saveRecipe() {
             prep:    sPrep || undefined,
             note:    sNote || undefined,
             ingNote: sIngNote || undefined,
+            group:   sGroup   || undefined,
             noscale: sNs,
             scaleOverrides: sNs ? {
               half:   readSubOv('sub-half'),
@@ -6010,6 +6109,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       ${buildUnitSelect(unit, pUnit)}
       <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+      <input type="text" class="sub-group-inp" placeholder="Group (e.g. Dairy Free)" value="${esc(sub?.group||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></button>
       <button class="sub-noscale-toggle${ns?' on':''}" title="Scale overrides for this substitute" onclick="toggleSubNoscale(this)">⊘</button>
       <button class="del-btn" onclick="removeSubEntry(this)" style="color:var(--accent-text)">×</button>
@@ -6043,6 +6143,10 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       <!-- Row 4: Reason (full width, no buttons) -->
       <div class="sub-mobile-field">
         <input type="text" class="sub-note-mobile" placeholder="Reason" value="${esc(sub?.note||'')}">
+      </div>
+      <!-- Row 5: Group (T23) -->
+      <div class="sub-mobile-field">
+        <input type="text" class="sub-group-inp" placeholder="Group (e.g. Dairy Free)" value="${esc(sub?.group||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
       </div>
     </div>
 
@@ -6161,17 +6265,20 @@ function addIngRow(btn, rowsEl, data) {
         </div>
         <!-- T73: summary shown when collapsed -->
         <div class="ing-summary" onclick="toggleIngCollapse(this.closest('.ing-row-wrap').querySelector('.ing-mobile-collapse-btn'))">
-          <div class="ing-summary-name${data?.name?'':' empty'}">${esc(data?.name||'Ingredient')}</div>
+          <div class="ing-summary-name-row">
+            <div class="ing-summary-name${data?.name?'':' empty'}">${esc(data?.name||'Ingredient')}</div>
+            <div class="ing-summary-indicators">
+              <span class="ing-summary-indicator${ingNote?' on':''}" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>
+              <span class="ing-summary-indicator${hasSub?' on':''}" data-key="sub" title="Has substitute">⇄</span>
+              <span class="ing-summary-indicator${ns?' on':''}" data-key="scale" title="Has scale overrides">⊘</span>
+              <span class="ing-summary-indicator${isOptional?' on':''}" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>
+            </div>
+          </div>
           <div class="ing-summary-meta">
             <span class="ing-summary-qty">${amt!=null&&amt!==''?amt+(unit?' '+unit:''):unit||''}</span>
             ${data?.prep?`<span class="ing-summary-sep">–</span><span class="ing-summary-prep">${esc(data.prep)}</span>`:''}
           </div>
-          <div class="ing-summary-indicators">
-            <span class="ing-summary-indicator${ingNote?' on':''}" data-key="note" title="Has note"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg></span>
-            <span class="ing-summary-indicator${hasSub?' on':''}" data-key="sub" title="Has substitute">⇄</span>
-            <span class="ing-summary-indicator${ns?' on':''}" data-key="scale" title="Has scale overrides">⊘</span>
-            <span class="ing-summary-indicator${isOptional?' on':''}" data-key="opt" title="Optional"><svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg></span>
-          </div>
+
         </div>
                 <button class="ing-mobile-collapse-btn" onclick="toggleIngCollapse(this)" title="Expand/collapse"><svg viewBox="0 0 10 6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
       </div>
@@ -6325,7 +6432,7 @@ function updateIngSummary(wrap) {
   const isOpt    = wrap.querySelector('.optional-toggle.on')  !== null;
 
   // Name
-  const nameDiv = summary.querySelector('.ing-summary-name');
+  const nameDiv = summary.querySelector('.ing-summary-name-row .ing-summary-name') || summary.querySelector('.ing-summary-name');
   if (nameDiv) {
     nameDiv.textContent = name || 'Ingredient';
     nameDiv.className   = 'ing-summary-name' + (name ? '' : ' empty');
@@ -6423,7 +6530,7 @@ function toggleSecCollapse(btn) {
               ? `<div style="display:flex;align-items:center;gap:5px;margin-top:2px">${indicators}</div>` : '';
 
             return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
-              <span style="color:var(--ink-faint);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
+              <span style="color:var(--ink);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
               <div style="min-width:0">
                 <div style="font-size:0.82rem;font-weight:600;color:${name ? 'var(--ink)' : 'var(--ink-faint)'};${name ? '' : 'font-style:italic'}">${name || 'Ingredient'}</div>
                 ${metaLine}${indicatorRow}
@@ -6441,7 +6548,7 @@ function toggleSecCollapse(btn) {
             const text = wrap.querySelector('.step-ta')?.value.trim() || '';
             const preview = text.length > 60 ? text.slice(0, 60) + '…' : text;
             return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
-              <span style="color:var(--ink-faint);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
+              <span style="color:var(--ink);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
               <span style="font-size:0.78rem;color:${text ? 'var(--ink-mid)' : 'var(--ink-faint)'};${text ? '' : 'font-style:italic'}">${preview || 'Empty step'}</span>
             </div>`;
           }).join('');
