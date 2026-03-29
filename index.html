@@ -283,7 +283,7 @@ header{
 /* Step note — edit form */
 .step-note-row{display:none;padding:4px 0 2px}
 .step-note-row.show{display:block}
-.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.step-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 .step-note-inp:focus{border-color:var(--note-text)}
 .step-note-inp::placeholder{color:var(--ink-faint)}
 /* 📝 note icon buttons — same style family as ⇄ and ⊘ */
@@ -304,16 +304,16 @@ header{
 }
 .optional-toggle:hover{border-color:#7aaa7a;color:#3a6b3a}
 .optional-toggle.on{background:#eaf4ea;border-color:#7aaa7a;color:#2d5a2d}
-.sub-ing-note-row{display:none;padding:5px 8px 5px}
+.sub-ing-note-row{display:none;padding:4px 8px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
-.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 /* Step note — recipe view */
 .vstep-note{font-size:0.76rem;color:var(--accent-text);font-style:italic;margin-top:2px}
 .vstep-note strong{font-style:normal;font-weight:600}
 /* ── INGREDIENT NOTES (T26) ── */
-.ing-note-row{display:none;padding:5px 8px 5px;background:var(--note-bg)}
+.ing-note-row{display:none;padding:4px 8px;background:var(--note-bg)}
 .ing-note-row.show{display:block}
-.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:3px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.72rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
+.ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
 .ing-note-inp:focus{border-color:var(--note-text)}
 .ing-note-inp::placeholder{color:var(--ink-faint)}
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
@@ -686,7 +686,7 @@ header{
 .unit-manual-wrap{display:flex;align-items:center;gap:3px;min-width:0;width:100%}
 .unit-manual-wrap .unit-manual{
   flex:1;min-width:0;border:1px solid var(--accent);border-radius:6px;
-  padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;
+  padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;
   color:var(--ink);background:var(--cream);outline:none;
 }
 .unit-back-btn{
@@ -725,8 +725,8 @@ header{
   gap:0.35rem;align-items:center;padding:5px 6px;
 }
 .sub-entry-head input,.sub-entry-head select{
-  border:1px solid var(--accent);border-radius:6px;padding:4px 6px;
-  font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);
+  border:1px solid var(--accent);border-radius:6px;padding:4px 7px;
+  font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);
   background:var(--cream);outline:none;width:100%;min-width:0;
 }
 .sub-entry-head input:focus,.sub-entry-head select:focus{border-color:var(--accent-text)}
@@ -1832,20 +1832,30 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.08';
+const APP_VERSION = '1.09';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
   {
-    version: '1.08',
-    title: 'Settings icon & note field sizing',
+    version: '1.09',
+    title: 'Two-tier input sizing — sub-fields match scale overrides',
     userNotes: [
-      'Settings icon updated to the standard Lucide gear/cog design',
-      'Note and substitute note fields are now visibly smaller than the main ingredient fields',
+      'Note, substitute, and scale override fields are now all the same compact size — one tier for main ingredient fields, one for all toggled additions',
     ],
     items: [
-      'T91: Replaced generated gear path with Lucide settings icon (standard 24px viewBox gear with interlocking teeth path + centre circle).',
-      'T92: Note inputs font-size 0.72rem, padding 3px 6px, color ink-mid. Visibly smaller than main ingredient inputs (0.8rem) and scale override inputs (0.76rem), making hierarchy clear.',
+      'T92 final: ing-note-inp, step-note-inp, sub-ing-note-inp all at 0.76rem/4px 7px matching scale-override-row input exactly. sub-entry-head input reduced from 0.79rem/4px 6px to 0.76rem/4px 7px. Two tiers: main (0.8rem) and all sub-fields (0.76rem).',
+    ]
+  },
+  {
+    version: '1.08',
+    title: 'Settings icon & note field size',
+    userNotes: [
+      'Settings icon updated to a cleaner gear shape',
+      'Note and substitute note fields now appear noticeably smaller and more compact',
+    ],
+    items: [
+      'T91: Replaced maths-generated gear with hand-crafted closed gear path (circle inner hole + outer teeth path). Matches app icon style.',
+      'T92: Note inputs (ing, sub, step) reduced to font-size:0.72rem, padding:2px 5px, color:ink-mid — clearly smaller than main ingredient inputs.',
     ]
   },
   {
@@ -5750,7 +5760,7 @@ function buildUnitSelect(selected, defaultUnit) {
   opts += `<optgroup label="Manual"><option value="__manual__">Type manually…</option></optgroup>`;
 
   if (isCustom) {
-    return `<input type="text" class="unit-manual" placeholder="${esc(defaultUnit||'unit')}" value="${esc(selected)}" style="border:1px solid var(--accent);border-radius:6px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.79rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0" >
+    return `<input type="text" class="unit-manual" placeholder="${esc(defaultUnit||'unit')}" value="${esc(selected)}" style="border:1px solid var(--accent);border-radius:6px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;min-width:0" >
             <button onclick="switchUnitToDropdown(this)" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0" title="Back to dropdown">×</button>`;
   }
   return `<select class="unit-sel${effectiveSelected&&!showRetired?' has-val':''}" onchange="handleUnitChange(this)">${opts}</select>`;
