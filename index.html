@@ -412,6 +412,28 @@ header{
 /* ── INGREDIENT SECTIONS BUILDER ── */
 .ing-builder{display:flex;flex-direction:column;gap:1rem}
 .ing-sec-block{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+/* T90: section collapse */
+.sec-collapse-btn{
+  background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;
+  color:var(--ink-faint);padding:0;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:transform .15s,color .1s;margin-left:auto;
+}
+.sec-collapse-btn:hover{color:var(--ink-mid)}
+.sec-collapsed .sec-collapse-btn{transform:rotate(-90deg)}
+.sec-collapsed .ing-rows,
+.sec-collapsed .method-steps,
+.sec-collapsed .ing-sec-foot,
+.sec-collapsed .method-sec-foot,
+.sec-collapsed .ing-header-card{display:none !important}
+.sec-summary{display:none;font-size:0.72rem;color:var(--ink-faint);
+  padding:0 0.6rem 0.45rem;font-style:italic;flex-shrink:0}
+.sec-collapsed .sec-summary{display:block}
+/* unsectioned block collapse header */
+.unsec-head{display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0.5rem 0.3rem;
+  border-bottom:1px solid transparent}
+.sec-collapsed.ing-unsec-block .unsec-head,
+.sec-collapsed.method-unsec-block .unsec-head{border-bottom-color:var(--border)}
 /* T82: unsectioned group — no border/card styling, just the rows */
 .ing-unsec-block{margin-bottom:4px}
 .ing-unsec-block .ing-rows{display:flex;flex-direction:column}
@@ -1833,10 +1855,22 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.13',
+    title: 'Section collapse in edit form',
+    userNotes: [
+      'Ingredient and method sections can now be collapsed in the edit form — tap the chevron in the section header to compact the whole section into a summary line',
+      'Works on named sections and the default unsectioned ingredient/step lists',
+      'Summary shows the count and first few ingredient names, or step count for method sections',
+    ],
+    items: [
+      'T90: sec-collapse-btn added to ing-sec-head, method-sec-head, and unsec-head. sec-summary div added below each head. toggleSecCollapse() builds preview text then toggles .sec-collapsed class. CSS hides .ing-rows/.method-steps/.ing-sec-foot/.method-sec-foot/.ing-header-card when collapsed, shows .sec-summary. Unsectioned blocks get an unsec-head with Ingredients/Steps label and chevron.',
+    ]
+  },
   {
     version: '1.12',
     title: 'Substitute input fields now visibly smaller on iPhone',
@@ -5659,6 +5693,11 @@ function addIngUnsectioned(data) {
   block.className = 'ing-unsec-block';
   block.dataset.unsectioned = '1';
   block.innerHTML = `
+    <div class="unsec-head">
+      <span style="font-size:0.7rem;font-weight:500;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em">Ingredients</span>
+      <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
+    </div>
+    <div class="sec-summary"></div>
     <div class="ing-header-card">
       <div class="ing-header-card-inner">
         <span>Ingredient</span>
@@ -5707,7 +5746,12 @@ function addMethodUnsectioned(data) {
   const block = document.createElement('div');
   block.className = 'method-unsec-block';
   block.dataset.unsectioned = '1';
-  block.innerHTML = `<div class="method-steps"></div>`;
+  block.innerHTML = `<div class="unsec-head">
+    <span style="font-size:0.7rem;font-weight:500;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em">Steps</span>
+    <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
+  </div>
+  <div class="sec-summary"></div>
+  <div class="method-steps"></div>`;
   document.getElementById('method-builder').appendChild(block);
   const stepsEl = block.querySelector('.method-steps');
   if (data?.steps?.length) data.steps.forEach(s => addStep(null, stepsEl, s));
@@ -5745,7 +5789,9 @@ function addIngSection(data) {
     <div class="ing-sec-head">
       <input type="text" class="ing-sec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="confirmRemoveIngSection(this)" title="Remove section">×</button>
+      <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
     </div>
+    <div class="sec-summary"></div>
     <div class="ing-header-card">
       <div class="ing-header-card-inner">
         <span>Ingredient</span>
@@ -6315,6 +6361,41 @@ function toggleIngCollapse(btn) {
   wrap.classList.toggle('collapsed', collapsing);
 }
 
+function toggleSecCollapse(btn) {
+  // T90: collapse/expand an entire ingredient or method section
+  const block = btn.closest('.ing-sec-block, .method-sec-block, .ing-unsec-block, .method-unsec-block');
+  if (!block) return;
+  const collapsing = !block.classList.contains('sec-collapsed');
+
+  if (collapsing) {
+    // Build summary before hiding
+    const summaryEl = block.querySelector('.sec-summary');
+    if (summaryEl) {
+      const isIngredient = block.classList.contains('ing-sec-block') || block.classList.contains('ing-unsec-block');
+      if (isIngredient) {
+        // Collect ingredient names
+        const names = [...block.querySelectorAll('.ing-row-wrap')].map(w => {
+          const nameEl = w.querySelector('.ing-name-mobile') || w.querySelector('.ing-desktop-row .ing-name-wrap input');
+          return nameEl?.value.trim() || '';
+        }).filter(Boolean);
+        const count = names.length;
+        const preview = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3} more` : '');
+        summaryEl.textContent = count ? `${count} ingredient${count !== 1 ? 's' : ''} — ${preview}` : 'No ingredients';
+      } else {
+        // Method steps
+        const steps = [...block.querySelectorAll('.step-wrap')].map(w => {
+          return w.querySelector('.step-ta')?.value.trim() || '';
+        }).filter(Boolean);
+        const count = steps.length;
+        const preview = count ? `${count} step${count !== 1 ? 's' : ''}` : 'No steps';
+        summaryEl.textContent = preview;
+      }
+    }
+  }
+
+  block.classList.toggle('sec-collapsed', collapsing);
+}
+
 function toggleSubIngNote(btn) {
   captureFormSnapshot('Toggle substitute note');
   btn.classList.toggle('on');
@@ -6410,7 +6491,9 @@ function addMethodSection(data) {
     <div class="method-sec-head">
       <input type="text" class="msec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
       <button class="del-btn" onclick="confirmRemoveMethodSection(this)">×</button>
+      <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
     </div>
+    <div class="sec-summary"></div>
     <div class="method-steps"></div>
     <div class="method-sec-foot">
       <button class="add-row-btn" style="flex:1;font-size:0.76rem" onclick="addStep(this)">
