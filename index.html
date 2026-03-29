@@ -427,7 +427,7 @@ header{
 .sec-collapsed .method-sec-foot,
 .sec-collapsed .ing-header-card{display:none !important}
 .sec-summary{display:none;font-size:0.72rem;color:var(--ink-faint);
-  padding:0 0.6rem 0.45rem;font-style:italic;flex-shrink:0}
+  padding:0.4rem 0.7rem 0.5rem;flex-shrink:0}
 .sec-collapsed .sec-summary{display:block}
 /* unsectioned block collapse header */
 .unsec-head{display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0.5rem 0.3rem;
@@ -1855,10 +1855,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.14',
+    title: 'Section collapse — rich dot-point summary',
+    userNotes: [
+      'Collapsed sections now show a rich dot-point list — each ingredient on its own line with name, amount, unit, prep, and active toggle indicators, matching the individual ingredient compact card style',
+      'Collapse chevron now sits to the left of the delete button in section headers',
+    ],
+    items: [
+      'T90 polish: toggleSecCollapse builds per-row dot-point HTML with name (bold), qty+unit, prep, and colour-coded indicator icons (note/sub/scale/optional) matching T73 style. Method sections show dot-point step text previews. sec-summary CSS padding updated. Chevron order: chevron | del-btn.',
+    ]
+  },
   {
     version: '1.13',
     title: 'Section collapse in edit form',
@@ -5788,8 +5799,8 @@ function addIngSection(data) {
   block.innerHTML = `
     <div class="ing-sec-head">
       <input type="text" class="ing-sec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
-      <button class="del-btn" onclick="confirmRemoveIngSection(this)" title="Remove section">×</button>
       <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
+      <button class="del-btn" onclick="confirmRemoveIngSection(this)" title="Remove section">×</button>
     </div>
     <div class="sec-summary"></div>
     <div class="ing-header-card">
@@ -6368,27 +6379,73 @@ function toggleSecCollapse(btn) {
   const collapsing = !block.classList.contains('sec-collapsed');
 
   if (collapsing) {
-    // Build summary before hiding
     const summaryEl = block.querySelector('.sec-summary');
     if (summaryEl) {
       const isIngredient = block.classList.contains('ing-sec-block') || block.classList.contains('ing-unsec-block');
       if (isIngredient) {
-        // Collect ingredient names
-        const names = [...block.querySelectorAll('.ing-row-wrap')].map(w => {
-          const nameEl = w.querySelector('.ing-name-mobile') || w.querySelector('.ing-desktop-row .ing-name-wrap input');
-          return nameEl?.value.trim() || '';
-        }).filter(Boolean);
-        const count = names.length;
-        const preview = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3} more` : '');
-        summaryEl.textContent = count ? `${count} ingredient${count !== 1 ? 's' : ''} — ${preview}` : 'No ingredients';
+        // Build T73-style rich dot-point per ingredient row
+        const rows = [...block.querySelectorAll('.ing-row-wrap')];
+        if (!rows.length) {
+          summaryEl.innerHTML = '<span style="color:var(--ink-faint);font-style:italic;font-size:0.78rem">No ingredients</span>';
+        } else {
+          summaryEl.innerHTML = rows.map(wrap => {
+            const nameEl  = wrap.querySelector('.ing-name-mobile');
+            const amtEl   = wrap.querySelector('.mobile-amt');
+            const prepEl  = wrap.querySelector('.mobile-prep');
+            const unitSel = wrap.querySelector('.ing-mobile-rows .unit-sel');
+            const unitMan = wrap.querySelector('.ing-mobile-rows .unit-manual');
+            const name    = nameEl?.value.trim() || '';
+            const amt     = amtEl?.value.trim()  || '';
+            const unit    = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
+            const prep    = prepEl?.value.trim() || '';
+            const hasNote  = wrap.querySelector('.ing-note-btn.on')   !== null;
+            const hasSub   = wrap.querySelector('.sub-toggle.on')     !== null;
+            const hasScale = wrap.querySelector('.noscale-toggle.on') !== null;
+            const isOpt    = wrap.querySelector('.optional-toggle.on') !== null;
+
+            const qtyParts = [amt, unit].filter(Boolean).join('\u00a0');
+            const prepPart = prep ? ` \u2013 ${prep}` : '';
+            const metaLine = (qtyParts || prep)
+              ? `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                  <span style="font-size:0.72rem;color:var(--ink-mid)">${qtyParts}${prepPart}</span>
+                </div>` : '';
+
+            // Indicator icons matching T73 colours
+            const NOTE_SVG = `<svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L7.5 3l1.5 1.5L3.5 10z"/><path d="M7.5 3L8.5 1.5 10 3l-1 1.5z"/></svg>`;
+            const OPT_SVG  = `<svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="3" x2="9" y2="7"/><line x1="9" y1="3" x2="1" y2="7"/></svg>`;
+            const indicators = [
+              hasNote  ? `<span style="color:var(--note-text);font-size:0.7rem;display:flex;align-items:center">${NOTE_SVG}</span>` : '',
+              hasSub   ? `<span style="color:var(--accent-dim);font-size:0.7rem">⇄</span>` : '',
+              hasScale ? `<span style="color:var(--warning);font-size:0.7rem">⊘</span>` : '',
+              isOpt    ? `<span style="color:var(--ink-muted);font-size:0.7rem;display:flex;align-items:center">${OPT_SVG}</span>` : '',
+            ].filter(Boolean).join('');
+            const indicatorRow = indicators
+              ? `<div style="display:flex;align-items:center;gap:5px;margin-top:2px">${indicators}</div>` : '';
+
+            return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
+              <span style="color:var(--ink-faint);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
+              <div style="min-width:0">
+                <div style="font-size:0.82rem;font-weight:600;color:${name ? 'var(--ink)' : 'var(--ink-faint)'};${name ? '' : 'font-style:italic'}">${name || 'Ingredient'}</div>
+                ${metaLine}${indicatorRow}
+              </div>
+            </div>`;
+          }).join('');
+        }
       } else {
-        // Method steps
-        const steps = [...block.querySelectorAll('.step-wrap')].map(w => {
-          return w.querySelector('.step-ta')?.value.trim() || '';
-        }).filter(Boolean);
-        const count = steps.length;
-        const preview = count ? `${count} step${count !== 1 ? 's' : ''}` : 'No steps';
-        summaryEl.textContent = preview;
+        // Method steps — show dot points with step text preview
+        const steps = [...block.querySelectorAll('.step-wrap')];
+        if (!steps.length) {
+          summaryEl.innerHTML = '<span style="color:var(--ink-faint);font-style:italic;font-size:0.78rem">No steps</span>';
+        } else {
+          summaryEl.innerHTML = steps.map((wrap, i) => {
+            const text = wrap.querySelector('.step-ta')?.value.trim() || '';
+            const preview = text.length > 60 ? text.slice(0, 60) + '…' : text;
+            return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
+              <span style="color:var(--ink-faint);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
+              <span style="font-size:0.78rem;color:${text ? 'var(--ink-mid)' : 'var(--ink-faint)'};${text ? '' : 'font-style:italic'}">${preview || 'Empty step'}</span>
+            </div>`;
+          }).join('');
+        }
       }
     }
   }
@@ -6490,8 +6547,8 @@ function addMethodSection(data) {
   block.innerHTML = `
     <div class="method-sec-head">
       <input type="text" class="msec-title-inp" placeholder="Section name" value="${esc(data?.title||'')}">
-      <button class="del-btn" onclick="confirmRemoveMethodSection(this)">×</button>
       <button class="sec-collapse-btn" onclick="toggleSecCollapse(this)" title="Collapse section"><svg viewBox="0 0 10 6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 5,5 9,1"/></svg></button>
+      <button class="del-btn" onclick="confirmRemoveMethodSection(this)">×</button>
     </div>
     <div class="sec-summary"></div>
     <div class="method-steps"></div>
