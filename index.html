@@ -1869,10 +1869,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.18';
+const APP_VERSION = '1.19';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.19',
+    title: 'Section collapse & group fixes',
+    userNotes: [
+      'Collapsed ingredient sections now show toggle indicators (note, sub, scale, optional) in the same row as the ingredient name — name on the left, icons on the right',
+      'The group mode switcher should now appear correctly after saving a recipe with group-tagged substitutes',
+      'When typing a custom group name, the revert button (×) now shows to the left of the text field',
+    ],
+    items: [
+      'Section collapse dot-points: indicators moved inline with name (flex space-between row), removed separate indicator row. Matches T95 individual card layout.',
+      'groupBarHtml: replaced nested template literals with string concatenation to avoid interpolation issues.',
+      'handleGroupChange: now wraps × + input in a flex row div with button on left. switchGroupToDropdown replaces wrapper div.',
+    ]
+  },
   {
     version: '1.18',
     title: 'Substitute groups — dropdown with presets',
@@ -5062,11 +5076,13 @@ function renderViewBody(r) {
   r.ingredients?.forEach(sec => sec.items?.forEach(item =>
     item.substitutes?.forEach(s => { if (s.group) subGroups.add(s.group); })
   ));
-  const groupBarHtml = subGroups.size ? `<div class="sub-group-bar">
-    <span class="sub-group-lbl">Mode:</span>
-    <button class="sub-group-btn active" onclick="activateSubGroup(null, this)">Original</button>
-    ${[...subGroups].map(g => `<button class="sub-group-btn" onclick="activateSubGroup('${esc(g)}', this)">${esc(g)}</button>`).join('')}
-  </div>` : '';
+  let groupBarHtml = '';
+  if (subGroups.size) {
+    const groupBtns = [...subGroups].map(g =>
+      '<button class="sub-group-btn" onclick="activateSubGroup(\'' + esc(g).replace(/'/g, '&#39;') + '\', this)">' + esc(g) + '</button>'
+    ).join('');
+    groupBarHtml = '<div class="sub-group-bar"><span class="sub-group-lbl">Mode:</span><button class="sub-group-btn active" onclick="activateSubGroup(null, this)">Original</button>' + groupBtns + '</div>';
+  }
 
   vbody.innerHTML = `
     ${scaleBarHtml}
@@ -5958,29 +5974,32 @@ function buildGroupSelect(selected) {
 
 function handleGroupChange(sel) {
   if (sel.value !== '__manual__') return;
+  // Wrap in flex row: [×] [input]
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display:flex;align-items:center;gap:4px;min-width:0;width:100%';
+  const backBtn = document.createElement('button');
+  backBtn.textContent = '×';
+  backBtn.title = 'Back to dropdown';
+  backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0;line-height:1';
+  backBtn.onclick = (e) => switchGroupToDropdown(e.target);
   const manual = document.createElement('input');
   manual.type = 'text';
   manual.className = 'sub-group-inp sub-group-manual';
   manual.placeholder = 'Group name';
-  manual.style.cssText = 'border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box;min-width:0;width:100%';
-  const backBtn = document.createElement('button');
-  backBtn.textContent = '×';
-  backBtn.title = 'Back to dropdown';
-  backBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:0.85rem;padding:0 2px;flex-shrink:0';
-  backBtn.onclick = (e) => switchGroupToDropdown(e.target);
-  sel.replaceWith(manual);
-  manual.after(backBtn);
+  manual.style.cssText = 'border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:\'Instrument Sans\',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box;flex:1;min-width:0';
+  wrapper.appendChild(backBtn);
+  wrapper.appendChild(manual);
+  sel.replaceWith(wrapper);
   manual.focus();
 }
 
 function switchGroupToDropdown(btn) {
-  const parent = btn.closest('.sub-entry-head, .sub-mobile-field');
-  if (!parent) return;
+  // btn is the × button — its parent is either the wrapper div or sub-entry cell
+  const wrapper = btn.parentElement;
   const newSel = document.createElement('div');
   newSel.innerHTML = buildGroupSelect('');
   const frag = newSel.firstChild;
-  btn.previousElementSibling?.remove();
-  btn.replaceWith(frag);
+  wrapper.replaceWith(frag);
 }
 
 function buildUnitSelect(selected, defaultUnit) {
@@ -6583,14 +6602,17 @@ function toggleSecCollapse(btn) {
               hasScale ? `<span style="color:var(--warning);font-size:0.7rem">⊘</span>` : '',
               isOpt    ? `<span style="color:var(--ink-muted);font-size:0.7rem;display:flex;align-items:center">${OPT_SVG}</span>` : '',
             ].filter(Boolean).join('');
-            const indicatorRow = indicators
-              ? `<div style="display:flex;align-items:center;gap:5px;margin-top:2px">${indicators}</div>` : '';
+            const indicatorHtml = indicators
+              ? `<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">${indicators}</div>` : '';
 
             return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
               <span style="color:var(--ink);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
-              <div style="min-width:0">
-                <div style="font-size:0.82rem;font-weight:600;color:${name ? 'var(--ink)' : 'var(--ink-faint)'};${name ? '' : 'font-style:italic'}">${name || 'Ingredient'}</div>
-                ${metaLine}${indicatorRow}
+              <div style="min-width:0;flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                  <span style="font-size:0.82rem;font-weight:600;color:${name ? 'var(--ink)' : 'var(--ink-faint)'};${name ? '' : 'font-style:italic;'}white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name || 'Ingredient'}</span>
+                  ${indicatorHtml}
+                </div>
+                ${metaLine}
               </div>
             </div>`;
           }).join('');
