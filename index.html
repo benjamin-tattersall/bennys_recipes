@@ -1872,10 +1872,36 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.23';
+const APP_VERSION = '1.25';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.25',
+    title: 'Note toggle warnings — properly fixed',
+    userNotes: [
+      'Dismissing a note with content now correctly keeps the note open when you press Cancel — the note no longer closes regardless of which button you press',
+      'Note toggle button stays active (highlighted) while the confirm dialog is visible',
+    ],
+    items: [
+      'toggleIngNote: force row.classList.add(show) + btn.on BEFORE showConfirm to guard against iOS touch double-fire. Row visually stays open during confirm.',
+      'toggleStepNote: fixed broken row selector (.step-note-inp-row → .step-note-row). Added same iOS guard.',
+      'toggleSubIngNote: fixed broken row selector (.sub-ing-note-inp-row → .sub-ing-note-row). Added iOS guard. Simplified wrap selector to btn.closest(.sub-entry).',
+    ]
+  },
+  {
+    version: '1.24',
+    title: 'Delete & note warnings — properly fixed',
+    userNotes: [
+      'Note fields no longer close when you press Cancel on the warning — they stay open and content is preserved',
+      'Ingredient and substitute delete warnings now trigger correctly on iPhone when amount, prep or other fields are filled',
+    ],
+    items: [
+      'toggleIngNote/StepNote/SubIngNote: check content BEFORE toggling row visibility. Row stays visible if user cancels. Only toggle after confirm or when empty.',
+      'removeIngRow: selectors changed to mobile-first (.mobile-amt before .amount-inp, .mobile-prep before .prep-inp) so filled iPhone fields are detected.',
+      'removeSubEntry: selectors changed to mobile-first (.sub-name-mobile before .sub-name, .sub-amt-mobile before .sub-amt).',
+    ]
+  },
   {
     version: '1.23',
     title: 'Delete & note warnings — fully consistent',
@@ -6326,8 +6352,9 @@ function removeSubEntry(btn) {
   const entry = btn.closest('.sub-entry');
   // Capture wrap reference BEFORE any removal
   const wrap = entry.closest('.ing-row-wrap');
-  const name  = (entry.querySelector('.sub-name') || entry.querySelector('.sub-name-mobile'))?.value.trim() || '';
-  const amt   = (entry.querySelector('.sub-amt') || entry.querySelector('.sub-amt-mobile'))?.value.trim() || '';
+  // Read mobile-first — desktop sub-entry-head is hidden on iPhone
+  const name  = (entry.querySelector('.sub-name-mobile') || entry.querySelector('.sub-name'))?.value.trim() || '';
+  const amt   = (entry.querySelector('.sub-amt-mobile') || entry.querySelector('.sub-amt'))?.value.trim() || '';
   const note  = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
   const hasContent = name || amt || note;
   if (!hasContent) {
@@ -6722,18 +6749,16 @@ function toggleSecCollapse(btn) {
 }
 
 function toggleSubIngNote(btn) {
-  captureFormSnapshot('Toggle substitute note');
-  btn.classList.toggle('on');
   const entry = btn.closest('.sub-entry');
-  const row   = entry.querySelector('.sub-ing-note-row');
-  const showing = btn.classList.contains('on');
-  row.classList.toggle('show', showing);
-  if (showing) {
-    const inp = row.querySelector('.sub-ing-note-inp');
-    if (inp) { _pendingSnapshot = null; inp.focus(); }
-  } else {
+  if (!entry) return;
+  const row = entry.querySelector('.sub-ing-note-row');
+  if (!row) return;
+  const showing = !row.classList.contains('show');
+  if (!showing) {
     const inp = row.querySelector('.sub-ing-note-inp');
     if (inp && inp.value.trim()) {
+      row.classList.add('show');
+      btn.classList.add('on');
       showConfirm('Remove this note?',
         'The note content will be lost.',
         [{ label: 'Remove note', danger: true, fn: () => {
@@ -6744,26 +6769,28 @@ function toggleSubIngNote(btn) {
         }}]
       );
       return;
-    } else if (inp) {
-      inp.value = '';
-    }
+    } else if (inp) { inp.value = ''; }
+  }
+  captureFormSnapshot('Toggle substitute note');
+  row.classList.toggle('show', showing);
+  btn.classList.toggle('on', showing);
+  if (showing) {
+    const inp = row.querySelector('.sub-ing-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
   }
 }
-
 function toggleIngNote(btn) {
-  captureFormSnapshot('Toggle ingredient note');
   const wrap = btn.closest('.ing-row-wrap');
   const row  = wrap.querySelector('.ing-note-row');
   const showing = !row.classList.contains('show');
-  row.classList.toggle('show', showing);
-  // Sync all .ing-note-btn in this wrap (desktop + mobile both exist in DOM)
-  wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.toggle('on', showing));
-  if (showing) {
-    const inp = row.querySelector('.ing-note-inp');
-    if (inp) { _pendingSnapshot = null; inp.focus(); }
-  } else {
+  if (!showing) {
+    // Turning OFF — check for content first before toggling anything
     const inp = row.querySelector('.ing-note-inp');
     if (inp && inp.value.trim()) {
+      // Force row to stay visible and buttons active before showing confirm
+      // (guards against touch-event double-fire on iOS)
+      row.classList.add('show');
+      wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.add('on'));
       showConfirm('Remove this note?',
         'The note content will be lost.',
         [{ label: 'Remove note', danger: true, fn: () => {
@@ -6773,10 +6800,18 @@ function toggleIngNote(btn) {
           wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.remove('on'));
         }}]
       );
-      return; // don't toggle yet — let confirm handle it
+      return; // cancel: leave row visible, content intact
     } else if (inp) {
       inp.value = '';
     }
+  }
+  // Safe to toggle now (either showing, or hiding with empty/confirmed)
+  captureFormSnapshot('Toggle ingredient note');
+  row.classList.toggle('show', showing);
+  wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.toggle('on', showing));
+  if (showing) {
+    const inp = row.querySelector('.ing-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
   }
 }
 
@@ -6893,18 +6928,17 @@ function addStep(btn, stepsEl, stepData) {
 }
 
 function toggleStepNote(btn) {
-  captureFormSnapshot('Toggle step note');
   const wrap = btn.closest('.step-wrap');
-  const row  = wrap.querySelector('.step-note-row');
+  if (!wrap) return;
+  const row = wrap.querySelector('.step-note-row');
+  if (!row) return;
   const showing = !row.classList.contains('show');
-  row.classList.toggle('show', showing);
-  btn.classList.toggle('on', showing);
-  if (showing) {
-    const inp = row.querySelector('.step-note-inp');
-    if (inp) { _pendingSnapshot = null; inp.focus(); }
-  } else {
+  if (!showing) {
     const inp = row.querySelector('.step-note-inp');
     if (inp && inp.value.trim()) {
+      // Force visible before confirm (guards iOS touch double-fire)
+      row.classList.add('show');
+      btn.classList.add('on');
       showConfirm('Remove this note?',
         'The note content will be lost.',
         [{ label: 'Remove note', danger: true, fn: () => {
@@ -6915,12 +6949,16 @@ function toggleStepNote(btn) {
         }}]
       );
       return;
-    } else if (inp) {
-      inp.value = '';
-    }
+    } else if (inp) { inp.value = ''; }
+  }
+  captureFormSnapshot('Toggle step note');
+  row.classList.toggle('show', showing);
+  btn.classList.toggle('on', showing);
+  if (showing) {
+    const inp = row.querySelector('.step-note-inp');
+    if (inp) { _pendingSnapshot = null; inp.focus(); }
   }
 }
-
 function toggleStepNoscale(btn) {
   captureFormSnapshot(btn.classList.contains('on') ? 'Remove step scale override' : 'Add step scale override');
   btn.classList.toggle('on');
@@ -6935,10 +6973,11 @@ function toggleStepNoscale(btn) {
 
 function removeIngRow(btn) {
   const wrap = btn.closest('.ing-row-wrap');
+  // Read from whichever layout is active — desktop or mobile
   const name  = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
               || wrap.querySelector('.ing-name-mobile'))?.value.trim() || '';
-  const amt   = (wrap.querySelector('.amount-inp'))?.value.trim() || '';
-  const prep  = (wrap.querySelector('.prep-inp, .mobile-prep'))?.value.trim() || '';
+  const amt   = (wrap.querySelector('.mobile-amt') || wrap.querySelector('.ing-desktop-row .amount-inp'))?.value.trim() || '';
+  const prep  = (wrap.querySelector('.mobile-prep') || wrap.querySelector('.prep-inp'))?.value.trim() || '';
   const note  = wrap.querySelector('.ing-note-inp')?.value.trim() || '';
   const hasContent = name || amt || prep || note;
   if (!hasContent) {
