@@ -1872,10 +1872,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.22';
+const APP_VERSION = '1.23';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.23',
+    title: 'Delete & note warnings — fully consistent',
+    userNotes: [
+      'Deleting an ingredient now warns if any field has content — not just if it has a name',
+      'Deleting a substitute also warns if amount or note content is present, even without a name',
+      'Turning off a note field that has content typed in now asks for confirmation before clearing it — applies to ingredient notes, step notes, and substitute notes',
+    ],
+    items: [
+      'removeIngRow: now checks name OR amount OR prep OR note for content before prompting. Label says "This ingredient" if no name.',
+      'removeSubEntry: checks name OR amount OR note. Captured wrap ref before removal to fix post-detach DOM bug.',
+      'toggleIngNote, toggleStepNote, toggleSubIngNote: when toggling OFF, if inp.value.trim() is non-empty, show confirm before clearing. On confirm: clear value, remove show class, remove on class from btn.',
+    ]
+  },
   {
     version: '1.22',
     title: 'Substitute delete warning & mode bar polish',
@@ -6310,21 +6324,24 @@ function toggleSubNoscale(btn) {
 
 function removeSubEntry(btn) {
   const entry = btn.closest('.sub-entry');
-  // Check if substitute has a name entered
-  const name = (entry.querySelector('.sub-name') || entry.querySelector('.sub-name-mobile'))?.value.trim() || '';
-  if (!name) {
+  // Capture wrap reference BEFORE any removal
+  const wrap = entry.closest('.ing-row-wrap');
+  const name  = (entry.querySelector('.sub-name') || entry.querySelector('.sub-name-mobile'))?.value.trim() || '';
+  const amt   = (entry.querySelector('.sub-amt') || entry.querySelector('.sub-amt-mobile'))?.value.trim() || '';
+  const note  = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
+  const hasContent = name || amt || note;
+  if (!hasContent) {
     captureFormSnapshot('Remove substitute');
     entry.remove();
     updateSubToggle(btn);
     return;
   }
+  const label = name ? `"${name}"` : 'This substitute';
   showConfirm('Remove this substitute?',
-    `"${name}" will be removed from this ingredient.`,
+    `${label} will be removed. Any filled fields will be lost.`,
     [{ label: 'Remove substitute', danger: true, fn: () => {
       captureFormSnapshot('Remove substitute');
       entry.remove();
-      // btn is detached now — find sub-toggle from a parent we still have
-      const wrap = entry.closest('.ing-row-wrap');
       if (wrap) {
         const subToggle = wrap.querySelector('.sub-toggle');
         const hasRemaining = wrap.querySelectorAll('.sub-entry').length > 0;
@@ -6716,7 +6733,20 @@ function toggleSubIngNote(btn) {
     if (inp) { _pendingSnapshot = null; inp.focus(); }
   } else {
     const inp = row.querySelector('.sub-ing-note-inp');
-    if (inp) inp.value = '';
+    if (inp && inp.value.trim()) {
+      showConfirm('Remove this note?',
+        'The note content will be lost.',
+        [{ label: 'Remove note', danger: true, fn: () => {
+          captureFormSnapshot('Remove substitute note');
+          inp.value = '';
+          row.classList.remove('show');
+          btn.classList.remove('on');
+        }}]
+      );
+      return;
+    } else if (inp) {
+      inp.value = '';
+    }
   }
 }
 
@@ -6733,7 +6763,20 @@ function toggleIngNote(btn) {
     if (inp) { _pendingSnapshot = null; inp.focus(); }
   } else {
     const inp = row.querySelector('.ing-note-inp');
-    if (inp) inp.value = '';
+    if (inp && inp.value.trim()) {
+      showConfirm('Remove this note?',
+        'The note content will be lost.',
+        [{ label: 'Remove note', danger: true, fn: () => {
+          captureFormSnapshot('Remove ingredient note');
+          inp.value = '';
+          row.classList.remove('show');
+          wrap.querySelectorAll('.ing-note-btn').forEach(b => b.classList.remove('on'));
+        }}]
+      );
+      return; // don't toggle yet — let confirm handle it
+    } else if (inp) {
+      inp.value = '';
+    }
   }
 }
 
@@ -6861,7 +6904,20 @@ function toggleStepNote(btn) {
     if (inp) { _pendingSnapshot = null; inp.focus(); }
   } else {
     const inp = row.querySelector('.step-note-inp');
-    if (inp) inp.value = '';
+    if (inp && inp.value.trim()) {
+      showConfirm('Remove this note?',
+        'The note content will be lost.',
+        [{ label: 'Remove note', danger: true, fn: () => {
+          captureFormSnapshot('Remove step note');
+          inp.value = '';
+          row.classList.remove('show');
+          btn.classList.remove('on');
+        }}]
+      );
+      return;
+    } else if (inp) {
+      inp.value = '';
+    }
   }
 }
 
@@ -6879,16 +6935,20 @@ function toggleStepNoscale(btn) {
 
 function removeIngRow(btn) {
   const wrap = btn.closest('.ing-row-wrap');
-  // Check if row has any content worth confirming
-  const name = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
-             || wrap.querySelector('.ing-name-mobile'))?.value.trim() || '';
-  if (!name) {
+  const name  = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
+              || wrap.querySelector('.ing-name-mobile'))?.value.trim() || '';
+  const amt   = (wrap.querySelector('.amount-inp'))?.value.trim() || '';
+  const prep  = (wrap.querySelector('.prep-inp, .mobile-prep'))?.value.trim() || '';
+  const note  = wrap.querySelector('.ing-note-inp')?.value.trim() || '';
+  const hasContent = name || amt || prep || note;
+  if (!hasContent) {
     captureFormSnapshot('Remove ingredient');
     wrap.remove();
     return;
   }
+  const label = name ? `"${name}"` : 'This ingredient';
   showConfirm('Remove this ingredient?',
-    `"${name}" will be removed from this section.`,
+    `${label} will be removed. Any filled fields will be lost.`,
     [{ label: 'Remove ingredient', danger: true, fn: () => {
       captureFormSnapshot('Remove ingredient');
       wrap.remove();
