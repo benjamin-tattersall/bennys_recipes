@@ -1562,6 +1562,8 @@ header{
         <p>Substitutes support the same scale overrides as regular ingredients. Use the <strong>⊘ button</strong> within the substitute panel to set specific amounts for ½×, 2×, or 3× scale if the substitute doesn't scale proportionally.</p>
         <h3>Multiple substitutes</h3>
         <p>An ingredient can have more than one substitute — for example, a recipe calling for cream might offer both a coconut cream substitute and an oat cream substitute. Only one substitute can be active at a time per ingredient.</p>
+        <h3>Substitute groups — recipe modes</h3>
+        <p>When editing a substitute, you can assign it a <strong>Group</strong> using the dropdown (e.g. "Dairy Free", "Vegan"). When any substitutes have a group set, a <strong>Mode</strong> bar appears above the ingredients when viewing the recipe. Tapping a mode (e.g. "Dairy Free") activates all substitutes tagged to that group at once — swapping every matching ingredient simultaneously. Tap <strong>Original</strong> to revert.</p>
       </div>
 
       <div class="info-pane" id="info-pane-filter">
@@ -1869,10 +1871,24 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.20',
+    title: 'Bug fixes — substitute scale toggle & group save on iPhone',
+    userNotes: [
+      'Disabling scaling for a recipe now also hides the scale override button on substitute ingredients',
+      'Substitute groups now save correctly on iPhone — the mode switcher should appear after saving',
+      'Info window updated with substitute groups documentation',
+    ],
+    items: [
+      'T98: applyScalableUI now targets .sub-noscale-toggle in addition to .noscale-toggle.',
+      'T100: sGroup collection in saveRecipe now uses isMobileLayout() to read from .sub-entry-mobile .sub-group-inp on iPhone and .sub-entry-head .sub-group-inp on desktop. Previously always read desktop (hidden on iPhone).',
+      'Info window: added substitute groups / mode switcher section to Substitutes pane.',
+    ]
+  },
   {
     version: '1.19',
     title: 'Section collapse & group fixes',
@@ -5392,10 +5408,10 @@ function toggleScalable() {
 
 function applyScalableUI(scalable) {
   // Show/hide all ⊘ noscale buttons in the form
-  document.querySelectorAll('.noscale-toggle').forEach(btn => {
+  document.querySelectorAll('.noscale-toggle, .sub-noscale-toggle').forEach(btn => {
     btn.style.display = scalable ? '' : 'none';
     if (!scalable) {
-      const noteRow = btn.closest('.ing-row-wrap, .step-wrap')?.querySelector('.noscale-note-row');
+      const noteRow = btn.closest('.ing-row-wrap, .step-wrap, .sub-entry')?.querySelector('.noscale-note-row, .sub-noscale-note-row');
       if (noteRow) noteRow.classList.remove('show');
     }
   });
@@ -5596,7 +5612,10 @@ async function saveRecipe() {
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
           const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
           const sIngNote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
-          const sGroup   = entry.querySelector('.sub-group-inp')?.value.trim() || '';
+          // T100: read group from mobile entry on iPhone, desktop on desktop
+          const desktopGroupEl = entry.querySelector('.sub-entry-head .sub-group-inp');
+          const mobileGroupEl  = entry.querySelector('.sub-entry-mobile .sub-group-inp');
+          const sGroup = (isMobileLayout() ? mobileGroupEl : (desktopGroupEl || mobileGroupEl))?.value.trim() || '';
           // Check ANY sub-noscale-toggle with .on (desktop + mobile both exist in DOM)
           const sNs = entry.querySelector('.sub-noscale-toggle.on') !== null;
           const readSubOv = (cls) => {
