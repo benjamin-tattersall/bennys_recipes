@@ -1872,10 +1872,23 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.21';
+const APP_VERSION = '1.22';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.22',
+    title: 'Substitute delete warning & mode bar polish',
+    userNotes: [
+      'Deleting a substitute ingredient with a name now shows a confirmation prompt before removing it',
+      'The substitute mode switcher no longer shows a "Mode:" label — just the toggle buttons',
+    ],
+    items: [
+      'removeSubEntry: added name check + showConfirm prompt matching removeIngRow behaviour. btn may be detached after confirm so sub-toggle cleanup reads from closest ing-row-wrap instead.',
+      'groupBarHtml: removed sub-group-lbl span with Mode: text.',
+      'T101/T102/T103 added to backlog.',
+    ]
+  },
   {
     version: '1.21',
     title: 'Note icon & iPhone substitute close button',
@@ -5110,7 +5123,7 @@ function renderViewBody(r) {
     const groupBtns = [...subGroups].map(g =>
       '<button class="sub-group-btn" onclick="activateSubGroup(\'' + esc(g).replace(/'/g, '&#39;') + '\', this)">' + esc(g) + '</button>'
     ).join('');
-    groupBarHtml = '<div class="sub-group-bar"><span class="sub-group-lbl">Mode:</span><button class="sub-group-btn active" onclick="activateSubGroup(null, this)">Original</button>' + groupBtns + '</div>';
+    groupBarHtml = '<div class="sub-group-bar"><button class="sub-group-btn active" onclick="activateSubGroup(null, this)">Original</button>' + groupBtns + '</div>';
   }
 
   vbody.innerHTML = `
@@ -6296,9 +6309,29 @@ function toggleSubNoscale(btn) {
 }
 
 function removeSubEntry(btn) {
-  captureFormSnapshot('Remove substitute');
-  btn.closest('.sub-entry').remove();
-  updateSubToggle(btn);
+  const entry = btn.closest('.sub-entry');
+  // Check if substitute has a name entered
+  const name = (entry.querySelector('.sub-name') || entry.querySelector('.sub-name-mobile'))?.value.trim() || '';
+  if (!name) {
+    captureFormSnapshot('Remove substitute');
+    entry.remove();
+    updateSubToggle(btn);
+    return;
+  }
+  showConfirm('Remove this substitute?',
+    `"${name}" will be removed from this ingredient.`,
+    [{ label: 'Remove substitute', danger: true, fn: () => {
+      captureFormSnapshot('Remove substitute');
+      entry.remove();
+      // btn is detached now — find sub-toggle from a parent we still have
+      const wrap = entry.closest('.ing-row-wrap');
+      if (wrap) {
+        const subToggle = wrap.querySelector('.sub-toggle');
+        const hasRemaining = wrap.querySelectorAll('.sub-entry').length > 0;
+        if (subToggle && !hasRemaining) subToggle.classList.remove('on');
+      }
+    }}]
+  );
 }
 
 function updateSubToggle(el) {
