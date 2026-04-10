@@ -1872,10 +1872,21 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.26';
+const APP_VERSION = '1.27';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.27',
+    title: 'Substitute delete warning — all fields covered',
+    userNotes: [
+      'Deleting a substitute now warns when prep or reason fields are filled, not just name and amount',
+      'Substitute delete warning now works correctly on desktop as well as iPhone',
+    ],
+    items: [
+      'removeSubEntry: added isMobileLayout() branching (same as removeIngRow). Added prep (.sub-prep-mobile/.sub-prep-inp) and reason (.sub-note-mobile/.sub-note-inp) to hasContent check. sub-ing-note-inp (sub-level note) also still checked.',
+    ]
+  },
   {
     version: '1.26',
     title: 'Ingredient delete warning — properly fixed on iPhone',
@@ -6362,11 +6373,22 @@ function removeSubEntry(btn) {
   const entry = btn.closest('.sub-entry');
   // Capture wrap reference BEFORE any removal
   const wrap = entry.closest('.ing-row-wrap');
-  // Read mobile-first — desktop sub-entry-head is hidden on iPhone
-  const name  = (entry.querySelector('.sub-name-mobile') || entry.querySelector('.sub-name'))?.value.trim() || '';
-  const amt   = (entry.querySelector('.sub-amt-mobile') || entry.querySelector('.sub-amt'))?.value.trim() || '';
-  const note  = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
-  const hasContent = name || amt || note;
+  // Use isMobileLayout() to read the correct visible inputs
+  const mobile = isMobileLayout();
+  const name   = mobile
+    ? entry.querySelector('.sub-name-mobile')?.value.trim() || ''
+    : entry.querySelector('.sub-name')?.value.trim() || '';
+  const amt    = mobile
+    ? entry.querySelector('.sub-amt-mobile')?.value.trim() || ''
+    : entry.querySelector('.sub-amt')?.value.trim() || '';
+  const prep   = mobile
+    ? entry.querySelector('.sub-prep-mobile')?.value.trim() || ''
+    : entry.querySelector('.sub-prep-inp')?.value.trim() || '';
+  const reason = mobile
+    ? entry.querySelector('.sub-note-mobile')?.value.trim() || ''
+    : entry.querySelector('.sub-note-inp')?.value.trim() || '';
+  const subnote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
+  const hasContent = name || amt || prep || reason || subnote;
   if (!hasContent) {
     captureFormSnapshot('Remove substitute');
     entry.remove();
