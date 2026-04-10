@@ -1872,10 +1872,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.25';
+const APP_VERSION = '1.26';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.26',
+    title: 'Ingredient delete warning — properly fixed on iPhone',
+    userNotes: [
+      'Deleting a newly created ingredient on iPhone now correctly shows a warning when any field has been filled in',
+    ],
+    items: [
+      'removeIngRow: replaced mobile-first || fallback selector (which returned the empty desktop element instead of mobile value) with isMobileLayout() branching — same pattern as saveRecipe. Now reads .ing-name-mobile / .mobile-amt / .mobile-prep on iPhone and desktop inputs on desktop.',
+    ]
+  },
   {
     version: '1.25',
     title: 'Note toggle warnings — properly fixed',
@@ -6973,11 +6983,17 @@ function toggleStepNoscale(btn) {
 
 function removeIngRow(btn) {
   const wrap = btn.closest('.ing-row-wrap');
-  // Read from whichever layout is active — desktop or mobile
-  const name  = (wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')
-              || wrap.querySelector('.ing-name-mobile'))?.value.trim() || '';
-  const amt   = (wrap.querySelector('.mobile-amt') || wrap.querySelector('.ing-desktop-row .amount-inp'))?.value.trim() || '';
-  const prep  = (wrap.querySelector('.mobile-prep') || wrap.querySelector('.prep-inp'))?.value.trim() || '';
+  // Use isMobileLayout() to pick the right inputs — same pattern as saveRecipe
+  const mobile = isMobileLayout();
+  const name  = mobile
+    ? wrap.querySelector('.ing-name-mobile')?.value.trim() || ''
+    : wrap.querySelector('.ing-desktop-row .ing-name-wrap input[type="text"]')?.value.trim() || '';
+  const amt   = mobile
+    ? wrap.querySelector('.mobile-amt')?.value.trim() || ''
+    : wrap.querySelector('.ing-desktop-row .amount-inp')?.value.trim() || '';
+  const prep  = mobile
+    ? wrap.querySelector('.mobile-prep')?.value.trim() || ''
+    : wrap.querySelector('.prep-inp')?.value.trim() || '';
   const note  = wrap.querySelector('.ing-note-inp')?.value.trim() || '';
   const hasContent = name || amt || prep || note;
   if (!hasContent) {
