@@ -697,7 +697,7 @@ header{
 .scalable-toggle-row{
   display:flex;align-items:center;justify-content:space-between;
   padding:0.5rem 0.7rem;border:1px solid var(--border);
-  border-radius:var(--radius) var(--radius) 0 0;
+  border-radius:var(--radius);
   background:var(--paper);cursor:pointer;
 }
 .scalable-toggle-row label{
@@ -1374,25 +1374,27 @@ header{
         <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
-      <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
-        <label for="f-scalable">
-          Recipe can be scaled
-          <span>When off, hides scale controls and ⊘ flags</span>
-        </label>
-        <div class="stoggle-pip"></div>
-      </div>
-      <!-- T103: scale options visually attached below toggle card -->
-      <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0.7rem 0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:var(--paper);margin-top:-1px">
-        <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
-          <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
-          <input type="checkbox" id="scale-double" checked onchange="updateScaleOptions()"> 2×
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
-          <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
-        </label>
+      <div style="display:flex;flex-direction:column">
+        <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
+          <label for="f-scalable">
+            Recipe can be scaled
+            <span>When off, hides scale controls and ⊘ flags</span>
+          </label>
+          <div class="stoggle-pip"></div>
+        </div>
+        <!-- T103: scale options inside same flex column — no fbody gap between them -->
+        <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0.7rem 0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:var(--paper)">
+          <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-double" checked onchange="updateScaleOptions()"> 2×
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
+          </label>
+        </div>
       </div>
 
       <div class="fg">
@@ -1440,7 +1442,6 @@ header{
       <div style="display:flex;gap:0.55rem">
         <!-- duplicate btn hidden but kept for future use -->
         <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate</button>
-        <button class="btn-sec" onclick="closeEdit()">Cancel</button>
         <button id="edit-publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
         <button class="btn-pri" onclick="saveRecipe()">Save</button>
       </div>
@@ -1874,10 +1875,30 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.36';
+const APP_VERSION = '1.38';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.38',
+    title: 'Edit form — Cancel button removed',
+    userNotes: [
+      'The Cancel button has been removed from the edit form footer — use the × close button in the header instead. This gives the Duplicate, Publish and Save buttons more breathing room on small screens.',
+    ],
+    items: [
+      'Removed btn-sec Cancel button from form-foot right group. × header button (closeEdit) remains as the cancel action.',
+    ]
+  },
+  {
+    version: '1.37',
+    title: 'T103 gap fixed — scale options flush with toggle',
+    userNotes: [
+      'The scale tick boxes (½×, 2×, 3×) are now flush against the "Recipe can be scaled" toggle with no gap between them',
+    ],
+    items: [
+      'T103: wrapped scalable-toggle-row and scale-options-row in a display:flex flex-direction:column div so fbody gap:0.9rem does not apply between them. margin-top:-1px removed (not needed). Toggle row border-radius stays full — applyScalableUI adjusts to top-only when options are visible.',
+    ]
+  },
   {
     version: '1.36',
     title: 'T103 fix — scale options card visual approach',
