@@ -694,10 +694,10 @@ header{
 .scale-override-row input:focus{border-color:var(--warning)}
 .scale-override-row input::placeholder{color:var(--ink-faint)}
 /* scalable toggle in form */
-.scalable-toggle-card{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .scalable-toggle-row{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0.5rem 0.7rem;
+  padding:0.5rem 0.7rem;border:1px solid var(--border);
+  border-radius:var(--radius) var(--radius) 0 0;
   background:var(--paper);cursor:pointer;
 }
 .scalable-toggle-row label{
@@ -1374,16 +1374,15 @@ header{
         <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
-      <div class="scalable-toggle-card" id="scalable-card">
-        <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
-          <label for="f-scalable">
-            Recipe can be scaled
-            <span>When off, hides scale controls and ⊘ flags</span>
-          </label>
-          <div class="stoggle-pip"></div>
-        </div>
-        <!-- T103: scale options now inside the card -->
-        <div id="scale-options-row" style="display:flex;gap:1rem;padding:4px 0.7rem 0.5rem;flex-wrap:wrap;border-top:1px solid var(--border)">
+      <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
+        <label for="f-scalable">
+          Recipe can be scaled
+          <span>When off, hides scale controls and ⊘ flags</span>
+        </label>
+        <div class="stoggle-pip"></div>
+      </div>
+      <!-- T103: scale options visually attached below toggle card -->
+      <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0.7rem 0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:var(--paper);margin-top:-1px">
         <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
         <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
           <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
@@ -1394,8 +1393,7 @@ header{
         <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
           <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
         </label>
-        </div>
-      </div><!-- /scalable-toggle-card -->
+      </div>
 
       <div class="fg">
         <label>Ingredients</label>
@@ -1876,10 +1874,20 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.35';
+const APP_VERSION = '1.36';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.36',
+    title: 'T103 fix — scale options card visual approach',
+    userNotes: [
+      'The ½×/2×/3× tick boxes are now visually grouped with the scaling toggle using a CSS-connected border approach — same clean look without the DOM wrapper that caused the content to vanish',
+    ],
+    items: [
+      'T103 rework: replaced scalable-toggle-card wrapper div (caused content to disappear) with CSS-attached scale-options-row: border on all sides except top, border-radius only on bottom corners, margin-top:-1px to merge borders. applyScalableUI now also toggles border-radius on scalable-row (full radius when options hidden, top-only when shown).',
+    ]
+  },
   {
     version: '1.35',
     title: 'Group A sprint — step indicators, scale hiding, scale card, duplicate button',
@@ -5632,6 +5640,11 @@ function applyScalableUI(scalable) {
   // Show/hide the scale options (½× 2× 3× checkboxes)
   const optRow = document.getElementById('scale-options-row');
   if (optRow) optRow.style.display = scalable ? 'flex' : 'none';
+  // T103: round toggle-row bottom corners when options row is hidden
+  const toggleRow = document.getElementById('scalable-row');
+  if (toggleRow) toggleRow.style.borderRadius = scalable
+    ? 'var(--radius) var(--radius) 0 0'
+    : 'var(--radius)';
 }
 
 function updateScaleOptions() {
