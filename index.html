@@ -694,9 +694,10 @@ header{
 .scale-override-row input:focus{border-color:var(--warning)}
 .scale-override-row input::placeholder{color:var(--ink-faint)}
 /* scalable toggle in form */
+.scalable-toggle-card{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .scalable-toggle-row{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0.5rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);
+  padding:0.5rem 0.7rem;
   background:var(--paper);cursor:pointer;
 }
 .scalable-toggle-row label{
@@ -1373,15 +1374,16 @@ header{
         <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
       </div>
 
-      <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
-        <label for="f-scalable">
-          Recipe can be scaled
-          <span>When off, hides scale controls and ⊘ flags</span>
-        </label>
-        <div class="stoggle-pip"></div>
-      </div>
-      <!-- T30: which scales are enabled for this recipe -->
-      <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0 2px;flex-wrap:wrap">
+      <div class="scalable-toggle-card" id="scalable-card">
+        <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
+          <label for="f-scalable">
+            Recipe can be scaled
+            <span>When off, hides scale controls and ⊘ flags</span>
+          </label>
+          <div class="stoggle-pip"></div>
+        </div>
+        <!-- T103: scale options now inside the card -->
+        <div id="scale-options-row" style="display:flex;gap:1rem;padding:4px 0.7rem 0.5rem;flex-wrap:wrap;border-top:1px solid var(--border)">
         <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
         <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
           <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
@@ -1392,7 +1394,8 @@ header{
         <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
           <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
         </label>
-      </div>
+        </div>
+      </div><!-- /scalable-toggle-card -->
 
       <div class="fg">
         <label>Ingredients</label>
@@ -1438,7 +1441,7 @@ header{
       </div>
       <div style="display:flex;gap:0.55rem">
         <!-- duplicate btn hidden but kept for future use -->
-        <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn" style="display:none">Duplicate</button>
+        <button class="btn-sec" onclick="duplicateRecipe()" id="duplicate-btn">Duplicate</button>
         <button class="btn-sec" onclick="closeEdit()">Cancel</button>
         <button id="edit-publish-btn" class="btn-publish" onclick="togglePublish()">Publish</button>
         <button class="btn-pri" onclick="saveRecipe()">Save</button>
@@ -1585,6 +1588,7 @@ header{
         <p><strong>Text file (.txt)</strong> — a plain, human-readable file listing every recipe with ingredients, substitutes, and method steps. Easy to open anywhere, including your phone's Notes app.</p>
         <p><strong>Markdown (.md)</strong> — the same content formatted with headings and bold text. Opens nicely in any markdown viewer, Notion, GitHub, or Obsidian.</p>
         <p><strong>Spreadsheet (.csv)</strong> — one row per recipe with columns for name, tags, cook time, serves, source, notes, ingredients, and method. Opens in Excel or Google Sheets.</p>
+        <p><strong>Interactive HTML (.html)</strong> — a single self-contained file for one recipe. Includes scale buttons, substitute toggles, and note reveals. Ideal for sharing a recipe with someone who doesn't use the app — just open in any browser.</p>
         <p><strong>Full Gist backup (.json)</strong> — a complete snapshot of your Gist files (recipes, bin, and settings). Use this to migrate to a new Gist or restore everything from scratch using the same version of the app.</p>
         <h3>Automatic backups in your Gist</h3>
         <p>Every time you save a recipe, the app also writes <code>backup.txt</code> and <code>backup.csv</code> files directly to your Gist. These update automatically so you always have a recent, human-readable copy available — no manual download needed.</p>
@@ -1872,10 +1876,26 @@ const WHEEL_ITEMS = {
 };
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.34';
+const APP_VERSION = '1.35';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.35',
+    title: 'Group A sprint — step indicators, scale hiding, scale card, duplicate button',
+    userNotes: [
+      'Collapsed method sections now show note and scale override indicators alongside each step preview — matching how ingredient sections behave',
+      'Scale override indicators (⊘) are now hidden in compact ingredient and section views when the recipe has scaling turned off',
+      'The ½×, 2×, 3× scale tick boxes now sit inside the same bordered card as the "Recipe can be scaled" toggle — cleaner grouped look',
+      'The Duplicate button now appears in the edit form footer when editing an existing recipe (hidden for new recipes)',
+    ],
+    items: [
+      'T101: toggleSecCollapse method section — added hasNote/hasScale detection, NOTE_SVG notepad icon, inline indicator row with space-between layout matching ingredient dot-points.',
+      'T102: updateIngSummary stateMap — scale indicator gated by scalingOn check. Section collapse ingredient and step indicators both gated by scalable-row.off state.',
+      'T103: scalable-toggle-card wrapper div added. scale-options-row now child of card with border-top separator. .scalable-toggle-row border/radius removed (inherited from card).',
+      'T87: duplicate-btn display:none removed from HTML. openEdit() now shows/hides duplicate-btn alongside delete and publish buttons based on editId.',
+    ]
+  },
   {
     version: '1.34',
     title: 'HTML export — substitute amount inheritance',
@@ -5581,6 +5601,8 @@ function openEdit(r) {
   // Show delete/publish buttons only when editing an existing recipe
   const delBtn = document.getElementById('edit-delete-btn');
   if (delBtn) delBtn.style.display = editId ? '' : 'none';
+  const dupBtn = document.getElementById('duplicate-btn');
+  if (dupBtn) dupBtn.style.display = editId ? '' : 'none';
   const pubBtn = document.getElementById('edit-publish-btn');
   if (pubBtn) pubBtn.style.display = editId ? '' : 'none';
   // Sync publish button state with current recipe
@@ -6787,7 +6809,8 @@ function updateIngSummary(wrap) {
   }
 
   // Indicators — show/hide each one
-  const stateMap = { note: hasNote, sub: hasSub, scale: hasScale, opt: isOpt };
+  const scalable = !document.getElementById('scalable-row')?.classList.contains('off');
+  const stateMap = { note: hasNote, sub: hasSub, scale: hasScale && scalable, opt: isOpt };
   summary.querySelectorAll('.ing-summary-indicator').forEach(el => {
     const active = stateMap[el.dataset.key] || false;
     el.classList.toggle('on', active);
@@ -6831,6 +6854,7 @@ function toggleSecCollapse(btn) {
             const hasSub   = wrap.querySelector('.sub-toggle.on')     !== null;
             const hasScale = wrap.querySelector('.noscale-toggle.on') !== null;
             const isOpt    = wrap.querySelector('.optional-toggle.on') !== null;
+            const scalingOn = !document.getElementById('scalable-row')?.classList.contains('off');
 
             const qtyParts = [amt, unit].filter(Boolean).join('\u00a0');
             const prepPart = prep ? ` \u2013 ${prep}` : '';
@@ -6845,7 +6869,7 @@ function toggleSecCollapse(btn) {
             const indicators = [
               hasNote  ? `<span style="color:var(--note-text);font-size:0.7rem;display:flex;align-items:center">${NOTE_SVG}</span>` : '',
               hasSub   ? `<span style="color:var(--accent-dim);font-size:0.7rem">⇄</span>` : '',
-              hasScale ? `<span style="color:var(--warning);font-size:0.7rem">⊘</span>` : '',
+              (hasScale && scalingOn) ? `<span style="color:var(--warning);font-size:0.7rem">⊘</span>` : '',
               isOpt    ? `<span style="color:var(--ink-muted);font-size:0.7rem;display:flex;align-items:center">${OPT_SVG}</span>` : '',
             ].filter(Boolean).join('');
             const indicatorHtml = indicators
@@ -6870,11 +6894,24 @@ function toggleSecCollapse(btn) {
           summaryEl.innerHTML = '<span style="color:var(--ink-faint);font-style:italic;font-size:0.78rem">No steps</span>';
         } else {
           summaryEl.innerHTML = steps.map((wrap, i) => {
-            const text = wrap.querySelector('.step-ta')?.value.trim() || '';
-            const preview = text.length > 60 ? text.slice(0, 60) + '…' : text;
+            const text     = wrap.querySelector('.step-ta')?.value.trim() || '';
+            const preview  = text.length > 60 ? text.slice(0, 60) + '…' : text;
+            const hasNote  = wrap.querySelector('.step-note-btn.on')    !== null;
+            const hasScale = wrap.querySelector('.noscale-toggle.on')   !== null;
+            const NOTE_SVG = `<svg viewBox="0 0 10 10" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg>`;
+            const indicators = [
+              hasNote  ? `<span style="color:var(--note-text);display:flex;align-items:center">${NOTE_SVG}</span>` : '',
+              hasScale ? `<span style="color:var(--warning)">⊘</span>` : '',
+            ].filter(Boolean).join('');
+            const indicatorHtml = indicators ? `<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${indicators}</div>` : '';
             return `<div style="display:flex;align-items:flex-start;gap:6px;padding:2px 0">
               <span style="color:var(--ink);font-size:0.7rem;margin-top:3px;flex-shrink:0">•</span>
-              <span style="font-size:0.78rem;color:${text ? 'var(--ink-mid)' : 'var(--ink-faint)'};${text ? '' : 'font-style:italic'}">${preview || 'Empty step'}</span>
+              <div style="min-width:0;flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                  <span style="font-size:0.78rem;color:${text ? 'var(--ink-mid)' : 'var(--ink-faint)'};${text ? '' : 'font-style:italic;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${preview || 'Empty step'}</span>
+                  ${indicatorHtml}
+                </div>
+              </div>
             </div>`;
           }).join('');
         }
